@@ -33,6 +33,8 @@ export type AssessmentResult = {
   recommendedDay: number;
 };
 
+export const PUBLISHED_DAY_LIMIT = 7;
+
 export const ASSESSMENT_DIMENSIONS: AssessmentDimension[] = [
   {
     id: "self-worth",
@@ -171,8 +173,10 @@ function inferPrimaryMode(scores: Record<DimensionId, DimensionScore>): string {
 }
 
 function inferRecommendedDay(totalScore100: number): number {
-  if (totalScore100 < 20) return 51;
-  if (totalScore100 < 40) return 26;
-  if (totalScore100 < 60) return 8;
-  return 1;
+  let recommendedDay = 1;
+  if (totalScore100 < 20) recommendedDay = 51;
+  else if (totalScore100 < 40) recommendedDay = 26;
+  else if (totalScore100 < 60) recommendedDay = 8;
+
+  return Math.min(recommendedDay, PUBLISHED_DAY_LIMIT);
 }

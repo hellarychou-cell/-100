@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { clearLocalUser, setLocalUser } from "@/lib/auth";
+import { buildPhoneAuthIdentity } from "@/lib/phone-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
@@ -29,32 +30,35 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
 
     try {
+      const { authEmail, storedPhone } = buildPhoneAuthIdentity(phone);
+
       if (isSupabaseConfigured && supabase) {
         if (isRegister) {
           const { data, error } = await supabase.auth.signUp({
-            phone,
+            email: authEmail,
             password,
-            options: { data: { display_name: displayName, phone } },
+            options: { data: { display_name: displayName, phone: storedPhone } },
           });
           if (error) throw error;
           if (data.user) {
-            await supabase.from("profiles").upsert({
+            const { error: profileError } = await supabase.from("profiles").upsert({
               id: data.user.id,
-              phone,
+              phone: storedPhone,
               display_name: displayName,
             });
+            if (profileError) throw profileError;
           }
         } else {
-          const { error } = await supabase.auth.signInWithPassword({ phone, password });
+          const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
           if (error) throw error;
         }
       } else {
         setLocalUser({
-          id: `local-${phone}`,
-          phone,
+          id: `local-${storedPhone}`,
+          phone: storedPhone,
           displayName,
-          isMember: phone.endsWith("9999"),
-          membershipExpiresAt: phone.endsWith("9999") ? new Date(Date.now() + 30 * 86400000).toISOString() : undefined,
+          isMember: storedPhone.endsWith("9999"),
+          membershipExpiresAt: storedPhone.endsWith("9999") ? new Date(Date.now() + 30 * 86400000).toISOString() : undefined,
         });
       }
 
