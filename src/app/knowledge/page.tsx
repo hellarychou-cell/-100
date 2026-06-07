@@ -41,7 +41,7 @@ export default function KnowledgePage() {
             </h1>
           </div>
           <div className="self-end">
-            <div className="max-h-[260px] max-w-2xl overflow-auto pr-3">
+            <div className="max-w-2xl overflow-auto pr-3">
               {introBlocks.map((block, index) => {
                 if (block.type === "heading") {
                   return (
