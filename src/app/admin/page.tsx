@@ -1,14 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { adminUsers } from "@/lib/content";
+import { useState, useEffect, useCallback } from "react";
 
-const ADMIN_NAME = process.env.NEXT_PUBLIC_ADMIN_NAME || "周馨怡";
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "zxy19941210";
 const ADMIN_SESSION_KEY = "chengta_admin_session";
 
+type AdminUser = {
+  id: string;
+  name: string;
+  phone: string;
+  day: number | null;
+  assessment: string;
+  assessmentDate: string | null;
+  expires: string | null;
+  aiPaused: boolean;
+};
+
 function AdminLoginForm({ onSuccess }: { onSuccess: () => void }) {
+  const ADMIN_NAME = process.env.NEXT_PUBLIC_ADMIN_NAME || "周馨怡";
+  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "zxy19941210";
+
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -72,13 +83,82 @@ export default function AdminPage() {
     return window.localStorage.getItem(ADMIN_SESSION_KEY) === "true";
   });
 
-  if (!isAuthenticated) {
-    return <AdminLoginForm onSuccess={() => setIsAuthenticated(true)} />;
-  }
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (data.users) setUsers(data.users);
+    } catch (e) {
+      console.error("Failed to fetch users", e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUsers();
+    }
+  }, [isAuthenticated, fetchUsers]);
 
   function handleLogout() {
     window.localStorage.removeItem(ADMIN_SESSION_KEY);
     setIsAuthenticated(false);
+  }
+
+  async function handleExtend(userId: string) {
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/extend`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, expires: data.expires_at } : u,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error("Failed to extend", e);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handlePause(userId: string) {
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/pause`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, aiPaused: true } : u,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error("Failed to pause", e);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  function formatExpires(expires: string | null) {
+    if (!expires) return "未开通";
+    const d = new Date(expires);
+    const now = new Date();
+    if (d < now) return `已到期`;
+    return d.toLocaleDateString("zh-CN");
+  }
+
+  if (!isAuthenticated) {
+    return <AdminLoginForm onSuccess={() => setIsAuthenticated(true)} />;
   }
 
   return (
@@ -98,21 +178,50 @@ export default function AdminPage() {
               搜索手机号 / 姓名
             </div>
           </div>
-          <section className="grid min-h-0 grid-rows-[38px_repeat(5,1fr)] overflow-hidden border border-[var(--line)] bg-paper/50 max-lg:block max-lg:overflow-auto">
+         <section className="grid min-h-0 grid-rows-[38px_repeat(5,1fr)] overflow-hidden border border-[var(--line)] bg-paper/50 max-lg:block max-lg:overflow-auto">
             <TableHeader />
-            {adminUsers.map((user) => (
-              <div key={user.phone} className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_170px] items-center border-b border-ink/10 sans text-xs text-[var(--muted)] max-lg:min-w-[860px] max-lg:min-h-12">
-                <div className="px-3 font-serif text-lg text-ink">{user.name}</div>
-                <div className="px-3">{user.phone}</div>
-                <div className="px-3">{user.day}</div>
-                <div className="px-3"><span className="pill">{user.assessment}</span></div>
-                <div className="px-3">{user.expires}</div>
-                <div className="flex gap-2 px-3">
-                  <button className="bg-ink px-2 py-1.5 text-soft">加30天</button>
-                  <button className="border border-ink px-2 py-1.5 text-ink">暂停</button>
-                </div>
+            {loading ? (
+              <div className="grid place-items-center text-clay sans text-sm">
+                加载中...
               </div>
-            ))}
+            ) : users.length === 0 ? (
+              <div className="grid place-items-center text-clay sans text-sm">
+               暂无用户
+              </div>
+            ) : (
+              users.map((user) => (
+                <div
+                  key={user.id}
+                  className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_170px] items-center border-b border-ink/10 sans text-xs text-[var(--muted)] max-lg:min-w-[860px] max-lg:min-h-12"
+                >
+                  <div className="px-3 font-serif text-lg text-ink">{user.name}</div>
+                  <div className="px-3">{user.phone}</div>
+                  <div className="px-3">
+                    {user.day ? `Day ${String(user.day).padStart(2, "0")}` : "未开始"}
+                  </div>
+                  <div className="px-3">
+                    <span className="pill">{user.assessment}</span>
+                  </div>
+                  <div className="px-3">{formatExpires(user.expires)}</div>
+                  <div className="flex gap-2 px-3">
+                    <button
+                      className="bg-ink px-2 py-1.5 text-soft disabled:opacity-50"
+                      onClick={() => handleExtend(user.id)}
+                      disabled={actionLoading === user.id}
+                    >
+                      加30天
+                    </button>
+                    <button
+                      className="border border-ink px-2 py-1.5 text-ink disabled:opacity-50"
+                      onClick={() => handlePause(user.id)}
+                      disabled={actionLoading === user.id || user.aiPaused}
+                    >
+                      {user.aiPaused ? "已暂停" : "暂停"}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </section>
           <section className="grid grid-cols-3 gap-3 max-md:grid-cols-1">
             <ContentLink title="Day 内容" detail="Day 1-7 已上线，Day 8-100 待补" href="/admin/content" />
