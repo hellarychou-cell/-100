@@ -15,6 +15,7 @@ export default function AssessmentResultPage() {
           details summary { cursor: default !important; }
           details summary .arrow { display: none !important; }
           .popup-overlay { display: none !important; }
+          .no-print { display: none !important; }
         }
       `}</style>
       <section className="paper-frame grid grid-rows-[56px_1fr]">

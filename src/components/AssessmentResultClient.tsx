@@ -21,11 +21,19 @@ type Profile = {
   name?: string;
 };
 
+const WHY_FROM_DAY: Record<number, string> = {
+  1: "你的系统相对健康，可以从觉醒期第一天开始，慢慢感受。",
+  8: "你的内耗处于中等水平，建议从 Day 8 开始，在稳定中逐步推进。",
+  26: "你的内耗较重，建议从理解期 Day 26 开始，这里有一个相对稳定的入口。",
+  51: "你的内耗处于重度，建议从重建期 Day 51 开始，这里有一个相对稳的入口。",
+};
+
 export function AssessmentResultClient() {
   const [stored, setStored] = useState<StoredResult | null>(null);
   const [profile, setProfile] = useState<Profile>({});
   const [loading, setLoading] = useState(true);
   const [showAuthPopup, setShowAuthPopup] = useState(false);
+  const [showWhyTooltip, setShowWhyTooltip] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,11 +80,8 @@ export function AssessmentResultClient() {
         }
       }
 
-      if (!cancelled) {
-        // Show popup only if result exists (localStorage has data) but user is not logged in
-        if (!loggedIn && localResult?.result) {
-          setShowAuthPopup(true);
-        }
+      if (!cancelled && !loggedIn && localResult?.result) {
+        setShowAuthPopup(true);
       }
 
       if (!cancelled) setLoading(false);
@@ -139,70 +144,106 @@ export function AssessmentResultClient() {
         </div>
       )}
 
-      <section className="grid min-h-0 grid-cols-[minmax(280px,.7fr)_1fr] max-lg:grid-cols-1 max-lg:overflow-auto">
-        {/* Left panel */}
-        <aside className="grid min-h-0 grid-rows-[auto_auto_auto] gap-5 border-r border-[var(--line)] bg-paper/50 p-[clamp(20px,3vw,36px)] max-lg:border-b max-lg:border-r-0">
-          <div>
-            <div className="eyebrow mb-3">Personal report · 42 questions</div>
-            <h1 className="font-serif text-[clamp(38px,5vw,68px)] font-normal leading-[.92] text-ink">
-              {name}的
-              <br />
-              底层代码
-              <br />
-              诊断。
-            </h1>
-          </div>
-
-          <div className="self-center">
-            <div className="flex items-end gap-3">
-              <strong className="text-[88px] font-normal leading-[.85]">{Math.round(result.totalScore100)}</strong>
-              <span className="pb-2 sans text-sm text-[var(--muted)]">/ 100</span>
+      <div className="flex flex-col">
+        <div className="grid min-h-0 grid-cols-[minmax(280px,.7fr)_1fr] max-lg:grid-cols-1 max-lg:overflow-auto">
+          {/* Left panel */}
+          <aside className="grid min-h-0 grid-rows-[auto_auto_auto] gap-5 border-r border-[var(--line)] bg-paper/50 p-[clamp(20px,3vw,36px)] max-lg:border-b max-lg:border-r-0">
+            <div>
+              <div className="eyebrow mb-3">Personal report · 42 questions</div>
+              <h1 className="font-serif text-[clamp(38px,5vw,68px)] font-normal leading-[.92] text-ink">
+                {name}的
+                <br />
+                底层代码
+                <br />
+                诊断。
+              </h1>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <span className="pill">{overall.label}</span>
-              <span className="pill">{overall.seedling}</span>
-            </div>
-            <p className="mt-4 text-base leading-[1.8] text-[#563a2e]">{overall.description}</p>
-          </div>
 
-          <div className="grid gap-4 self-end">
-            <div className="border-t border-[var(--line)] pt-4">
-              <h2 className="m-0 text-2xl font-normal leading-tight">
-                主模式：{result.primaryMode}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#563a2e]">
-                {getModeText(result.primaryMode)}
+            <div className="self-center">
+              <div className="flex items-end gap-3">
+                <strong className="text-[88px] font-normal leading-[.85]">{Math.round(result.totalScore100)}</strong>
+                <span className="pb-2 sans text-sm text-[var(--muted)]">/ 100</span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="pill">{overall.label}</span>
+                <span className="pill">{overall.seedling}</span>
+                {/* 推荐起点标签 */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="pill cursor-pointer border border-clay bg-[#f7ead8] text-clay hover:bg-clay hover:text-soft"
+                    onClick={() => setShowWhyTooltip((v) => !v)}
+                  >
+                    推荐从 Day {result.recommendedDay} 开始 ▾
+                  </button>
+                  {showWhyTooltip && (
+                    <div className="absolute left-0 top-full z-20 mt-2 w-56 border border-[var(--line)] bg-soft p-3 shadow-xl">
+                      <p className="m-0 text-xs leading-relaxed text-[#563a2e]">
+                        {WHY_FROM_DAY[result.recommendedDay] ?? "系统根据你的总分和维度分布，选择一个相对稳定的入口。"}
+                      </p>
+                      <Link
+                        className="mt-2 block text-link text-xs"
+                        href={`/day/${result.recommendedDay}`}
+                        onClick={() => setShowWhyTooltip(false)}
+                      >
+                        立即跳转 Day {result.recommendedDay} →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p className="mt-4 text-base leading-[1.8] text-[#563a2e]">{overall.description}</p>
+            </div>
+
+            <div className="grid gap-4 self-end">
+              <div className="border-t border-[var(--line)] pt-4">
+                <h2 className="m-0 text-2xl font-normal leading-tight">
+                  主模式：{result.primaryMode}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#563a2e]">
+                  {getModeText(result.primaryMode)}
+                </p>
+              </div>
+              <div className="border-t border-[var(--line)] pt-4">
+                <ReportRadar
+                  data={dimensionRows.map((row) => ({
+                    name: row.name.slice(0, 2),
+                    value: row.index,
+                  }))}
+                />
+                <p className="mt-2 sans text-xs text-[var(--muted)]">
+                  越靠外圈，该维度内耗越重
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right panel */}
+          <section className="grid min-h-0 gap-0 overflow-auto p-[clamp(16px,2.4vw,28px)] max-lg:overflow-visible">
+            <div className="mb-4 border-b border-[var(--line)] pb-4">
+              <h2 className="m-0 text-2xl font-normal">六维度解读</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                点击展开各维度详情 · {dimensionRows.filter((r) => r.level === "high").length}个高位维度优先处理
               </p>
             </div>
-            <div className="border-t border-[var(--line)] pt-4">
-              <ReportRadar
-                data={dimensionRows.map((row) => ({
-                  name: row.name.slice(0, 2),
-                  value: row.index,
-                }))}
-              />
-              <p className="mt-2 sans text-xs text-[var(--muted)]">
-                越靠外圈，该维度内耗越重
-              </p>
+            <div className="grid gap-3">
+              {dimensionRows.map((dimension) => (
+                <DimensionCard key={dimension.id} dimension={dimension} />
+              ))}
             </div>
-          </div>
-        </aside>
+          </section>
+        </div>
 
-        {/* Right panel */}
-        <section className="grid min-h-0 gap-0 overflow-auto p-[clamp(16px,2.4vw,28px)] max-lg:overflow-visible">
-          <div className="mb-4 border-b border-[var(--line)] pb-4">
-            <h2 className="m-0 text-2xl font-normal">六维度解读</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              点击展开各维度详情 · {dimensionRows.filter((r) => r.level === "high").length}个高位维度优先处理
-            </p>
-          </div>
-          <div className="grid gap-3">
-            {dimensionRows.map((dimension) => (
-              <DimensionCard key={dimension.id} dimension={dimension} />
-            ))}
-          </div>
-        </section>
-      </section>
+        {/* 底部入口 - 截图时不显示 */}
+        <div className="no-print flex flex-col items-center gap-3 border-t border-[var(--line)] bg-soft/50 p-8">
+          <Link className="action-primary" href={`/day/${result.recommendedDay}`}>
+            从 Day {result.recommendedDay} 开始
+          </Link>
+          <Link className="text-link text-sm" href="/knowledge">
+            查看全部100天目录
+          </Link>
+        </div>
+      </div>
     </>
   );
 }
@@ -250,7 +291,7 @@ function DimensionCard({
                 />
               </div>
               <span className="sans text-xs text-[var(--muted)]">
-                {dimension.score}/30 · {dimension.level === "high" ? "高" : dimension.level === "mid" ? "中" : "低"}
+                {dimension.score}/35 · {dimension.level === "high" ? "高" : dimension.level === "mid" ? "中" : "低"}
               </span>
             </div>
           </div>
@@ -307,6 +348,7 @@ function getModeText(mode: string): string {
     冻结拖延型: "你不是没有能力行动，而是重要的事会先触发紧张和迟疑。你的能量在'油门'和'刹车'之间被撕裂，忙了一天但什么都没推进。",
     财富收缩型: "你向往拥有更多，但身体里也可能同时运行着不配得和不安全。你在赚钱和花钱之间没有真正的自主感，总是被某种'应该'驱动。",
     控制型: "如果我不掌控一切，就会失控。你总是在预判风险、控制局面，用过度准备来缓解焦虑。",
+    混合型: "你的情况较为复杂，多个维度都有较高分数，建议做一次完整的1v1解读。",
   };
   return map[mode] ?? "你的六个维度交织在一起，报告会帮你找到最适合先打开的入口。";
 }
