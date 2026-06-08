@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { clearLocalUser, getLocalUser, setLocalUser } from "@/lib/auth";
+import { getLocalUser, setLocalUser } from "@/lib/auth";
 import { buildPhoneAuthIdentity } from "@/lib/phone-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -186,14 +186,12 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
         </button>
 
         {!isRegister && (
-          <Link className="text-link w-max text-xs" href="mailto:contact@chengta100.com?subject=忘记密码">
-            忘记密码 / 联系开通
-          </Link>
+          <div className="flex justify-end">
+            <Link className="text-link text-xs" href="/auth/forgot-password">
+              忘记密码
+            </Link>
+          </div>
         )}
-
-        <button className="text-link w-max text-xs" onClick={handleLogout} type="button">
-          退出当前账号
-        </button>
       </form>
     </>
   );
@@ -228,9 +226,4 @@ function Field({
       />
     </label>
   );
-}
-
-async function handleLogout() {
-  clearLocalUser();
-  if (supabase) await supabase.auth.signOut();
 }
