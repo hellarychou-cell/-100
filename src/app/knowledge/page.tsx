@@ -81,11 +81,12 @@ export default function KnowledgePage() {
             </div>
           </aside>
           <div
-            className="relative overflow-hidden"
+            className="relative"
             style={{
-              maxHeight: "calc(2 * 118px + 2.5 * 2px)",
-              maskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
+              maxHeight: "296px",
+              overflow: "hidden",
+              maskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
             }}
           >
             <div className="grid grid-cols-5 gap-2.5 max-xl:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
