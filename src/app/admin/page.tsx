@@ -86,6 +86,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -130,6 +131,25 @@ export default function AdminPage() {
     }
   }
 
+  async function handleReduce(userId: string) {
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/reduce`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, expires: data.expires_at } : u,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error("Failed to reduce", e);
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   async function handlePause(userId: string) {
     setActionLoading(userId);
     try {
@@ -146,6 +166,23 @@ export default function AdminPage() {
       console.error("Failed to pause", e);
     } finally {
       setActionLoading(null);
+    }
+  }
+
+  async function handleDelete(userId: string) {
+    if (!confirm("确定要删除该用户吗？此操作不可撤销。")) return;
+    setActionLoading(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/delete`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setUsers((prev) => prev.filter((u) => u.id !== userId));
+      }
+    } catch (e) {
+      console.error("Failed to delete", e);
+    } finally {
+      setActionLoading(null);
+      setDeleteConfirm(null);
     }
   }
 
@@ -178,7 +215,7 @@ export default function AdminPage() {
               搜索手机号 / 姓名
             </div>
           </div>
-         <section className="grid min-h-0 grid-rows-[38px_repeat(5,1fr)] overflow-hidden border border-[var(--line)] bg-paper/50 max-lg:block max-lg:overflow-auto">
+          <section className="grid min-h-0 grid-rows-[38px_repeat(5,1fr)] overflow-hidden border border-[var(--line)] bg-paper/50 max-lg:block max-lg:overflow-auto">
             <TableHeader />
             {loading ? (
               <div className="grid place-items-center text-clay sans text-sm">
@@ -186,13 +223,13 @@ export default function AdminPage() {
               </div>
             ) : users.length === 0 ? (
               <div className="grid place-items-center text-clay sans text-sm">
-               暂无用户
+                暂无用户
               </div>
             ) : (
               users.map((user) => (
                 <div
                   key={user.id}
-                  className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_170px] items-center border-b border-ink/10 sans text-xs text-[var(--muted)] max-lg:min-w-[860px] max-lg:min-h-12"
+                  className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_230px] items-center border-b border-ink/10 sans text-xs text-[var(--muted)] max-lg:min-w-[950px] max-lg:min-h-12"
                 >
                   <div className="px-3 font-serif text-lg text-ink">{user.name}</div>
                   <div className="px-3">{user.phone}</div>
@@ -203,13 +240,22 @@ export default function AdminPage() {
                     <span className="pill">{user.assessment}</span>
                   </div>
                   <div className="px-3">{formatExpires(user.expires)}</div>
-                  <div className="flex gap-2 px-3">
+                  <div className="flex flex-wrap gap-1.5 px-3">
                     <button
                       className="bg-ink px-2 py-1.5 text-soft disabled:opacity-50"
                       onClick={() => handleExtend(user.id)}
                       disabled={actionLoading === user.id}
+                      title="加30天"
                     >
-                      加30天
+                      +30天
+                    </button>
+                    <button
+                      className="border border-ink px-2 py-1.5 text-ink disabled:opacity-50"
+                      onClick={() => handleReduce(user.id)}
+                      disabled={actionLoading === user.id}
+                      title="减30天"
+                    >
+                      -30天
                     </button>
                     <button
                       className="border border-ink px-2 py-1.5 text-ink disabled:opacity-50"
@@ -217,6 +263,13 @@ export default function AdminPage() {
                       disabled={actionLoading === user.id || user.aiPaused}
                     >
                       {user.aiPaused ? "已暂停" : "暂停"}
+                    </button>
+                    <button
+                      className="border border-red-400 px-2 py-1.5 text-red-400 hover:bg-red-50 disabled:opacity-50"
+                      onClick={() => setDeleteConfirm(user.id)}
+                      disabled={actionLoading === user.id}
+                    >
+                      删除
                     </button>
                   </div>
                 </div>
@@ -230,13 +283,36 @@ export default function AdminPage() {
           </section>
         </section>
       </section>
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 backdrop-blur-sm">
+          <div className="thin-panel w-full max-w-sm p-8 text-center">
+            <h2 className="mb-3 text-2xl font-normal">确认删除</h2>
+            <p className="mb-6 text-[#563a2e]">删除后无法恢复，确定吗？</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                className="border border-ink px-4 py-2"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                取消
+              </button>
+              <button
+                className="bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+                onClick={() => handleDelete(deleteConfirm)}
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
 
 function TableHeader() {
   return (
-    <div className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_170px] items-center bg-ink/5 sans text-xs text-ink max-lg:min-w-[860px] max-lg:min-h-10">
+    <div className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_230px] items-center bg-ink/5 sans text-xs text-ink max-lg:min-w-[950px] max-lg:min-h-10">
       {["用户", "手机号", "当前 Day", "测评", "AI 到期", "操作"].map((item) => (
         <div key={item} className="px-3">{item}</div>
       ))}

@@ -12,6 +12,8 @@ type ProgressState = {
   completedDays: number;
   currentDay: number;
   displayName: string;
+  hasAssessment: boolean;
+  isMember: boolean;
 };
 
 const publishedDayLimit = dayContents.length;
@@ -22,6 +24,8 @@ export function HomeDashboard() {
     completedDays: currentUser.completedDays,
     currentDay: currentUser.currentDay,
     displayName: currentUser.name,
+    hasAssessment: false,
+    isMember: false,
   });
 
   useEffect(() => {
@@ -30,7 +34,11 @@ export function HomeDashboard() {
     async function loadProgress() {
       const localUser = getLocalUser();
       if (localUser && !cancelled) {
-        setState((current) => ({ ...current, displayName: localUser.displayName }));
+        setState((current) => ({
+          ...current,
+          displayName: localUser.displayName,
+          isMember: localUser.isMember,
+        }));
       }
 
       if (!supabase) return;
@@ -39,21 +47,43 @@ export function HomeDashboard() {
       const user = userData.user;
       if (!user) return;
 
-      const [{ data: profile }, { data: progress }] = await Promise.all([
+      const [
+        { data: profile },
+        { data: progress },
+        { data: assessment },
+        { data: membership },
+      ] = await Promise.all([
         supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
         supabase
           .from("progress")
           .select("current_day,completed_days,cards_collected,ai_conversation_count")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("assessments")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("memberships")
+          .select("expires_at")
+          .eq("user_id", user.id)
+          .order("expires_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       if (!cancelled) {
+        const isMemberActive =
+          membership?.expires_at && new Date(membership.expires_at).getTime() > Date.now();
         setState({
           cardsCollected: progress?.cards_collected ?? currentUser.cards,
           completedDays: progress?.completed_days?.length ?? currentUser.completedDays,
           currentDay: getReadableCurrentDay(progress?.current_day, publishedDayLimit),
           displayName: profile?.display_name ?? String(user.user_metadata?.display_name ?? currentUser.name),
+          hasAssessment: Boolean(assessment),
+          isMember: Boolean(isMemberActive),
         });
       }
     }
@@ -69,6 +99,56 @@ export function HomeDashboard() {
     [state.currentDay],
   );
   const completionRate = Math.round((state.completedDays / 100) * 100);
+
+  if (!state.hasAssessment) {
+    return (
+      <main className="viewport">
+        <section className="paper-frame grid place-items-center p-10 text-center">
+          <div className="max-w-xl">
+            <div className="eyebrow mb-4">成她100 · 欢迎</div>
+            <h1 className="display-title text-[clamp(48px,7vw,86px)]">
+              欢迎来到
+              <br />
+              你的100天
+            </h1>
+            <p className="mx-auto mt-6 max-w-md leading-[1.85] text-[#563a2e]">
+              在进入100天之前，系统需要先了解你的旧程序。42道题，6个维度，生成一张属于你的底层代码诊断报告。
+            </p>
+            <p className="mx-auto mt-4 max-w-md text-sm text-[var(--muted)]">
+              测评只需做一次，之后可以直接进入你的100天。
+            </p>
+            <Link className="action-primary mt-8 inline-flex" href="/assessment/profile">
+              开始测评
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!state.isMember) {
+    return (
+      <main className="viewport">
+        <section className="paper-frame grid place-items-center p-10 text-center">
+          <div className="max-w-xl">
+            <div className="eyebrow mb-4">成她100</div>
+            <h1 className="display-title text-[clamp(48px,7vw,86px)]">
+              这里等待开通
+            </h1>
+            <p className="mx-auto mt-6 max-w-md leading-[1.85] text-[#563a2e]">
+              你的账号已经注册完成，测评报告也已生成。现在需要管理员为你开通会员权限，才能开始100天旅程。
+            </p>
+            <p className="mx-auto mt-4 text-sm text-[var(--muted)]">
+              请联系馨怡（微信号：xxx）为你开通。
+            </p>
+            <Link className="action-primary mt-8 inline-flex" href="/assessment/result">
+              查看我的测评报告
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="viewport">
@@ -99,7 +179,7 @@ export function HomeDashboard() {
                 Day {String(today.day).padStart(2, "0")}。
               </h1>
               <p className="mt-5 max-w-xl text-[17px] leading-[1.8] text-[#5a3e32]">
-                不用急着变好。今天只打开一页，听见那个比“应该”更早的自己。
+                不用急着变好。今天只打开一页，听见那个比"应该"更早的自己。
               </p>
             </div>
             <section className="self-end thin-panel grid grid-cols-[auto_1fr_auto] items-center gap-4 p-5 max-sm:grid-cols-1">
