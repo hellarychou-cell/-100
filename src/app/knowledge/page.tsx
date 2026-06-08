@@ -94,20 +94,27 @@ export default function KnowledgePage() {
                   Day {String(item.day).padStart(2, "0")}
                 </div>
                 <div className="relative">
-                  <h2 className="m-0 text-base font-normal leading-tight line-clamp-2">{item.title}</h2>
+                  <h2
+                    className="m-0 text-base font-normal leading-tight"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {item.title}
+                  </h2>
                   <p
-                    className="relative mt-2 text-[11px] leading-relaxed text-[var(--muted)] line-clamp-2"
-                    style={
-                      item.day <= 7
-                        ? {
-                            maskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
-                            WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
-                          }
-                        : {
-                            maskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
-                            WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
-                          }
-                    }
+                    className="relative mt-2 text-[11px] leading-relaxed text-[var(--muted)]"
+                    style={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      maskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
+                      WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
+                    }}
                   >
                     {item.note}
                   </p>
