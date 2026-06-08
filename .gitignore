@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# production
+build/
+dist/
+
+# env
+.env
+.env*.local
+
+# vercel
+.vercel/
+
+# local artifacts
+.superpowers/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+._*
