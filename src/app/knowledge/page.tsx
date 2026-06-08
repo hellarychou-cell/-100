@@ -84,7 +84,7 @@ export default function KnowledgePage() {
             {previewDays.map((item) => (
               <article
                 key={item.day}
-                className={`grid min-h-[118px] content-between border p-3 ${
+                className={`relative grid min-h-[118px] content-between border p-3 ${
                   item.day <= 7
                     ? "border-clay/45 bg-[#f7ead8]"
                     : "border-[var(--line)] bg-soft/48 text-ink/70"
@@ -93,9 +93,24 @@ export default function KnowledgePage() {
                 <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
                   Day {String(item.day).padStart(2, "0")}
                 </div>
-                <div>
+                <div className="relative">
                   <h2 className="m-0 text-base font-normal leading-tight line-clamp-2">{item.title}</h2>
-                  <p className="mt-2 line-clamp-2 sans text-[11px] leading-relaxed text-[var(--muted)]">{item.note}</p>
+                  <p
+                    className="relative mt-2 text-[11px] leading-relaxed text-[var(--muted)] line-clamp-2"
+                    style={
+                      item.day <= 7
+                        ? {
+                            maskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
+                            WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
+                          }
+                        : {
+                            maskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
+                            WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
+                          }
+                    }
+                  >
+                    {item.note}
+                  </p>
                 </div>
               </article>
             ))}
