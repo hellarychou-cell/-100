@@ -1,14 +1,95 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { adminUsers } from "@/lib/content";
 
+const ADMIN_NAME = process.env.NEXT_PUBLIC_ADMIN_NAME || "周馨怡";
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "zxy19941210";
+const ADMIN_SESSION_KEY = "chengta_admin_session";
+
+function AdminLoginForm({ onSuccess }: { onSuccess: () => void }) {
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (name.trim() === ADMIN_NAME && password === ADMIN_PASSWORD) {
+      window.localStorage.setItem(ADMIN_SESSION_KEY, "true");
+      onSuccess();
+    } else {
+      setError("姓名或密码错误，请重新输入。");
+    }
+  }
+
+  return (
+    <main className="viewport grid place-items-center">
+      <section className="paper-frame grid w-full max-w-sm gap-6 p-10 text-center">
+        <div>
+          <div className="eyebrow mb-3">Admin access</div>
+          <h1 className="display-title text-5xl">后台入口</h1>
+        </div>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <label className="grid gap-1 border border-[var(--line)] bg-soft/70 p-3 text-left">
+            <span className="text-[11px] uppercase tracking-wider text-clay">姓名</span>
+            <input
+              className="w-full bg-transparent text-ink outline-none"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="请输入姓名"
+              autoComplete="username"
+            />
+          </label>
+          <label className="grid gap-1 border border-[var(--line)] bg-soft/70 p-3 text-left">
+            <span className="text-[11px] uppercase tracking-wider text-clay">密码</span>
+            <input
+              className="w-full bg-transparent text-ink outline-none"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="请输入密码"
+              autoComplete="current-password"
+            />
+          </label>
+          {error && <p className="text-sm text-clay">{error}</p>}
+          <button className="action-primary" type="submit">
+            进入后台
+          </button>
+        </form>
+        <Link className="text-link" href="/">
+          返回首页
+        </Link>
+      </section>
+    </main>
+  );
+}
+
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(ADMIN_SESSION_KEY) === "true";
+  });
+
+  if (!isAuthenticated) {
+    return <AdminLoginForm onSuccess={() => setIsAuthenticated(true)} />;
+  }
+
+  function handleLogout() {
+    window.localStorage.removeItem(ADMIN_SESSION_KEY);
+    setIsAuthenticated(false);
+  }
+
   return (
     <main className="viewport">
       <section className="paper-frame grid grid-rows-[56px_1fr]">
         <header className="topbar">
           <div className="brand">成她100 · 后台</div>
           <span>用户会员 / 内容管理</span>
-          <span>管理员</span>
+          <button className="text-link" onClick={handleLogout} type="button">
+            退出登录
+          </button>
         </header>
         <section className="grid min-h-0 grid-rows-[auto_1fr_auto] gap-4 p-5">
           <div className="flex items-end justify-between gap-4 max-sm:grid">
