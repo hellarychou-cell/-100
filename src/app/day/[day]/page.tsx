@@ -93,13 +93,13 @@ export default async function DayPage({ params }: PageProps) {
             <section className="relative border-t border-[var(--line)] pt-4">
               <SectionTitle number="3" title="AI 今日对话" />
               <AIHoverTip />
-              <p className="leading-[1.8] text-[#4f3429]">{day.aiQuestion}</p>
-              <div className="grid grid-cols-[1fr_auto] gap-2 max-sm:grid-cols-1">
-                <div className="border border-[var(--line)] bg-soft/70 p-3 sans text-sm text-[var(--muted)]">
-                  写下第一句话就好……
-                </div>
-                <button className="action-primary" type="button">开启对话</button>
-              </div>
+              <p className="mb-4 leading-[1.8] text-[#4f3429]">{day.aiQuestion}</p>
+              <Link
+                className="action-primary inline-block text-center"
+                href={`/day/${day.day}/ai`}
+              >
+                开启对话
+              </Link>
             </section>
           </div>
         </section>

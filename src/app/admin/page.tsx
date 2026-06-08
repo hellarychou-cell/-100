@@ -227,9 +227,9 @@ export default function AdminPage() {
               </div>
             ) : (
               users.map((user) => (
-                <div
+                                <div
                   key={user.id}
-                  className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_230px] items-center border-b border-ink/10 sans text-xs text-[var(--muted)] max-lg:min-w-[950px] max-lg:min-h-12"
+                  className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_280px] items-center border-b border-ink/10 sans text-xs text-[var(--muted)] max-lg:min-w-[1000px] max-lg:min-h-12"
                 >
                   <div className="px-3 font-serif text-lg text-ink">{user.name}</div>
                   <div className="px-3">{user.phone}</div>
@@ -241,6 +241,15 @@ export default function AdminPage() {
                   </div>
                   <div className="px-3">{formatExpires(user.expires)}</div>
                   <div className="flex flex-wrap gap-1.5 px-3">
+                    {user.assessment === "已完成" && (
+                      <a
+                        className="border border-clay px-2 py-1.5 text-clay hover:bg-clay hover:text-soft disabled:opacity-50"
+                        href={`/admin/users/${user.id}`}
+                        title="查看报告"
+                      >
+                        报告
+                      </a>
+                    )}
                     <button
                       className="bg-ink px-2 py-1.5 text-soft disabled:opacity-50"
                       onClick={() => handleExtend(user.id)}
@@ -312,7 +321,7 @@ export default function AdminPage() {
 
 function TableHeader() {
   return (
-    <div className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_230px] items-center bg-ink/5 sans text-xs text-ink max-lg:min-w-[950px] max-lg:min-h-10">
+    <div className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_280px] items-center bg-ink/5 sans text-xs text-ink max-lg:min-w-[1000px] max-lg:min-h-10">
       {["用户", "手机号", "当前 Day", "测评", "AI 到期", "操作"].map((item) => (
         <div key={item} className="px-3">{item}</div>
       ))}
