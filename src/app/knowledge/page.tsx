@@ -19,7 +19,7 @@ const previewDays = [
 
 export default function KnowledgePage() {
   const blocks = readRootMarkdown("成她-知识库页.md").filter((block) => block.type !== "heading" || block.level <= 2);
-  const introBlocks = blocks.slice(0, 18);
+  const introBlocks = blocks.slice(0, 80);
 
   return (
     <main className="viewport">
@@ -94,8 +94,8 @@ export default function KnowledgePage() {
                   Day {String(item.day).padStart(2, "0")}
                 </div>
                 <div>
-                  <h2 className="m-0 text-base font-normal leading-tight">{item.title}</h2>
-                  <p className="mt-2 sans text-[11px] leading-relaxed text-[var(--muted)]">{item.note}</p>
+                  <h2 className="m-0 text-base font-normal leading-tight line-clamp-2">{item.title}</h2>
+                  <p className="mt-2 line-clamp-2 sans text-[11px] leading-relaxed text-[var(--muted)]">{item.note}</p>
                 </div>
               </article>
             ))}

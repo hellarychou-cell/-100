@@ -77,8 +77,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             });
             if (profileError) throw profileError;
           }
-          // Registration success → show popup then go to login
-          setShowSuccess(true);
+                   setShowSuccess(true);
         } else {
           const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
           if (error) {
@@ -86,8 +85,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             setLoading(false);
             return;
           }
-          // Login success → check assessment and redirect
-          await redirectAfterLogin();
+          router.push("/home");
         }
       } else {
         // Demo mode
@@ -101,7 +99,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             return;
           }
           setLocalUser({ ...localUser, displayName: trimmedName });
-          await redirectAfterLogin();
+          router.push("/home");
         }
       }
     } catch (error) {
@@ -115,31 +113,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
       }
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function redirectAfterLogin() {
-    if (!supabase) {
-      router.push("/home");
-      return;
-    }
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
-    if (!user) {
-      router.push("/home");
-      return;
-    }
-    const { data: assessment } = await supabase
-      .from("assessments")
-      .select("id")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (assessment) {
-      router.push("/assessment/result");
-    } else {
-      router.push("/assessment/profile");
     }
   }
 
