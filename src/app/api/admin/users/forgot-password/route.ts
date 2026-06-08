@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "无法获取账号信息，请联系管理员" }, { status: 500 });
   }
 
-  const authEmail = authUser.user.email;
+  const authEmail = authUser.user.email!;
 
   // Send password reset email
   const { error: resetError } = await supabase.auth.resetPasswordForEmail(authEmail);

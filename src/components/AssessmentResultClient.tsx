@@ -25,7 +25,6 @@ export function AssessmentResultClient() {
   const [stored, setStored] = useState<StoredResult | null>(null);
   const [profile, setProfile] = useState<Profile>({});
   const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [showAuthPopup, setShowAuthPopup] = useState(false);
 
   useEffect(() => {
@@ -74,7 +73,6 @@ export function AssessmentResultClient() {
       }
 
       if (!cancelled) {
-        setIsLoggedIn(loggedIn);
         // Show popup only if result exists (localStorage has data) but user is not logged in
         if (!loggedIn && localResult?.result) {
           setShowAuthPopup(true);

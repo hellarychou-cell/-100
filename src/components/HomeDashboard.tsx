@@ -270,7 +270,7 @@ export function HomeDashboard() {
                 Day {String(today.day).padStart(2, "0")}。
               </h1>
               <p className="mt-5 max-w-xl text-[17px] leading-[1.8] text-[#5a3e32]">
-                不用急着变好。今天只打开一页，听见那个比"应该"更早的自己。
+                不用急着变好。今天只打开一页，听见那个比&quot;应该&quot;更早的自己。
               </p>
             </div>
             <section className="self-end thin-panel grid grid-cols-[auto_1fr_auto] items-center gap-4 p-5 max-sm:grid-cols-1">
