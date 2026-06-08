@@ -4,10 +4,10 @@ export const heroImage =
   "https://images.stockcake.com/public/3/f/1/3f1780be-5b12-4937-a500-5ecdc4bc7693_large/sunlit-terracotta-arches-stockcake.jpg";
 
 export const phases = [
-  { id: 1, name: "觉醒期", range: "Day 1-25", progress: 12 },
-  { id: 2, name: "理解期", range: "Day 26-50", progress: 0 },
-  { id: 3, name: "重建期", range: "Day 51-80", progress: 0 },
-  { id: 4, name: "创造期", range: "Day 81-100", progress: 0 },
+  { id: 1, name: "觉醒期", range: "Day 1-25", description: "看见旧程序。每天一面镜子，帮你看见那些一直在替你做决定的旧声音。", progress: 12 },
+  { id: 2, name: "理解期", range: "Day 26-50", description: "追溯来源。从原生家庭、童年编程、家族脚本里找到旧程序的根源。", progress: 0 },
+  { id: 3, name: "重建期", range: "Day 51-80", description: "练习新反应。每天一个小练习，让身体重新体验「我可以不一样」。", progress: 0 },
+  { id: 4, name: "创造期", range: "Day 81-100", description: "整合与绽放。把新的反应模式带进事业、关系和日常生活。", progress: 0 },
 ];
 
 export const dayContents = [

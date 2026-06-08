@@ -1,6 +1,7 @@
-import Link from "next/link";
+"use client";
+
 import { readRootMarkdown } from "@/lib/markdown";
-import { CloseButton } from "@/components/CloseButton";
+import Link from "next/link";
 
 const previewDays = [
   { day: 1, title: "那句“还行吧”", note: "你不是低调，是把“我做到了”藏太久" },
@@ -18,16 +19,23 @@ const previewDays = [
   }),
 ];
 
-export default function KnowledgePage() {
+export default function KnowledgeOverlay() {
   const blocks = readRootMarkdown("成她-知识库页.md").filter(
     (block) => block.type !== "heading" || block.level <= 2,
   );
   const introBlocks = blocks.slice(0, 80);
 
   return (
-    <main className="viewport">
-      <section className="paper-frame relative grid min-h-[calc(100vh-28px)] grid-rows-[auto_1fr] overflow-auto">
-        <CloseButton />
+    <div className="fixed inset-0 z-40 overflow-auto bg-paper">
+      <button
+        aria-label="关闭"
+        className="fixed right-5 top-5 z-50 grid h-9 w-9 place-items-center border border-[var(--line)] bg-soft/75 text-xl leading-none text-ink transition hover:bg-ink hover:text-soft"
+        onClick={() => window.history.back()}
+        type="button"
+      >
+        ×
+      </button>
+      <section className="relative grid min-h-[calc(100vh-28px)] grid-rows-[auto_1fr]">
         <header className="grid grid-cols-[minmax(260px,.85fr)_minmax(360px,1fr)] gap-8 border-b border-[var(--line)] px-[clamp(20px,4vw,54px)] py-[clamp(28px,5vw,60px)] pr-20 max-lg:grid-cols-1">
           <div>
             <div className="eyebrow mb-4">The first 25 days</div>
@@ -91,9 +99,7 @@ export default function KnowledgePage() {
                 <article
                   key={item.day}
                   className={`relative grid min-h-[118px] content-between border p-3 ${
-                    item.day <= 7
-                      ? "border-clay/45 bg-[#f7ead8]"
-                      : "border-[var(--line)] bg-soft/48 text-ink/70"
+                    item.day <= 7 ? "border-clay/45 bg-[#f7ead8]" : "border-[var(--line)] bg-soft/48 text-ink/70"
                   }`}
                 >
                   <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
@@ -109,7 +115,7 @@ export default function KnowledgePage() {
           </div>
         </section>
       </section>
-    </main>
+    </div>
   );
 }
 

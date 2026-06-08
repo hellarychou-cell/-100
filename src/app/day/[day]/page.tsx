@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
 import { MysteryCard } from "@/components/MysteryCard";
+import { AIHoverTip } from "@/components/AIHoverTip";
 import { dayContents } from "@/lib/content";
 
 type PageProps = {
@@ -10,7 +11,8 @@ type PageProps = {
 
 export default async function DayPage({ params }: PageProps) {
   const { day: dayParam } = await params;
-  const day = dayContents.find((item) => item.day === Number(dayParam));
+  const dayNum = Number(dayParam);
+  const day = dayContents.find((item) => item.day === dayNum);
   if (!day) notFound();
 
   return (
@@ -19,16 +21,25 @@ export default async function DayPage({ params }: PageProps) {
       <section className="paper-frame grid grid-rows-[54px_auto_1fr_48px]">
         <header className="topbar !h-[54px]">
           <div className="brand">成她100</div>
-          <span>Day {String(day.day).padStart(2, "0")} · 今日推荐</span>
+          <span>Day {String(day.day).padStart(2, "0")}</span>
           <div className="flex items-center gap-2">
-            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/home">
-              回到状态页
-            </Link>
-            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/knowledge">
-              回到知识库
-            </Link>
+            <button
+              className="action-ghost !px-3 !py-2 !text-xs"
+              onClick={() => window.history.back()}
+              type="button"
+            >
+              返回
+            </button>
+            <button
+              className="action-ghost !px-3 !py-2 !text-xs"
+              onClick={() => window.history.pushState(null, "", "/treasure")}
+              type="button"
+            >
+              我的匣子
+            </button>
           </div>
         </header>
+
         <section className="grid grid-cols-[minmax(0,1fr)_174px] gap-6 border-b border-[var(--line)] bg-paper/50 p-[clamp(18px,2.4vw,28px)] max-md:grid-cols-1">
           <div>
             <div className="eyebrow mb-3">Awakening · Week 01</div>
@@ -41,9 +52,7 @@ export default async function DayPage({ params }: PageProps) {
             </div>
             <div className="mt-4 grid max-w-3xl gap-2 text-base leading-[1.82] text-[#4f3429]">
               {(day.mirror ?? ["内容即将打开。"]).map((line) => (
-                <p key={line} className="m-0">
-                  {line}
-                </p>
+                <p key={line} className="m-0">{line}</p>
               ))}
             </div>
             <div className="mt-4 flex gap-4">
@@ -83,18 +92,13 @@ export default async function DayPage({ params }: PageProps) {
             </section>
             <section className="relative border-t border-[var(--line)] pt-4">
               <SectionTitle number="3" title="AI 今日对话" />
-              <div className="absolute right-0 top-3 grid h-7 w-7 place-items-center rounded-full border border-clay sans text-sm text-clay">
-                ?
-              </div>
-              <p className="mr-10 border border-[var(--line)] bg-soft/60 p-3 sans text-xs leading-relaxed text-[var(--muted)]">
-                今日方法：苏格拉底式提问。适合你心里有一个“不舒服”，但暂时说不清楚原因的时候。
-              </p>
+              <AIHoverTip />
               <p className="leading-[1.8] text-[#4f3429]">{day.aiQuestion}</p>
               <div className="grid grid-cols-[1fr_auto] gap-2 max-sm:grid-cols-1">
                 <div className="border border-[var(--line)] bg-soft/70 p-3 sans text-sm text-[var(--muted)]">
                   写下第一句话就好……
                 </div>
-                <button className="action-primary">开启对话</button>
+                <button className="action-primary" type="button">开启对话</button>
               </div>
             </section>
           </div>
