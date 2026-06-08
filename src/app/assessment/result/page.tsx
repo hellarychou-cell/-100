@@ -33,7 +33,7 @@ export default function AssessmentResultPage() {
             <Link
               aria-label="返回主页"
               className="grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/60 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft"
-              href="/"
+              href="/home"
             >
               ×
             </Link>

@@ -158,6 +158,9 @@ export function HomeDashboard() {
                 </div>
                 <div className="text-6xl leading-none">0%</div>
                 <div className="mt-2 sans text-xs text-clay">已完成 0 天 · 收集 0 张卡</div>
+                <Link className="action-primary mt-4 text-center" href="/assessment/profile">
+                  开始测评
+                </Link>
               </section>
             </aside>
           </section>
@@ -228,10 +231,15 @@ export function HomeDashboard() {
               <section className="thin-panel p-5">
                 <div className="mb-5 flex justify-between sans text-xs text-[var(--muted)]">
                   <span>当前状态</span>
-                  <span className="pill">等待开通</span>
+                  <Link className="pill hover:bg-clay hover:text-soft cursor-pointer" href="/assessment/result">
+                    等待开通
+                  </Link>
                 </div>
                 <div className="text-6xl leading-none">0%</div>
                 <div className="mt-2 sans text-xs text-clay">已完成 0 天 · 收集 0 张卡</div>
+                <Link className="action-primary mt-4 text-center" href="/assessment/result">
+                  查看测评报告
+                </Link>
               </section>
             </aside>
           </section>
@@ -296,6 +304,9 @@ export function HomeDashboard() {
               <div className="mt-2 sans text-xs text-clay">
                 已完成 {state.completedDays} 天 · 收集 {state.cardsCollected} 张卡
               </div>
+              <Link className="action-primary mt-4 text-center" href={`/day/${today.day}`}>
+                开始今日学习
+              </Link>
             </section>
             <section className="thin-panel grid content-center gap-2 p-4">
               {phases.map((phase) => (

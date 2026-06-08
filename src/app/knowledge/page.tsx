@@ -25,9 +25,9 @@ export default function KnowledgePage() {
     <main className="viewport">
       <section className="paper-frame relative grid min-h-[calc(100vh-28px)] grid-rows-[auto_1fr] overflow-auto">
         <Link
-          aria-label="返回主页"
+          aria-label="返回报告页"
           className="absolute right-5 top-5 z-10 grid h-9 w-9 place-items-center border border-[var(--line)] bg-soft/75 sans text-xl leading-none text-ink transition hover:bg-ink hover:text-soft"
-          href="/"
+          href="/assessment/result"
         >
           ×
         </Link>
