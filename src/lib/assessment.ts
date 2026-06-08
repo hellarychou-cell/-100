@@ -33,7 +33,7 @@ export type AssessmentResult = {
   recommendedDay: number;
 };
 
-export const PUBLISHED_DAY_LIMIT = 7;
+export const PUBLISHED_DAY_LIMIT = 51;
 
 export const ASSESSMENT_DIMENSIONS: AssessmentDimension[] = [
   {
@@ -169,14 +169,14 @@ function inferPrimaryMode(scores: Record<DimensionId, DimensionScore>): string {
   if (topIds.includes("emotion") && topIds.includes("self-worth")) return "高敏内耗型";
   if (topIds.includes("action") && topIds.includes("decision")) return "冻结拖延型";
   if (topIds.includes("wealth") && topIds.includes("self-worth")) return "财富收缩型";
+  if (sorted.filter(([, s]) => s.index >= 60).length >= 3) return "混合型";
   return "混合型";
 }
 
 function inferRecommendedDay(totalScore100: number): number {
-  let recommendedDay = 1;
-  if (totalScore100 < 20) recommendedDay = 51;
-  else if (totalScore100 < 40) recommendedDay = 26;
-  else if (totalScore100 < 60) recommendedDay = 8;
-
-  return Math.min(recommendedDay, PUBLISHED_DAY_LIMIT);
+  if (totalScore100 <= 20) return 1;
+  if (totalScore100 <= 40) return 8;
+  if (totalScore100 <= 60) return 20;
+  if (totalScore100 <= 80) return 26;
+  return 51;
 }
