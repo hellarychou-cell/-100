@@ -34,6 +34,8 @@ export function AssessmentResultClient() {
   const [loading, setLoading] = useState(true);
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [showWhyTooltip, setShowWhyTooltip] = useState(false);
+  const [showLevelTooltip, setShowLevelTooltip] = useState(false);
+  const [showSeedlingTooltip, setShowSeedlingTooltip] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,9 +167,57 @@ export function AssessmentResultClient() {
                 <span className="pb-2 sans text-sm text-[var(--muted)]">/ 100</span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="pill">{overall.label}</span>
-                <span className="pill">{overall.seedling}</span>
-                {/* 推荐起点标签 */}
+                {/* 标签1：内耗程度 */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="pill cursor-pointer border border-clay bg-[#f7ead8] text-clay hover:bg-clay hover:text-soft"
+                    onClick={() => setShowLevelTooltip((v) => !v)}
+                  >
+                    {overall.label} ▾
+                  </button>
+                  {showLevelTooltip && (
+                    <div className="absolute left-0 top-full z-20 mt-2 w-64 border border-[var(--line)] bg-soft p-4 shadow-xl">
+                      <p className="m-0 text-sm font-medium text-ink">{overall.label}</p>
+                      <p className="mt-2 text-xs leading-relaxed text-[#563a2e]">{overall.description}</p>
+                      <button
+                        type="button"
+                        className="mt-2 text-xs text-clay underline"
+                        onClick={() => setShowLevelTooltip(false)}
+                      >
+                        收起
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 标签2：小苗苗状态 */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="pill cursor-pointer border border-clay bg-[#f7ead8] text-clay hover:bg-clay hover:text-soft"
+                    onClick={() => setShowSeedlingTooltip((v) => !v)}
+                  >
+                    {overall.seedling} ▾
+                  </button>
+                  {showSeedlingTooltip && (
+                    <div className="absolute left-0 top-full z-20 mt-2 w-64 border border-[var(--line)] bg-soft p-4 shadow-xl">
+                      <p className="m-0 text-sm font-medium text-ink">{overall.seedling}</p>
+                      <p className="mt-2 text-xs leading-relaxed text-[#563a2e]">
+                        这是你100天旅程开始时的内在状态。每个阶段都有它独特的美，不需要焦虑。
+                      </p>
+                      <button
+                        type="button"
+                        className="mt-2 text-xs text-clay underline"
+                        onClick={() => setShowSeedlingTooltip(false)}
+                      >
+                        收起
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 标签3：推荐起点 */}
                 <div className="relative">
                   <button
                     type="button"
@@ -177,8 +227,9 @@ export function AssessmentResultClient() {
                     推荐从 Day {result.recommendedDay} 开始 ▾
                   </button>
                   {showWhyTooltip && (
-                    <div className="absolute left-0 top-full z-20 mt-2 w-56 border border-[var(--line)] bg-soft p-3 shadow-xl">
-                      <p className="m-0 text-xs leading-relaxed text-[#563a2e]">
+                    <div className="absolute left-0 top-full z-20 mt-2 w-64 border border-[var(--line)] bg-soft p-4 shadow-xl">
+                      <p className="m-0 text-sm font-medium text-ink">为什么是 Day {result.recommendedDay}？</p>
+                      <p className="mt-2 text-xs leading-relaxed text-[#563a2e]">
                         {WHY_FROM_DAY[result.recommendedDay] ?? "系统根据你的总分和维度分布，选择一个相对稳定的入口。"}
                       </p>
                       <Link
