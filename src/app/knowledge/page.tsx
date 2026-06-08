@@ -80,47 +80,34 @@ export default function KnowledgePage() {
               Day 1-7 已按终版内容展示标题。Day 8-25 先展示阶段主题，正式内容后续再替换。
             </div>
           </aside>
-          <div className="grid grid-cols-5 gap-2.5 max-xl:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
-            {previewDays.map((item) => (
-              <article
-                key={item.day}
-                className={`relative grid min-h-[118px] content-between border p-3 ${
-                  item.day <= 7
-                    ? "border-clay/45 bg-[#f7ead8]"
-                    : "border-[var(--line)] bg-soft/48 text-ink/70"
-                }`}
-              >
-                <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
-                  Day {String(item.day).padStart(2, "0")}
-                </div>
-                <div className="relative">
-                  <h2
-                    className="m-0 text-base font-normal leading-tight"
-                    style={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {item.title}
-                  </h2>
-                  <p
-                    className="relative mt-2 text-[11px] leading-relaxed text-[var(--muted)]"
-                    style={{
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      maskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
-                      WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
-                    }}
-                  >
-                    {item.note}
-                  </p>
-                </div>
-              </article>
-            ))}
+          <div
+            className="relative overflow-hidden"
+            style={{
+              maxHeight: "calc(2 * 118px + 2.5 * 2px)",
+              maskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
+            }}
+          >
+            <div className="grid grid-cols-5 gap-2.5 max-xl:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
+              {previewDays.map((item) => (
+                <article
+                  key={item.day}
+                  className={`relative grid min-h-[118px] content-between border p-3 ${
+                    item.day <= 7
+                      ? "border-clay/45 bg-[#f7ead8]"
+                      : "border-[var(--line)] bg-soft/48 text-ink/70"
+                  }`}
+                >
+                  <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
+                    Day {String(item.day).padStart(2, "0")}
+                  </div>
+                  <div>
+                    <h2 className="m-0 text-base font-normal leading-tight">{item.title}</h2>
+                    <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">{item.note}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
       </section>
