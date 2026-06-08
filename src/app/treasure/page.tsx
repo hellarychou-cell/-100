@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AuthGate } from "@/components/AuthGate";
-import { CloseButton } from "@/components/CloseButton";
 import { currentUser } from "@/lib/content";
 
 const drawers = [
@@ -8,58 +7,57 @@ const drawers = [
   { title: "知识库", desc: "Day 1-100 内容目录", href: "/knowledge", meta: "当前打开到 Day 03" },
   { title: "神秘卡", desc: "已收集的女性力量卡与今日卡", href: "/cards", meta: "已收集 2 张卡" },
   { title: "AI 总结", desc: "本月对话记录与提炼", href: "/ai-summary", meta: "已开启 4 次对话" },
-  { title: "个人进度", desc: "当前 Day，完成状态、成长路线", href: "/treasure/progress", meta: "觉醒期 W1 · 已完成 2 天" },
+  { title: "个人进度", desc: "当前 Day、完成状态、成长路线", href: "/home", meta: "觉醒期 W1 · 已完成 2 天" },
 ];
 
 export default function TreasurePage() {
   return (
     <AuthGate>
-      <main className="viewport">
-        <section className="paper-frame grid grid-rows-[56px_1fr]">
-          <header className="topbar">
-            <div className="brand">成她100</div>
-            <span>个人收藏与记录</span>
-            <CloseButton />
-          </header>
-          <section className="grid min-h-0 grid-cols-[minmax(320px,.62fr)_minmax(440px,1fr)] gap-9 p-[clamp(20px,3vw,38px)] max-lg:grid-cols-1">
-            <div className="grid min-h-0 grid-rows-[auto_1fr_auto] max-lg:block">
-              <div>
-                <div className="eyebrow mb-3">Private archive</div>
-                <h1 className="display-title text-[clamp(54px,7vw,96px)]">
-                  我的<br />匣子。
-                </h1>
-              </div>
-              <p className="self-center max-w-md text-[17px] leading-[1.9] text-[#563a2e] max-lg:my-5">
-                这里放着你已经看见、收下和慢慢打开的东西。它不是任务清单，是你自己的回收处。
-              </p>
-              <div className="grid grid-cols-3 border-y border-[var(--line)]">
-                <Metric value={String(currentUser.currentDay).padStart(2, "0")} label="当前 Day" />
-                <Metric value={String(currentUser.cards).padStart(2, "0")} label="神秘卡" />
-                <Metric value={String(currentUser.aiConversations).padStart(2, "0")} label="AI 对话" last />
-              </div>
+    <main className="viewport">
+      <section className="paper-frame grid grid-rows-[56px_1fr]">
+        <header className="topbar">
+          <div className="brand">成她100</div>
+          <span>个人收藏与记录</span>
+          <Link
+            aria-label="回到我的状态"
+            className="grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/60 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft"
+            href="/home"
+          >
+            ×
+          </Link>
+        </header>
+        <section className="grid min-h-0 grid-cols-[minmax(320px,.62fr)_minmax(440px,1fr)] gap-9 p-[clamp(20px,3vw,38px)] max-lg:grid-cols-1">
+          <div className="grid min-h-0 grid-rows-[auto_1fr_auto] max-lg:block">
+            <div>
+              <div className="eyebrow mb-3">Private archive</div>
+              <h1 className="display-title text-[clamp(54px,7vw,96px)]">我的<br />匣子。</h1>
             </div>
-            <section className="grid content-center">
-              {drawers.map((drawer, index) => (
-                <div
-                  key={drawer.title}
-                  className="grid min-h-[68px] grid-cols-[46px_1fr_auto] items-center gap-4 border-t border-[var(--line)] bg-paper/40 last:border-b"
-                >
-                  <div className="grid h-8 w-8 place-items-center rounded-full border border-clay sans text-xs text-clay">
-                    {index + 1}
-                  </div>
+            <p className="self-center max-w-md text-[17px] leading-[1.9] text-[#563a2e] max-lg:my-5">
+              这里放着你已经看见、收下和慢慢打开的东西。它不是任务清单，是你自己的回收处。
+            </p>
+            <div className="grid grid-cols-3 border-y border-[var(--line)]">
+              <Metric value={String(currentUser.currentDay).padStart(2, "0")} label="当前 Day" />
+              <Metric value={String(currentUser.cards).padStart(2, "0")} label="神秘卡" />
+              <Metric value={String(currentUser.aiConversations).padStart(2, "0")} label="AI 对话" last />
+            </div>
+          </div>
+          <section className="grid content-center">
+            {drawers.map((drawer, index) => (
+              <div key={drawer.title} className="grid min-h-[68px] grid-cols-[46px_1fr_auto] items-center gap-4 border-t border-[var(--line)] bg-paper/40 last:border-b">
+                <div className="grid h-8 w-8 place-items-center rounded-full border border-clay sans text-xs text-clay">{index + 1}</div>
                   <div>
                     <Link className="block text-2xl font-normal leading-none transition hover:text-clay" href={drawer.href}>
                       {drawer.title}
                     </Link>
                     <span className="mt-1 block sans text-xs text-[var(--muted)]">{drawer.desc}</span>
                   </div>
-                  <span className="sans text-xs text-[var(--muted)] max-sm:hidden">{drawer.meta}</span>
-                </div>
-              ))}
-            </section>
+                <span className="sans text-xs text-[var(--muted)] max-sm:hidden">{drawer.meta}</span>
+              </div>
+            ))}
           </section>
         </section>
-      </main>
+      </section>
+    </main>
     </AuthGate>
   );
 }

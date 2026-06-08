@@ -3,7 +3,7 @@ import { HomeDashboard } from "@/components/HomeDashboard";
 
 export default function HomePage() {
   return (
-    <AuthGate requireMember={false}>
+    <AuthGate>
       <HomeDashboard />
     </AuthGate>
   );

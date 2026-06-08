@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
 import { dayContents } from "@/lib/content";
@@ -31,7 +30,6 @@ export default function AIDayPage({ params }: PageProps) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 初始化：把每日开场问题作为第一条 user 消息显示在输入框上方
   const initialQuestion = prompts?.userQuestion ?? "";
 
   async function send(text: string, forceMode?: "summarize") {
@@ -61,7 +59,7 @@ export default function AIDayPage({ params }: PageProps) {
           setSummarized(true);
         }
       }
-    } catch (e) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "抱歉，AI 服务暂时连接不上，请稍后再试。" },
@@ -85,7 +83,6 @@ export default function AIDayPage({ params }: PageProps) {
     <AuthGate>
       <main className="viewport">
         <section className="paper-frame grid grid-rows-[54px_1fr_56px]">
-          {/* Topbar */}
           <header className="topbar !h-[54px]">
             <div className="brand">成她100</div>
             <span>Day {String(day.day).padStart(2, "0")} · AI 对话</span>
@@ -100,7 +97,6 @@ export default function AIDayPage({ params }: PageProps) {
             </div>
           </header>
 
-          {/* AI 方法标签 */}
           <div className="border-b border-[var(--line)] bg-ink/3 px-[clamp(18px,2.4vw,28px)] py-3">
             <div className="flex flex-wrap items-center gap-3">
               <span className="pill">{prompts.aiMethod}</span>
@@ -112,10 +108,8 @@ export default function AIDayPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* 对话区域 */}
           <section className="min-h-0 overflow-y-auto p-[clamp(18px,2.4vw,28px)]">
             <div className="mx-auto max-w-2xl">
-              {/*每日开场问题 */}
               <div className="mb-6 grid gap-3">
                 <div className="flex items-start gap-3">
                   <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-clay sans text-xs text-clay">
@@ -127,7 +121,6 @@ export default function AIDayPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {/* 聊天记录 */}
               {messages.map((msg, i) => (
                 <div key={i} className="mb-4 grid gap-3">
                   <div className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
@@ -147,7 +140,6 @@ export default function AIDayPage({ params }: PageProps) {
                 </div>
               ))}
 
-              {/* 加载中 */}
               {loading && (
                 <div className="mb-4 flex items-start gap-3">
                   <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-clay sans text-xs text-clay">
@@ -178,7 +170,6 @@ export default function AIDayPage({ params }: PageProps) {
             </div>
           </section>
 
-          {/* 输入框 */}
           {!summarized && (
             <footer className="flex items-center gap-3 border-t border-[var(--line)] px-[clamp(18px,2.4vw,28px)]">
               <input

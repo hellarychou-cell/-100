@@ -32,6 +32,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
         </aside>
         <section className="p-8">
           <AuthForm mode={isRegister ? "register" : "login"} />
+          <span className="text-link">忘记密码 / 联系开通</span>
         </section>
       </section>
     </main>

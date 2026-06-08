@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { readRootMarkdown } from "@/lib/markdown";
-import { CloseButton } from "@/components/CloseButton";
 
 const previewDays = [
   { day: 1, title: "那句“还行吧”", note: "你不是低调，是把“我做到了”藏太久" },
@@ -19,15 +18,19 @@ const previewDays = [
 ];
 
 export default function KnowledgePage() {
-  const blocks = readRootMarkdown("成她-知识库页.md").filter(
-    (block) => block.type !== "heading" || block.level <= 2,
-  );
-  const introBlocks = blocks.slice(0, 80);
+  const blocks = readRootMarkdown("成她-知识库页.md").filter((block) => block.type !== "heading" || block.level <= 2);
+  const introBlocks = blocks.slice(0, 18);
 
   return (
     <main className="viewport">
       <section className="paper-frame relative grid min-h-[calc(100vh-28px)] grid-rows-[auto_1fr] overflow-auto">
-        <CloseButton />
+        <Link
+          aria-label="返回主页"
+          className="absolute right-5 top-5 z-10 grid h-9 w-9 place-items-center border border-[var(--line)] bg-soft/75 sans text-xl leading-none text-ink transition hover:bg-ink hover:text-soft"
+          href="/"
+        >
+          ×
+        </Link>
         <header className="grid grid-cols-[minmax(260px,.85fr)_minmax(360px,1fr)] gap-8 border-b border-[var(--line)] px-[clamp(20px,4vw,54px)] py-[clamp(28px,5vw,60px)] pr-20 max-lg:grid-cols-1">
           <div>
             <div className="eyebrow mb-4">The first 25 days</div>
@@ -77,35 +80,25 @@ export default function KnowledgePage() {
               Day 1-7 已按终版内容展示标题。Day 8-25 先展示阶段主题，正式内容后续再替换。
             </div>
           </aside>
-          <div
-            className="relative"
-            style={{
-              maxHeight: "340px",
-              overflow: "hidden",
-              maskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
-            }}
-          >
-            <div className="grid grid-cols-5 gap-2.5 max-xl:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
-              {previewDays.map((item) => (
-                <article
-                  key={item.day}
-                  className={`relative grid min-h-[118px] content-between border p-3 ${
-                    item.day <= 7
-                      ? "border-clay/45 bg-[#f7ead8]"
-                      : "border-[var(--line)] bg-soft/48 text-ink/70"
-                  }`}
-                >
-                  <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
-                    Day {String(item.day).padStart(2, "0")}
-                  </div>
-                  <div>
-                    <h2 className="m-0 text-base font-normal leading-tight">{item.title}</h2>
-                    <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">{item.note}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
+          <div className="grid grid-cols-5 gap-2.5 max-xl:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
+            {previewDays.map((item) => (
+              <article
+                key={item.day}
+                className={`grid min-h-[118px] content-between border p-3 ${
+                  item.day <= 7
+                    ? "border-clay/45 bg-[#f7ead8]"
+                    : "border-[var(--line)] bg-soft/48 text-ink/70"
+                }`}
+              >
+                <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
+                  Day {String(item.day).padStart(2, "0")}
+                </div>
+                <div>
+                  <h2 className="m-0 text-base font-normal leading-tight">{item.title}</h2>
+                  <p className="mt-2 sans text-[11px] leading-relaxed text-[var(--muted)]">{item.note}</p>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       </section>
