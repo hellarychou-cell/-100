@@ -83,7 +83,7 @@ export default function KnowledgePage() {
           <div
             className="relative"
             style={{
-              maxHeight: "296px",
+              maxHeight: "340px",
               overflow: "hidden",
               maskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
               WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",

@@ -132,19 +132,14 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
           <div className="thin-panel w-full max-w-sm p-8 text-center">
             <div className="mb-4 text-5xl">🎉</div>
             <h2 className="mb-3 text-3xl font-normal">恭喜你注册完成</h2>
-            <p className="mb-6 text-[#563a2e]">现在可以用手机号和密码登录了。</p>
+            <p className="mb-6 text-[#563a2e]">恭喜你加入了100天旅程，现在开始你的觉醒之路。</p>
             <button
               className="action-primary w-full"
               onClick={() => {
-                setShowSuccess(false);
-                setPhone("");
-                setPassword("");
-                setConfirmPassword("");
-                setDisplayName("");
-                setMode("login");
+                router.push("/home");
               }}
             >
-              去登录
+              进入我的100天
             </button>
           </div>
         </div>

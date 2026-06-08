@@ -32,7 +32,6 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
         </aside>
         <section className="p-8">
           <AuthForm mode={isRegister ? "register" : "login"} />
-          <a className="text-link text-xs" href="mailto:contact@chengta100.com?subject=忘记密码 /开通会员">忘记密码 / 联系开通</a>
         </section>
       </section>
     </main>

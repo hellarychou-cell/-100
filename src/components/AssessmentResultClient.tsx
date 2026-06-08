@@ -117,7 +117,7 @@ export function AssessmentResultClient() {
   return (
     <>
       {showAuthPopup && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 backdrop-blur-sm">
+        <div className="popup-overlay fixed inset-0 z-50 grid place-items-center bg-ink/40 backdrop-blur-sm">
           <div className="thin-panel w-full max-w-sm p-8 text-center">
             <div className="mb-4 text-5xl">🔒</div>
             <h2 className="mb-3 text-3xl font-normal">仅登录后可查看知识库</h2>
@@ -126,10 +126,14 @@ export function AssessmentResultClient() {
               请先登录/注册，登录后你的测评结果、100天进度、神秘卡和AI对话才会存入「我的匣子」。
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <Link className="border border-ink px-4 py-2 text-center" href="/">
+              <button
+                className="border border-ink px-4 py-2"
+                onClick={() => setShowAuthPopup(false)}
+                type="button"
+              >
                 关闭
-              </Link>
-              <Link className="bg-ink px-4 py-2 text-white" href="/auth?mode=login">
+              </button>
+              <Link className="bg-ink px-4 py-2 text-white text-center" href="/auth?mode=login">
                 去登录
               </Link>
             </div>
