@@ -18,6 +18,8 @@ dist/
 
 # local artifacts
 .superpowers/
+.git.bak/
+*.code-workspace
 
 # logs
 npm-debug.log*

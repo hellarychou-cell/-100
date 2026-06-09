@@ -21,6 +21,14 @@ type Profile = {
   name?: string;
 };
 
+const WHY_FROM_DAY: Record<number, string> = {
+  1: "你的系统相对稳定，可以从觉醒期第一天开始慢慢进入。",
+  7: "系统建议从 Day 7 开始，是因为这里直接对应“还差两分”的证明型旧程序，适合先看见你最常自我追赶的位置。",
+  8: "你的内耗处于中等区间，适合从 Day 8 开始，在稳定中逐步推进。",
+  26: "你的内耗较重，建议从 Day 26 开始，先追溯来源，再练习新反应。",
+  51: "你的内耗处于重度，建议从 Day 51 开始，先用更稳的重建练习托住自己。",
+};
+
 export function AssessmentResultClient() {
   const [stored, setStored] = useState<StoredResult | null>(null);
   const [profile, setProfile] = useState<Profile>({});
@@ -123,35 +131,15 @@ export function AssessmentResultClient() {
           </p>
         </div>
         <div className="grid gap-3 self-end sans text-sm">
-          <Link className="action-primary w-max" href="/home">
-            进入我的100天
+          <Link className="action-primary w-max" href={`/day/${result.recommendedDay}`}>
+            从 Day {result.recommendedDay} 开始
           </Link>
-          <div className="relative leading-relaxed text-[var(--muted)]">
-            系统建议你从{" "}
-            <Link className="border-b border-clay text-clay" href={`/day/${result.recommendedDay}`}>
-              Day {result.recommendedDay}
-            </Link>{" "}
-            开始；也可以直接进入完整 100 天目录。
-            <Link className="text-link ml-2 inline-flex" href="/knowledge">
-              查看目录
-            </Link>
-            <div className="mt-2 max-w-xs border border-[var(--line)] bg-soft p-3 text-xs leading-relaxed shadow-xl">
-              为什么从这里开始：系统根据你的总分和维度分，选择一个相对稳的入口。
-              <br />
-              <Link className="text-link mt-2" href={`/day/${result.recommendedDay}`}>
-                跳转到 Day {result.recommendedDay}
-              </Link>
-            </div>
-          </div>
         </div>
       </aside>
       <section className="grid min-h-0 grid-rows-[auto_1fr] gap-4 overflow-auto p-[clamp(18px,2.4vw,30px)] max-lg:overflow-visible">
         <div className="grid grid-cols-[180px_1fr] items-center gap-6 max-sm:grid-cols-1">
           <div>
             <ReportRadar data={dimensionRows.map((row) => ({ name: row.name.slice(0, 2), value: row.index }))} />
-            <p className="mt-2 border border-[var(--line)] bg-soft p-2 sans text-xs leading-relaxed text-[var(--muted)]">
-              这张图显示 6 个维度的相对强弱。越外圈，代表这个旧程序越常被触发。
-            </p>
           </div>
           <div className="border-y border-[var(--line)] py-5">
             <h2 className="m-0 text-4xl font-normal leading-none">主模式：{result.primaryMode}</h2>
@@ -163,8 +151,19 @@ export function AssessmentResultClient() {
               </p>
             </details>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="pill">推荐起点：Day {result.recommendedDay}</span>
-              <span className="pill">测评时间：{stored ? new Date(stored.createdAt).toLocaleDateString("zh-CN") : "今天"}</span>
+              <TooltipPill
+                label={`主模式：${result.primaryMode}`}
+                tooltip={buildModeText(result.primaryMode)}
+              />
+              <TooltipPill
+                href={`/day/${result.recommendedDay}`}
+                label={`推荐起点：Day ${result.recommendedDay}`}
+                tooltip={WHY_FROM_DAY[result.recommendedDay] ?? "系统根据你的总分和维度分布，选择一个相对稳定的入口。"}
+              />
+              <TooltipPill
+                label={`测评时间：${stored ? new Date(stored.createdAt).toLocaleDateString("zh-CN") : "今天"}`}
+                tooltip="这是你最近一次完成测评并保存下来的报告时间。"
+              />
             </div>
           </div>
         </div>
@@ -189,6 +188,39 @@ export function AssessmentResultClient() {
         </section>
       </section>
     </section>
+  );
+}
+
+function TooltipPill({
+  href,
+  label,
+  tooltip,
+}: {
+  href?: string;
+  label: string;
+  tooltip: string;
+}) {
+  const content = (
+    <>
+      {label}
+      <span className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-64 border border-[var(--line)] bg-soft p-3 text-left text-xs leading-relaxed text-[#563a2e] shadow-xl group-hover:block">
+        {tooltip}
+      </span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link className="pill group relative cursor-pointer border border-clay/45 bg-[#f7ead8] text-clay transition hover:bg-clay hover:text-soft" href={href}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <span className="pill group relative cursor-help border border-clay/45 bg-[#f7ead8] text-clay transition hover:bg-clay hover:text-soft">
+      {content}
+    </span>
   );
 }
 

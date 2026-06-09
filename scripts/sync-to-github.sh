@@ -7,10 +7,12 @@ COMMIT_MESSAGE="${1:-sync: update chengta100 from external drive}"
 
 rsync -av --delete \
   --exclude ".git/" \
+  --exclude ".git.bak/" \
   --exclude ".next/" \
   --exclude "node_modules/" \
   --exclude ".vercel/" \
   --exclude ".superpowers/" \
+  --exclude "*.code-workspace" \
   --exclude ".DS_Store" \
   --exclude "._*" \
   "$SOURCE_DIR/" "$TARGET_DIR/"

@@ -184,6 +184,22 @@ textarea {
   animation: today-pulse 1.8s ease-in-out infinite;
 }
 
+.knowledge-grid-shell {
+  max-height: 184px;
+}
+
+.knowledge-grid-shell.is-expanded {
+  max-height: none;
+}
+
+.knowledge-grid-fade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 92px;
+  background: linear-gradient(to bottom, rgba(245, 232, 213, 0), var(--paper) 86%);
+  pointer-events: none;
+}
+
 /* Make decorative radio indicator spans non-interactive so label/input receive clicks */
 .peer + span,
 .peer ~ span {

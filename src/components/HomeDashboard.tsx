@@ -181,9 +181,6 @@ export function HomeDashboard() {
         <header className="topbar">
           <div className="brand">成她100</div>
           <div className="flex items-center gap-2">
-            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/assessment/result">
-              {state.hasAssessment ? "查看测评报告" : "我的测评"}
-            </Link>
             <Link className="action-ghost !px-3 !py-2 !text-xs" href="/treasure">
               我的匣子
             </Link>
@@ -294,9 +291,9 @@ function ProgressDayCard({
   const href = item.day <= currentDay + 1 ? `/day/${Math.min(item.day, publishedDayLimit)}` : "/home";
 
   const styles: Record<ProgressCardState, string> = {
-    completed: "border-ink/50 bg-ink text-soft",
-    today: "progress-today border-clay bg-[#f7ead8] text-ink",
-    tomorrow: "border-clay/25 bg-[#fbf1df] text-[#563a2e]",
+    completed: "border-[#5b382c] bg-[#5b382c] text-soft",
+    today: "progress-today border-[#5b382c] bg-[#f7ead8] text-ink",
+    available: "border-transparent bg-[#fbf1df] text-[#563a2e]",
     future: "border-[var(--line)]/35 bg-soft/35 text-[var(--muted)]/45",
   };
 

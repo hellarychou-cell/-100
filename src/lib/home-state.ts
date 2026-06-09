@@ -1,6 +1,6 @@
 export type HomeUserState = "needs-assessment" | "waiting-membership" | "active-member";
 
-export type ProgressCardState = "completed" | "today" | "tomorrow" | "future";
+export type ProgressCardState = "completed" | "today" | "available" | "future";
 
 export function getHomeUserState({
   hasAssessment,
@@ -25,7 +25,7 @@ export function getProgressCardState({
 }): ProgressCardState {
   if (completedDays.includes(day)) return "completed";
   if (day === currentDay) return "today";
-  if (day === currentDay + 1) return "tomorrow";
+  if (day < currentDay || day === currentDay + 1) return "available";
   return "future";
 }
 

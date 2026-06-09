@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { AuthGate } from "@/components/AuthGate";
 import { MysteryCard } from "@/components/MysteryCard";
-import { mysteryCards } from "@/lib/content";
+import { getToolCards } from "@/lib/tool-cards";
 
 export default function CardsPage() {
-  const featuredCard = mysteryCards[1];
-  const slots = Array.from({ length: 12 }, (_, index) => {
-    const day = index + 1;
-    const card = mysteryCards[day];
-    return card ? { day, person: card.front.name, collected: day <= 2 } : { day };
+  const toolCards = getToolCards();
+  const featuredCard = toolCards[0];
+  const slots = Array.from({ length: 25 }, (_, index) => {
+    const card = toolCards[index];
+    return card ? { name: card.front.name, collected: true } : { collected: false };
   });
 
   return (
@@ -36,30 +36,26 @@ export default function CardsPage() {
               <MysteryCard front={featuredCard.front} back={featuredCard.back} />
             </div>
             <p className="text-[15px] leading-[1.75] text-[#563a2e]">
-              点开卡片可以翻到背面，查看当天的神秘卡内容。未解锁的卡位会保留一点影子。
+              点开卡片可以翻到背面，查看工具卡完整内容。未解锁的卡位会保留一点影子。
             </p>
           </div>
           <section className="grid min-h-0 grid-rows-[auto_1fr_auto] gap-4">
             <div className="flex items-end justify-between border-b border-[var(--line)] pb-4">
               <h2 className="m-0 text-4xl font-normal leading-none">卡册</h2>
-              <span className="sans text-xs text-[var(--muted)]">已收集 2 / 100 · 今日还未抽卡</span>
+              <span className="sans text-xs text-[var(--muted)]">已接入 {toolCards.length} / 25 · 按工具卡总数展示</span>
             </div>
             <div className="grid min-h-0 grid-cols-6 gap-2 max-md:grid-cols-4 max-sm:grid-cols-3">
               {slots.map((slot, index) => (
                 <div
                   key={index}
                   className={`grid min-h-28 place-items-center border border-[var(--line)] p-2 text-center ${
-                    "collected" in slot && slot.collected
+                    slot.collected
                       ? "bg-gradient-to-br from-[#241610] via-[#744531] to-gold text-paper"
-                      : "collected" in slot
-                        ? "bg-paper/50"
-                        : "bg-paper/50 opacity-45"
+                      : "bg-paper/50 opacity-45"
                   }`}
                 >
                   <div>
-                    <span className="sans text-[11px]">Day {String(slot.day).padStart(2, "0")}</span>
-                    <br />
-                    <b className="font-normal">{slot.person ?? (index === 2 ? "待抽" : "")}</b>
+                    <b className="font-normal">{slot.name ?? "待解锁"}</b>
                   </div>
                 </div>
               ))}

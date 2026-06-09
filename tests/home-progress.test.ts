@@ -15,10 +15,11 @@ test("home state opens active progress after assessment and membership", () => {
   assert.equal(getHomeUserState({ hasAssessment: true, isMember: true }), "active-member");
 });
 
-test("progress card states distinguish completed, today, tomorrow, and future days", () => {
+test("progress card states distinguish completed, today, available, and future days", () => {
   assert.equal(getProgressCardState({ day: 6, currentDay: 7, completedDays: [1, 2, 6] }), "completed");
+  assert.equal(getProgressCardState({ day: 5, currentDay: 7, completedDays: [1, 2, 6] }), "available");
   assert.equal(getProgressCardState({ day: 7, currentDay: 7, completedDays: [1, 2, 6] }), "today");
-  assert.equal(getProgressCardState({ day: 8, currentDay: 7, completedDays: [1, 2, 6] }), "tomorrow");
+  assert.equal(getProgressCardState({ day: 8, currentDay: 7, completedDays: [1, 2, 6] }), "available");
   assert.equal(getProgressCardState({ day: 9, currentDay: 7, completedDays: [1, 2, 6] }), "future");
 });
 

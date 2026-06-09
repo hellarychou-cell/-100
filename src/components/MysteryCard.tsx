@@ -20,11 +20,15 @@ type MysteryCardProps = {
 
 export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
   const [flipped, setFlipped] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = back.content.length > (small ? 56 : 120);
+  const shownContent = canExpand && !expanded
+    ? `${back.content.slice(0, small ? 56 : 120)}...`
+    : back.content;
 
   return (
     <div
       className={`relative perspective-1000 ${small ? "w-36" : "w-full"}`}
-      onClick={() => setFlipped(!flipped)}
     >
       <div
         className={`relative w-full aspect-[3/4.25] cursor-pointer transition-transform duration-500 transform-style-preserve-3d ${
@@ -36,6 +40,7 @@ export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
         <div
           className="absolute inset-0 grid aspect-[3/4.25] grid-rows-[auto_1fr_auto] border border-gold/70 bg-gradient-to-br from-[#25140f] via-[#744531] to-gold text-paper shadow-2xl backface-hidden"
           style={{ backfaceVisibility: "hidden" }}
+          onClick={() => setFlipped(true)}
         >
           <small className={`${small ? "p-2" : "p-3"} sans text-[10px] uppercase tracking-[0.14em] text-paper/75`}>
             📿 {front.name} · {front.age}
@@ -51,15 +56,30 @@ export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
 
         {/* 背面 */}
         <div
-          className="absolute inset-0 grid aspect-[3/4.25] grid-rows-[auto_1fr] cursor-pointer border border-clay/50 bg-[#f7ead8] text-[#563a2e] shadow-xl backface-hidden"
+          className="absolute inset-0 grid aspect-[3/4.25] grid-rows-[auto_1fr] cursor-pointer overflow-hidden border border-clay/50 bg-[#f7ead8] text-[#563a2e] shadow-xl backface-hidden"
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+          onClick={() => setFlipped(false)}
         >
           <div className={`${small ? "p-2" : "p-3"} sans text-xs uppercase tracking-wider text-clay/60`}>
             {back.type === "tool" ? "工具卡" : back.type === "blank" ? "空白卡" : back.type === "gratitude" ? "感恩卡" : back.type === "benefit" ? "福利卡" : "背面"}
           </div>
-          <div className={`grid content-center gap-3 ${small ? "p-3" : "p-5"} text-center`}>
+          <div className={`grid content-center gap-3 overflow-hidden ${small ? "p-3" : "p-5"} text-center`}>
             <strong className={`${small ? "text-sm" : "text-lg"} font-normal`}>{back.title}</strong>
-            <p className={`${small ? "text-[11px]" : "text-base"} leading-relaxed`}>“{back.content}”</p>
+            <p className={`${small ? "text-[11px]" : "text-sm"} ${expanded ? "max-h-52 overflow-auto text-left" : ""} leading-relaxed`}>
+              “{shownContent}”
+            </p>
+            {canExpand ? (
+              <button
+                className="text-link mx-auto bg-transparent"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setExpanded((current) => !current);
+                }}
+                type="button"
+              >
+                {expanded ? "收起" : "点击展开全部"}
+              </button>
+            ) : null}
             {back.dayNum && (
               <small className="sans text-xs text-clay/60">—— Day {back.dayNum}</small>
             )}

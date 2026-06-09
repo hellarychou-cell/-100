@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { KnowledgeDayGrid } from "@/components/KnowledgeDayGrid";
 import { readRootMarkdown } from "@/lib/markdown";
 
 const previewDays = [
@@ -9,10 +10,16 @@ const previewDays = [
   { day: 5, title: "老公那句“你不要这么累”", note: "你不是贤妻，是 3 代女人在交保护费" },
   { day: 6, title: "周一早上 6 点的闹钟", note: "你不是自律，是不敢停" },
   { day: 7, title: "那 2 分", note: "你不是不够好，是在等永远不会来的“够了”" },
-  ...Array.from({ length: 18 }, (_, index) => {
+  ...Array.from({ length: 93 }, (_, index) => {
     const day = index + 8;
     const week =
-      day <= 14 ? "我的“性格”不是我" : day <= 21 ? "在生活里抓现行" : "Day 25 第一次大测评";
+      day <= 25
+        ? "我的“性格”不是我"
+        : day <= 50
+          ? "追溯来源"
+          : day <= 80
+            ? "练习新反应"
+            : "整合与绽放";
     return { day, title: week, note: "内容筹备中，正式上线前以终版文档为准" };
   }),
 ];
@@ -80,26 +87,7 @@ export default function KnowledgePage() {
               Day 1-7 已按终版内容展示标题。Day 8-25 先展示阶段主题，正式内容后续再替换。
             </div>
           </aside>
-          <div className="grid grid-cols-5 gap-2.5 max-xl:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
-            {previewDays.map((item) => (
-              <article
-                key={item.day}
-                className={`grid min-h-[118px] content-between border p-3 ${
-                  item.day <= 7
-                    ? "border-clay/45 bg-[#f7ead8]"
-                    : "border-[var(--line)] bg-soft/48 text-ink/70"
-                }`}
-              >
-                <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
-                  Day {String(item.day).padStart(2, "0")}
-                </div>
-                <div>
-                  <h2 className="m-0 text-base font-normal leading-tight">{item.title}</h2>
-                  <p className="mt-2 sans text-[11px] leading-relaxed text-[var(--muted)]">{item.note}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+          <KnowledgeDayGrid days={previewDays} />
         </section>
       </section>
     </main>
