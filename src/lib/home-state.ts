@@ -28,3 +28,13 @@ export function getProgressCardState({
   if (day === currentDay + 1) return "tomorrow";
   return "future";
 }
+
+export function shouldShowAssessmentPrompt({
+  dismissed,
+  hasAssessment,
+}: {
+  dismissed: boolean;
+  hasAssessment: boolean;
+}) {
+  return !hasAssessment && !dismissed;
+}

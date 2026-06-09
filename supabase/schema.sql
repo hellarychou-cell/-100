@@ -13,6 +13,7 @@ $$;
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   phone text unique not null,
+  email text unique,
   display_name text not null,
   age int,
   identity text,
@@ -21,6 +22,9 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles
+  add column if not exists email text unique;
 
 create table if not exists public.memberships (
   id uuid primary key default gen_random_uuid(),
@@ -108,14 +112,16 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, phone, display_name)
+  insert into public.profiles (id, phone, email, display_name)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'phone', ''),
+    new.email,
     coalesce(new.raw_user_meta_data ->> 'display_name', '她')
   )
   on conflict (id) do update set
     phone = excluded.phone,
+    email = excluded.email,
     display_name = excluded.display_name,
     updated_at = now();
 

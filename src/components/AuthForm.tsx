@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { getLocalUser, setLocalUser } from "@/lib/auth";
+import { normalizeEmail } from "@/lib/password-reset";
 import { buildPhoneAuthIdentity } from "@/lib/phone-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -15,6 +16,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
   const isRegister = mode === "register";
 
   const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,9 +35,10 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
 
     const trimmedPhone = phone.trim();
     const trimmedName = displayName.trim() || "她";
+    const trimmedEmail = normalizeEmail(email);
 
-    if (!trimmedPhone || !password) {
-      setMessage("请填写手机号和密码。");
+    if (!password || (isRegister && (!trimmedPhone || !trimmedEmail)) || (!isRegister && !trimmedEmail)) {
+      setMessage(isRegister ? "请填写邮箱、手机号和密码。" : "请填写邮箱和密码。");
       setLoading(false);
       return;
     }
@@ -59,12 +62,18 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     }
 
     try {
-      const { authEmail, storedPhone } = buildPhoneAuthIdentity(trimmedPhone);
+      const phoneIdentity = isRegister ? buildPhoneAuthIdentity(trimmedPhone) : null;
+      const storedPhone = phoneIdentity?.storedPhone ?? "";
+      const signInEmail = isRegister
+        ? trimmedEmail
+        : trimmedEmail.includes("@")
+          ? trimmedEmail
+          : buildPhoneAuthIdentity(trimmedEmail).authEmail;
 
       if (isSupabaseConfigured && supabase) {
         if (isRegister) {
           const { data, error } = await supabase.auth.signUp({
-            email: authEmail,
+            email: trimmedEmail,
             password,
             options: { data: { display_name: trimmedName, phone: storedPhone } },
           });
@@ -73,13 +82,14 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             const { error: profileError } = await supabase.from("profiles").upsert({
               id: data.user.id,
               phone: storedPhone,
+              email: trimmedEmail,
               display_name: trimmedName,
             });
             if (profileError) throw profileError;
           }
           setShowSuccess(true);
         } else {
-          const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
+          const { error } = await supabase.auth.signInWithPassword({ email: signInEmail, password });
           if (error) {
             setMessage("用户名或者密码不对。");
             setLoading(false);
@@ -92,6 +102,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
           setLocalUser({
             id: `local-${storedPhone}`,
             phone: storedPhone,
+            email: trimmedEmail,
             displayName: trimmedName,
             isMember: storedPhone.endsWith("9999"),
             membershipExpiresAt: storedPhone.endsWith("9999")
@@ -101,7 +112,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
           setShowSuccess(true);
         } else {
           const localUser = getLocalUser();
-          if (!localUser || localUser.phone !== storedPhone || localUser.displayName !== trimmedName) {
+          if (!localUser || (localUser.email ?? localUser.phone) !== trimmedEmail || localUser.displayName !== trimmedName) {
             setMessage("用户名或者密码不对。");
             setLoading(false);
             return;
@@ -153,6 +164,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     setMode(newMode);
     setMessage("");
     setDisplayName("");
+    setEmail("");
     setPhone("");
     setPassword("");
     setConfirmPassword("");
@@ -205,11 +217,19 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             />
           )}
           <Field
+            label={isRegister ? "邮箱" : "邮箱 / 老用户手机号"}
+            name="email"
+            placeholder={isRegister ? "用于找回密码" : "请输入注册邮箱"}
+            value={email}
+            onChange={setEmail}
+          />
+          <Field
             label="手机号"
             name="phone"
             placeholder="用于后台开通会员"
             value={phone}
             onChange={setPhone}
+            hidden={!isRegister}
           />
           <Field
             label="密码"
@@ -256,6 +276,7 @@ function Field({
   type = "text",
   value,
   onChange,
+  hidden = false,
 }: {
   label: string;
   name: string;
@@ -263,7 +284,10 @@ function Field({
   type?: string;
   value: string;
   onChange: (v: string) => void;
+  hidden?: boolean;
 }) {
+  if (hidden) return null;
+
   return (
     <label className="grid gap-1 border border-[var(--line)] bg-soft/70 p-3 sans text-sm text-[var(--muted)]">
       <span className="text-[11px] uppercase tracking-wider text-clay">{label}</span>

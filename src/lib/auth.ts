@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 export type LocalUser = {
   id: string;
   phone: string;
+  email?: string;
   displayName: string;
   isMember: boolean;
   membershipExpiresAt?: string;
