@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, phone, email")
+    .select("id, phone")
     .eq("phone", storedPhone)
     .maybeSingle();
 
@@ -37,10 +37,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "邮箱或手机号不匹配，请检查后再试。" }, { status: 404 });
   }
 
+  const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(profile.id);
+  if (authError || !authUser.user?.email) {
+    return NextResponse.json({ error: "无法获取账号邮箱，请联系管理员。" }, { status: 500 });
+  }
+
   if (!canResetPassword({
     inputEmail: normalizedEmail,
     inputPhone: storedPhone,
-    storedEmail: profile.email,
+    storedEmail: authUser.user.email,
     storedPhone: profile.phone,
   })) {
     return NextResponse.json({ error: "邮箱或手机号不匹配，请检查后再试。" }, { status: 403 });

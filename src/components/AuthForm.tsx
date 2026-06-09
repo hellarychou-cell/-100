@@ -82,7 +82,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             const { error: profileError } = await supabase.from("profiles").upsert({
               id: data.user.id,
               phone: storedPhone,
-              email: trimmedEmail,
               display_name: trimmedName,
             });
             if (profileError) throw profileError;
