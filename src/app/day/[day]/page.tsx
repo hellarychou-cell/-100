@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
@@ -74,7 +76,7 @@ export default async function DayPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(280px,.62fr)] gap-6 overflow-hidden p-[clamp(16px,2.2vw,26px)] max-lg:grid-cols-1 max-lg:overflow-auto">
+        <section className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(280px,.62fr)] gap-6 overflow-auto p-[clamp(16px,2.2vw,26px)] max-lg:grid-cols-1 max-lg:overflow-auto">
           <div className="border-t border-[var(--line)] pt-4">
             <SectionTitle number="1" title="她的故事" />
             <p className="leading-[1.82] text-[#563a2e]">{day.storyPreview}</p>
