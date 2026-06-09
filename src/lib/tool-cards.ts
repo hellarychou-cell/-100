@@ -8,6 +8,11 @@ type ToolCardSource = {
 
 const toolCardSources: ToolCardSource[] = [
   {
+    file: "心理学工具箱/1-自我价值与配得感/1.1-萨提亚冰山模型.md",
+    name: "萨提亚冰山模型",
+    quote: "你看见的是行为，水下藏着感受、观点、期待和渴望。",
+  },
+  {
     file: "心理学工具箱/2-关系边界与自我主权/2.2-拒绝肌肉训练.md",
     name: "拒绝肌肉训练",
     quote: "拒绝不是性格，是肌肉。",

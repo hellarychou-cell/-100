@@ -24,12 +24,16 @@ const allDaysData = [
   ...dayContents.map((day) => ({
     day: day.day,
     title: day.title,
+    subtitle: day.subtitle,
+    phase: day.phase ?? "第一阶段觉醒期",
+    dimension: day.dimension ?? "",
+    cardPoint: day.cardPoint ?? "",
     note: day.mirror?.[0] ?? day.subtitle,
   })),
   ...Array.from({ length: 93 }, (_, index) => {
     const day = index + 8;
-    const phase = day <= 25 ? "在生活里抓现行" : day <= 50 ? "追溯来源" : day <= 80 ? "练习新反应" : "整合与绽放";
-    return { day, title: `Day ${day} · ${phase}`, note: "内容筹备中" };
+    const phase = day <= 25 ? "第一阶段觉醒期" : day <= 50 ? "第二阶段理解期" : day <= 80 ? "第三阶段重建期" : "第四阶段创造期";
+    return { day, title: `Day ${day}`, subtitle: "内容筹备中", phase, dimension: "", cardPoint: "", note: "内容筹备中" };
   }),
 ];
 
@@ -285,10 +289,20 @@ function ProgressDayCard({
 }: {
   completedDays: number[];
   currentDay: number;
-  item: { day: number; title: string; note: string };
+  item: {
+    day: number;
+    title: string;
+    subtitle: string;
+    phase: string;
+    dimension: string;
+    cardPoint: string;
+    note: string;
+  };
 }) {
+  const [showLockedModal, setShowLockedModal] = useState(false);
   const state = getProgressCardState({ day: item.day, currentDay, completedDays });
-  const href = item.day <= currentDay + 1 ? `/day/${Math.min(item.day, publishedDayLimit)}` : "/home";
+  const isLocked = item.day > currentDay + 1 && item.day > publishedDayLimit;
+  const href = !isLocked && item.day <= currentDay + 1 ? `/day/${Math.min(item.day, publishedDayLimit)}` : "#";
 
   const styles: Record<ProgressCardState, string> = {
     completed: "border-[#5b382c] bg-[#5b382c] text-soft",
@@ -297,24 +311,57 @@ function ProgressDayCard({
     future: "border-[var(--line)]/35 bg-soft/35 text-[var(--muted)]/45",
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (isLocked) {
+      e.preventDefault();
+      setShowLockedModal(true);
+    }
+  };
+
   return (
-    <Link
-      className={`grid min-h-[108px] content-between border p-3 transition ${styles[state]}`}
-      href={href}
-      aria-disabled={item.day > currentDay + 1}
-    >
-      <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
-        Day {String(item.day).padStart(2, "0")}
-      </div>
-      <div>
-        <h2 className={`m-0 text-sm font-normal leading-tight ${state === "completed" ? "text-soft/85" : "text-inherit"}`}>
-          {item.title}
-        </h2>
-        <p className={`mt-1 line-clamp-2 sans text-[10px] leading-relaxed ${state === "completed" ? "text-soft/60" : ""}`}>
-          {item.note}
-        </p>
-      </div>
-    </Link>
+    <>
+      <Link
+        className={`grid min-h-[108px] content-between border p-3 transition ${styles[state]} ${isLocked ? "cursor-pointer" : ""}`}
+        href={href}
+        aria-disabled={isLocked}
+        onClick={handleClick}
+      >
+        <div className="flex flex-col gap-1">
+          <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay flex items-center gap-1">
+            {item.phase &&<span className="text-[9px]">{item.phase}</span>}
+            {isLocked && <span className="text-[10px]">🔒</span>}
+          </div>
+          <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
+            Day {String(item.day).padStart(2, "0")}
+          </div>
+        </div>
+        <div>
+          <h2 className={`m-0 text-sm font-normal leading-tight ${state === "completed" ? "text-soft/85" : "text-inherit"}`}>
+            {item.title}
+          </h2>
+          {item.dimension && (
+            <p className={`mt-1 line-clamp-1 sans text-[9px] leading-relaxed ${state === "completed" ? "text-soft/60" : "text-[var(--muted)]"}`}>
+             维度：{item.dimension}
+            </p>
+          )}
+          {item.cardPoint && (
+            <p className={`mt-0.5 line-clamp-1 sans text-[9px] leading-relaxed ${state === "completed" ? "text-soft/60" : "text-[var(--muted)]"}`}>
+              卡点：{item.cardPoint}
+            </p>
+          )}
+        </div>
+      </Link>
+      {showLockedModal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-sm" onClick={() => setShowLockedModal(false)}>
+          <div className="thin-panel relative w-full max-w-xs bg-soft p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[#563a2e]">你还没有进入到这一天</p>
+            <button className="action-primary mt-4 w-full" onClick={() => setShowLockedModal(false)} type="button">
+              我知道了
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

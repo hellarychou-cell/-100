@@ -152,8 +152,9 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
       .limit(1)
       .maybeSingle();
 
+    // 老用户（有测评结果）直接进主页，新用户进测评页
     if (assessment) {
-      router.push("/assessment/result");
+      router.push("/home");
     } else {
       router.push("/assessment/profile");
     }

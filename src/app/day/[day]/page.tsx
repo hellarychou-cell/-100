@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
 import { MysteryCard } from "@/components/MysteryCard";
 import { AIHoverTip } from "@/components/AIHoverTip";
+import { DayFooter } from "@/components/DayFooter";
 import { dayContents, mysteryCards } from "@/lib/content";
 import { getDayDocumentContent } from "@/lib/day-document";
 
@@ -109,12 +110,7 @@ export default async function DayPage({ params }: PageProps) {
             ))}
           </div>
         </section>
-        <footer className="flex items-center justify-between border-t border-[var(--line)] px-[clamp(16px,2.4vw,30px)] sans text-xs text-[var(--muted)]">
-          <span>完成后会生成今日金句卡，可保存图片。</span>
-          <Link className="text-link" href={`/quote-card?day=${day.day}`}>
-            收下今天
-          </Link>
-        </footer>
+        <DayFooter day={day.day} />
       </section>
     </main>
     </AuthGate>

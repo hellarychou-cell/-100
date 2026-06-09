@@ -32,9 +32,9 @@ export default function KnowledgePage() {
     <main className="viewport">
       <section className="paper-frame relative grid min-h-[calc(100vh-28px)] grid-rows-[auto_1fr] overflow-auto">
         <Link
-          aria-label="返回主页"
+          aria-label="回到我的匣子"
           className="absolute right-5 top-5 z-10 grid h-9 w-9 place-items-center border border-[var(--line)] bg-soft/75 sans text-xl leading-none text-ink transition hover:bg-ink hover:text-soft"
-          href="/"
+          href="/treasure"
         >
           ×
         </Link>
@@ -81,9 +81,9 @@ export default function KnowledgePage() {
         </header>
 
         <section className="grid min-h-0 grid-cols-[220px_1fr] gap-8 px-[clamp(20px,4vw,54px)] py-8 max-lg:grid-cols-1">
-          <aside className="grid content-start gap-3 sans text-xs text-[var(--muted)]">
+          <aside className="group grid content-start gap-3 sans text-xs text-[var(--muted)]">
             <span className="pill">觉醒期 · Day 1-25</span>
-            <div className="thin-panel p-4 leading-relaxed">
+            <div className="thin-panel p-4 leading-relaxed opacity-0 transition-opacity group-hover:opacity-100">
               Day 1-7 已按终版内容展示标题。Day 8-25 先展示阶段主题，正式内容后续再替换。
             </div>
           </aside>

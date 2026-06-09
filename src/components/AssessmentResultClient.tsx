@@ -131,8 +131,8 @@ export function AssessmentResultClient() {
           </p>
         </div>
         <div className="grid gap-3 self-end sans text-sm">
-          <Link className="action-primary w-max" href={`/day/${result.recommendedDay}`}>
-            从 Day {result.recommendedDay} 开始
+          <Link className="action-primary w-max" href="/day/1">
+            点击进入我的100天
           </Link>
         </div>
       </aside>

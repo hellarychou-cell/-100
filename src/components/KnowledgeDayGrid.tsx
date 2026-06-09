@@ -45,7 +45,13 @@ export function KnowledgeDayGrid({ days }: { days: KnowledgeDay[] }) {
           收起到两行
         </button>
       ) : (
-        <span className="sans justify-self-center text-xs text-[var(--muted)]">点击展开全部 Day 1-100</span>
+        <button
+          className="sans justify-self-center text-xs text-clay transition hover:text-ink bg-transparent"
+          onClick={() => setExpanded(true)}
+          type="button"
+        >
+          点击展开全部 Day 1-100
+        </button>
       )}
     </div>
   );
