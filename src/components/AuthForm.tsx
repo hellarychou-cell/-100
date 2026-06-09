@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { clearLocalUser, setLocalUser } from "@/lib/auth";
+import { setLocalUser } from "@/lib/auth";
 import { buildPhoneAuthIdentity } from "@/lib/phone-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 

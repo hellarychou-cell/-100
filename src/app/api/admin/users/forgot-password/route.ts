@@ -34,14 +34,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "无法获取账号信息，请联系管理员" }, { status: 500 });
   }
 
-  const authEmail = authUser.user.email;
+  const email = authUser.user.email;
+  if (!email) {
+    return NextResponse.json({ error: "无法获取账号信息，请联系管理员" }, { status: 500 });
+  }
+
+  const safeEmail: string = email;
 
   // Send password reset email
-  const { error: resetError } = await supabase.auth.resetPasswordForEmail(authEmail);
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(safeEmail);
 
   if (resetError) {
     return NextResponse.json({ error: resetError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, email: authEmail });
+  return NextResponse.json({ success: true, email: safeEmail });
 }
