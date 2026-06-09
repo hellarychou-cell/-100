@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { AuthGate } from "@/components/AuthGate";
 import { MysteryCard } from "@/components/MysteryCard";
-import { cardAlbum } from "@/lib/content";
+import { mysteryCards } from "@/lib/content";
 
 export default function CardsPage() {
-  const slots = Array.from({ length: 12 }, (_, index) => cardAlbum[index] ?? { day: index + 1 });
+  const featuredCard = mysteryCards[1];
+  const slots = Array.from({ length: 12 }, (_, index) => {
+    const day = index + 1;
+    const card = mysteryCards[day];
+    return card ? { day, person: card.front.name, collected: day <= 2 } : { day };
+  });
 
   return (
     <AuthGate>
@@ -28,7 +33,7 @@ export default function CardsPage() {
               <h1 className="display-title text-5xl">你收下的<br />女性力量。</h1>
             </div>
             <div className="self-center justify-self-center">
-              <MysteryCard />
+              <MysteryCard front={featuredCard.front} back={featuredCard.back} />
             </div>
             <p className="text-[15px] leading-[1.75] text-[#563a2e]">
               点开卡片可以翻到背面，查看当天的神秘卡内容。未解锁的卡位会保留一点影子。

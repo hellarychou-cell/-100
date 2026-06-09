@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test"
+    "test": "node --experimental-strip-types --experimental-specifier-resolution=node --test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

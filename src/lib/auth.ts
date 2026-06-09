@@ -11,6 +11,7 @@ export type LocalUser = {
 export const LOCAL_USER_KEY = "chengta.localUser";
 export const LOCAL_PROFILE_KEY = "chengta.assessmentProfile";
 export const LOCAL_RESULT_KEY = "chengta.assessmentResult";
+export const LOCAL_PROGRESS_KEY = "chengta.progress";
 
 export function isMembershipActive(expiresAt?: string | null) {
   return Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now());

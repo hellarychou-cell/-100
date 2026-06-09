@@ -1,11 +1,10 @@
-"use client";
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
 import { MysteryCard } from "@/components/MysteryCard";
 import { AIHoverTip } from "@/components/AIHoverTip";
-import { dayContents } from "@/lib/content";
+import { dayContents, mysteryCards } from "@/lib/content";
+import { getDayDocumentContent } from "@/lib/day-document";
 
 type PageProps = {
   params: Promise<{ day: string }>;
@@ -16,6 +15,8 @@ export default async function DayPage({ params }: PageProps) {
   const dayNum = Number(dayParam);
   const day = dayContents.find((item) => item.day === dayNum);
   if (!day) notFound();
+  const documentContent = await getDayDocumentContent(day.day);
+  const card = mysteryCards[day.day];
 
   return (
     <AuthGate>
@@ -25,20 +26,12 @@ export default async function DayPage({ params }: PageProps) {
           <div className="brand">成她100</div>
           <span>Day {String(day.day).padStart(2, "0")}</span>
           <div className="flex items-center gap-2">
-            <button
-              className="action-ghost !px-3 !py-2 !text-xs"
-              onClick={() => window.history.back()}
-              type="button"
-            >
-              返回
-            </button>
-            <button
-              className="action-ghost !px-3 !py-2 !text-xs"
-              onClick={() => window.history.pushState(null, "", "/treasure")}
-              type="button"
-            >
+            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/home">
+              回到状态页
+            </Link>
+            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/treasure">
               我的匣子
-            </button>
+            </Link>
           </div>
         </header>
 
@@ -72,7 +65,8 @@ export default async function DayPage({ params }: PageProps) {
           </div>
           <div className="grid justify-items-center gap-2">
             <div className="sans text-[11px] uppercase tracking-wider text-clay">今日抽卡</div>
-            <MysteryCard small />
+            <MysteryCard front={card.front} back={card.back} small />
+            <span className="sans text-[10px] text-[var(--muted)]">点击翻牌</span>
           </div>
         </section>
 
@@ -82,19 +76,21 @@ export default async function DayPage({ params }: PageProps) {
             <p className="leading-[1.82] text-[#563a2e]">{day.storyPreview}</p>
             <details>
               <summary className="text-link cursor-pointer list-none">展开余下故事</summary>
-              <p className="mt-3 leading-[1.82] text-[#563a2e]">
-                这里接入当天完整故事。正式上线内容以 Day 文档为准。
-              </p>
+              <div className="mt-3 grid gap-3 leading-[1.82] text-[#563a2e]">
+                {renderParagraphs(documentContent.story)}
+              </div>
             </details>
           </div>
           <div className="grid content-start gap-5">
             <section className="border-t border-[var(--line)] pt-4">
               <SectionTitle number="2" title="身体小语" />
-              <p className="thin-panel m-0 p-4 leading-[1.82] text-[#563a2e]">{day.bodyNote}</p>
+              <div className="thin-panel m-0 grid gap-3 p-4 leading-[1.82] text-[#563a2e]">
+                {renderParagraphs(documentContent.bodyNote)}
+              </div>
             </section>
             <section className="relative border-t border-[var(--line)] pt-4">
               <SectionTitle number="3" title="AI 今日对话" />
-              <AIHoverTip />
+              <AIHoverTip methodTitle={documentContent.aiMethod.title} methodNote={documentContent.aiMethod.note} />
               <p className="mb-4 leading-[1.8] text-[#4f3429]">{day.aiQuestion}</p>
               <Link
                 className="action-primary inline-block text-center"
@@ -103,11 +99,19 @@ export default async function DayPage({ params }: PageProps) {
                 开启对话
               </Link>
             </section>
+            {documentContent.extraSections.map((section, index) => (
+              <section key={section.title} className="border-t border-[var(--line)] pt-4">
+                <SectionTitle number={String(index + 4)} title={section.title} />
+                <div className="thin-panel grid gap-3 p-4 text-sm leading-[1.82] text-[#563a2e]">
+                  {renderParagraphs(section.content)}
+                </div>
+              </section>
+            ))}
           </div>
         </section>
         <footer className="flex items-center justify-between border-t border-[var(--line)] px-[clamp(16px,2.4vw,30px)] sans text-xs text-[var(--muted)]">
           <span>完成后会生成今日金句卡，可保存图片。</span>
-          <Link className="text-link" href="/quote-card">
+          <Link className="text-link" href={`/quote-card?day=${day.day}`}>
             收下今天
           </Link>
         </footer>
@@ -115,6 +119,18 @@ export default async function DayPage({ params }: PageProps) {
     </main>
     </AuthGate>
   );
+}
+
+function renderParagraphs(content: string) {
+  return content
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => (
+      <p key={paragraph} className="m-0 whitespace-pre-line">
+        {paragraph}
+      </p>
+    ));
 }
 
 function SectionTitle({ number, title }: { number: string; title: string }) {

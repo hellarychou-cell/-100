@@ -127,11 +127,13 @@ export const currentUser = {
   name: "林夏",
   phone: "138****6789",
   currentDay: 3,
-  completedDays: 2,
+  completedDays: [1, 2],
   cards: 2,
   aiConversations: 4,
   aiExpiresAt: "2026-07-07",
 };
+
+export { mysteryCards } from "./mystery-cards";
 
 export const mockAnswers = Object.fromEntries(
   Array.from({ length: 42 }, (_, index) => [`q${index + 1}`, 3]),

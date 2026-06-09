@@ -25,10 +25,12 @@ export function AssessmentProfileForm() {
     if (supabase) {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
+        const parsedAge = Number.parseInt(profile.age, 10);
         await supabase.from("profiles").upsert({
           id: data.user.id,
           phone: data.user.phone ?? "",
           display_name: profile.name,
+          age: Number.isFinite(parsedAge) ? parsedAge : null,
           identity: profile.identity,
           current_issue: profile.currentIssue,
           ideal_state: profile.idealState,

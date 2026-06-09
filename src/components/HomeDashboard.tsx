@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { getLocalUser } from "@/lib/auth";
+import { getHomeUserState, getProgressCardState, ProgressCardState } from "@/lib/home-state";
+import { getLocalUser, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { currentUser, dayContents, phases } from "@/lib/content";
 import { getReadableCurrentDay } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
@@ -12,64 +14,123 @@ type ProgressState = {
   completedDays: number[];
   currentDay: number;
   displayName: string;
+  hasAssessment: boolean;
+  isMember: boolean;
+  loading: boolean;
 };
 
-const previewDays = [
-  { day: 1, title: "那句“还行吧”", note: "你不是低调，是把“我做到了”藏太久" },
-  { day: 2, title: "你不是不会拒绝", note: "你是用“我有用”抵押“我被爱”" },
-  { day: 3, title: "妈妈又打来电话了", note: "父母的情绪不是你的责任" },
-  { day: 4, title: "同学群里的一张照片", note: "你不是嫉妒，是替你妈再骂自己一遍" },
-  { day: 5, title: "老公那句“你不要这么累”", note: "你不是贤妻，是 3 代女人在交保护费" },
-  { day: 6, title: "周一早上 6 点的闹钟", note: "你不是自律，是不敢停" },
-  { day: 7, title: "那 2 分", note: "你不是不够好，是在等永远不会来的“够了”" },
-  ...Array.from({ length: 18 }, (_, index) => {
+const publishedDayLimit = dayContents.length;
+
+const allDaysData = [
+  ...dayContents.map((day) => ({
+    day: day.day,
+    title: day.title,
+    note: day.mirror?.[0] ?? day.subtitle,
+  })),
+  ...Array.from({ length: 93 }, (_, index) => {
     const day = index + 8;
-    const week =
-      day <= 14 ? "我的“性格”不是我" : day <= 21 ? "在生活里抓现行" : "Day 25 第一次大测评";
-    return { day, title: week, note: "内容筹备中" };
+    const phase = day <= 25 ? "在生活里抓现行" : day <= 50 ? "追溯来源" : day <= 80 ? "练习新反应" : "整合与绽放";
+    return { day, title: `Day ${day} · ${phase}`, note: "内容筹备中" };
   }),
 ];
 
 export function HomeDashboard() {
   const [state, setState] = useState<ProgressState>({
     cardsCollected: currentUser.cards,
-    completedDays: Array.isArray(currentUser.completedDays) ? currentUser.completedDays : [currentUser.completedDays].filter(Boolean),
+    completedDays: currentUser.completedDays,
     currentDay: currentUser.currentDay,
     displayName: currentUser.name,
+    hasAssessment: false,
+    isMember: false,
+    loading: true,
   });
   const [expanded, setExpanded] = useState(false);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [popupDismissed, setPopupDismissed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadProgress() {
       const localUser = getLocalUser();
+      const localHasAssessment = Boolean(window.localStorage.getItem(LOCAL_RESULT_KEY));
+      const localProgress = readLocalProgress();
       if (localUser && !cancelled) {
-        setState((current) => ({ ...current, displayName: localUser.displayName }));
+        setState((current) => ({
+          ...current,
+          displayName: localUser.displayName,
+          completedDays: localProgress.completedDays,
+          currentDay: getReadableCurrentDay(localProgress.currentDay, publishedDayLimit),
+          cardsCollected: localProgress.completedDays.length,
+          hasAssessment: localHasAssessment,
+          isMember: localUser.isMember,
+          loading: Boolean(supabase),
+        }));
       }
 
-      if (!supabase) return;
+      if (!supabase) {
+        if (!cancelled) {
+          setState((current) => ({
+            ...current,
+            completedDays: localProgress.completedDays,
+            currentDay: getReadableCurrentDay(localProgress.currentDay, publishedDayLimit),
+            cardsCollected: localProgress.completedDays.length,
+            hasAssessment: localHasAssessment,
+            loading: false,
+          }));
+        }
+        return;
+      }
 
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
-      if (!user) return;
+      if (!user) {
+        if (!cancelled) setState((current) => ({ ...current, loading: false }));
+        return;
+      }
 
-      const [{ data: profile }, { data: progress }] = await Promise.all([
+      const [{ data: profile }, { data: progress }, { data: assessment }, { data: membership }] = await Promise.all([
         supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
         supabase
           .from("progress")
           .select("current_day,completed_days,cards_collected")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("assessments")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("memberships")
+          .select("expires_at,ai_paused")
+          .eq("user_id", user.id)
+          .order("expires_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       if (!cancelled) {
+        const completedDays = Array.isArray(progress?.completed_days) ? progress.completed_days : [];
+        const isMemberActive =
+          Boolean(membership?.expires_at) &&
+          new Date(membership?.expires_at ?? "").getTime() > Date.now() &&
+          !membership?.ai_paused;
+
         setState({
-          cardsCollected: progress?.cards_collected ?? currentUser.cards,
-          completedDays: (progress?.completed_days && Array.isArray(progress.completed_days)) ? progress.completed_days : Array.isArray(currentUser.completedDays) ? currentUser.completedDays : [currentUser.completedDays].filter(Boolean),
-          currentDay: getReadableCurrentDay(progress?.current_day, dayContents.length),
+          cardsCollected: progress?.cards_collected ?? completedDays.length,
+          completedDays,
+          currentDay: getReadableCurrentDay(progress?.current_day, publishedDayLimit),
           displayName: profile?.display_name ?? String(user.user_metadata?.display_name ?? currentUser.name),
+          hasAssessment: Boolean(assessment),
+          isMember: isMemberActive,
+          loading: false,
         });
+
+        if (assessment && !isMemberActive && !popupDismissed) {
+          setShowWelcomePopup(true);
+        }
       }
     }
 
@@ -77,40 +138,94 @@ export function HomeDashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [popupDismissed]);
 
-  // 超过这个天数的显示为灰色，点击弹提示
-  const lockThreshold = state.currentDay + 1;
-
+  const today = useMemo(
+    () => dayContents.find((day) => day.day === state.currentDay) ?? dayContents[0],
+    [state.currentDay],
+  );
   const currentPhase = useMemo(() => {
-    const d = state.currentDay;
-    if (d <= 25) return phases[0];
-    if (d <= 50) return phases[1];
-    if (d <= 80) return phases[2];
+    const day = state.currentDay;
+    if (day <= 25) return phases[0];
+    if (day <= 50) return phases[1];
+    if (day <= 80) return phases[2];
     return phases[3];
   }, [state.currentDay]);
 
+  const visibleDays = expanded ? allDaysData : allDaysData.slice(0, 14);
   const completionRate = Math.round((state.completedDays.length / 100) * 100);
+  const homeState = getHomeUserState({
+    hasAssessment: state.hasAssessment,
+    isMember: state.isMember,
+  });
 
-  function handleDayClick(day: number) {
-    if (day > lockThreshold) {
-      alert("你还没有走到那一步");
-    } else {
-      window.location.href = `/day/${day}`;
-    }
+  if (state.loading) {
+    return <HomeShell status="正在读取" body={<LoadingState />} />;
   }
 
-  const today = useMemo(
-    () => dayContents.find((item) => item.day === state.currentDay) ?? dayContents[0],
-    [state.currentDay],
-  );
+  if (homeState === "needs-assessment") {
+    return (
+      <HomeShell
+        status="未开始"
+        body={
+          <OnboardingState
+            displayName={state.displayName}
+            title="欢迎来到你的100天"
+            text="在进入100天之前，系统需要先了解你的旧程序。42道题，6个维度，生成一张属于你的底层代码诊断报告。"
+            cardTitle="先做测评"
+            cardText="测评只需做一次，之后可以直接进入你的100天。"
+            actionHref="/assessment/profile"
+            actionText="开始测评"
+          />
+        }
+      />
+    );
+  }
 
-  const visibleDays = expanded ? previewDays : previewDays.slice(0, 7);
+  if (homeState === "waiting-membership") {
+    return (
+      <HomeShell
+        status="等待开通"
+        overlay={
+          showWelcomePopup ? (
+            <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 backdrop-blur-sm">
+              <div className="thin-panel w-full max-w-sm p-8 text-center">
+                <div className="mb-4 text-5xl">已完成</div>
+                <h2 className="mb-3 text-3xl font-normal">欢迎来到你的100天</h2>
+                <p className="mb-3 text-[#563a2e]">你的测评报告已生成，100天内容可以浏览。</p>
+                <p className="mb-6 text-sm text-[var(--muted)]">请先找管理员开通会员，开启你的AI之旅。</p>
+                <button
+                  className="action-primary w-full"
+                  onClick={() => {
+                    setShowWelcomePopup(false);
+                    setPopupDismissed(true);
+                  }}
+                  type="button"
+                >
+                  我知道了
+                </button>
+              </div>
+            </div>
+          ) : null
+        }
+        body={
+          <OnboardingState
+            displayName={state.displayName}
+            title="这里等待开通"
+            text="你的账号已经注册完成，测评报告也已生成。现在需要管理员为你开通会员权限，才能开始100天旅程。"
+            cardTitle="测评报告"
+            cardText="点击查看你的诊断结果。"
+            actionHref="/assessment/result"
+            actionText="查看测评报告"
+          />
+        }
+      />
+    );
+  }
 
   return (
     <main className="viewport overflow-auto">
-      <section className="paper-frame grid min-h-full grid-rows-[56px_auto_auto] gap-0">
-        {/* 顶部导航 */}
+      <section className="paper-frame grid min-h-full grid-rows-[56px_auto_auto_auto] gap-0">
         <header className="topbar">
           <div className="brand">成她100</div>
           <Link className="action-ghost !px-3 !py-2 !text-xs" href="/treasure">
@@ -118,7 +233,6 @@ export function HomeDashboard() {
           </Link>
         </header>
 
-        {/* 顶部进度区 */}
         <div className="border-b border-[var(--line)] px-[clamp(16px,2.4vw,28px)] py-5">
           <div className="mb-3 flex items-end justify-between gap-4 max-sm:flex-col max-sm:items-start">
             <div>
@@ -127,22 +241,19 @@ export function HomeDashboard() {
                 {state.displayName}，Day {String(state.currentDay).padStart(2, "0")}
               </h1>
             </div>
-            <div className="text-right">
+            <div className="text-right max-sm:text-left">
               <div className="text-5xl font-normal leading-none">{completionRate}%</div>
               <div className="mt-1 sans text-xs text-[var(--muted)]">
                 已完成 {state.completedDays.length} 天 · 收集 {state.cardsCollected} 张卡
               </div>
             </div>
           </div>
-          {/* 进度条 */}
           <div className="progress-track">
             <i className="progress-fill" style={{ width: `${completionRate}%` }} />
           </div>
         </div>
 
-        {/* 主内容区 */}
         <div className="grid min-h-0 grid-cols-[1fr_280px] gap-6 p-[clamp(16px,2.4vw,28px)] max-lg:grid-cols-1">
-          {/* 左侧：今日阅读 */}
           <div className="thin-panel grid content-start gap-4 p-5">
             <div className="eyebrow">今日推荐</div>
             <div>
@@ -162,7 +273,6 @@ export function HomeDashboard() {
             </Link>
           </div>
 
-          {/* 右侧：阶段进度 */}
           <div className="thin-panel grid content-start gap-2 p-4">
             <div className="eyebrow">当前阶段</div>
             {phases.map((phase) => (
@@ -175,70 +285,179 @@ export function HomeDashboard() {
           </div>
         </div>
 
-        {/* 知识库卡片区域 */}
         <div className="border-t border-[var(--line)] px-[clamp(16px,2.4vw,28px)] py-5">
           <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="eyebrow">知识库</div>
-            {!expanded ? (
-              <button
-                onClick={() => setExpanded(true)}
-                className="sans text-xs text-clay hover:text-ink transition-colors"
-              >
-                点击展开剩余部分 ↓
-              </button>
-            ) : (
-              <button
-                onClick={() => setExpanded(false)}
-                className="sans text-xs text-clay hover:text-ink transition-colors"
-              >
-                点击收起 ↑
-              </button>
-            )}
+            <div className="eyebrow">100天状态</div>
+            <button
+              onClick={() => setExpanded((current) => !current)}
+              className="sans text-xs text-clay transition-colors hover:text-ink"
+              type="button"
+            >
+              {expanded ? "收起" : "展开全部"}
+            </button>
           </div>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-            {visibleDays.map((item) => {
-              const isCompleted = state.completedDays.includes(item.day);
-              const isLocked = item.day > lockThreshold;
-              const isAvailable = !isCompleted && !isLocked;
-
-              // 已领取：深色；可领取未领：黄色；锁定未到：灰色
-              let cardStyle = "";
-              if (isCompleted) {
-                cardStyle = "border-ink/50 bg-ink text-soft";
-              } else if (isAvailable) {
-                cardStyle = "border-clay/45 bg-[#f7ead8] hover:border-clay/70";
-              } else {
-                cardStyle = "border-[var(--line)]/30 bg-soft/30 text-[var(--muted)]/40";
-              }
-
-              return (
-                <article
-                  key={item.day}
-                  onClick={() => handleDayClick(item.day)}
-                  className={`grid min-h-[100px] content-between cursor-pointer border p-4 transition-all ${cardStyle}`}
-                >
-                  <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
-                    Day {String(item.day).padStart(2, "0")}
-                  </div>
-                  <div>
-                    <h2 className={`m-0 text-sm font-normal leading-tight ${isCompleted ? "text-soft/80" : "text-ink"}`}>
-                      {item.title}
-                    </h2>
-                    <p className={`mt-1 sans text-[10px] leading-relaxed line-clamp-2 ${isCompleted ? "text-soft/60" : "text-[var(--muted)]"}`}>
-                      {item.note}
-                    </p>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-3 max-lg:grid-cols-[repeat(4,minmax(0,1fr))] max-sm:grid-cols-2">
+            {visibleDays.map((item) => (
+              <ProgressDayCard
+                key={item.day}
+                currentDay={state.currentDay}
+                completedDays={state.completedDays}
+                item={item}
+              />
+            ))}
           </div>
-          {!expanded && (
-            <p className="mt-3 text-center sans text-xs text-clay/60">
-              Day 08-25 点击上方展开查看
-            </p>
-          )}
         </div>
       </section>
     </main>
   );
+}
+
+function HomeShell({
+  body,
+  overlay,
+  status,
+}: {
+  body: ReactNode;
+  overlay?: ReactNode;
+  status: string;
+}) {
+  return (
+    <main className="viewport">
+      {overlay}
+      <section className="paper-frame grid grid-rows-[56px_1fr]">
+        <header className="topbar">
+          <div className="brand">成她100</div>
+          <div className="flex items-center gap-3">
+            <span className="pill">{status}</span>
+            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/treasure">
+              我的匣子
+            </Link>
+          </div>
+        </header>
+        {body}
+      </section>
+    </main>
+  );
+}
+
+function LoadingState() {
+  return (
+    <section className="grid place-items-center p-[clamp(20px,3vw,38px)]">
+      <div className="thin-panel p-6 text-center text-[#563a2e]">正在打开你的状态页。</div>
+    </section>
+  );
+}
+
+function OnboardingState({
+  actionHref,
+  actionText,
+  cardText,
+  cardTitle,
+  displayName,
+  text,
+  title,
+}: {
+  actionHref: string;
+  actionText: string;
+  cardText: string;
+  cardTitle: string;
+  displayName: string;
+  text: string;
+  title: string;
+}) {
+  return (
+    <section className="grid min-h-0 grid-cols-[minmax(0,1fr)_310px] gap-6 p-[clamp(16px,2.8vw,34px)] max-lg:grid-cols-1">
+      <div className="grid min-h-0 grid-rows-[auto_1fr] content-start">
+        <div>
+          <div className="eyebrow mb-3">成她100</div>
+          <h1 className="display-title text-[clamp(44px,6.8vw,94px)]">
+            {displayName}，
+            <br />
+            {title}
+          </h1>
+          <p className="mt-5 max-w-xl text-[17px] leading-[1.8] text-[#5a3e32]">{text}</p>
+        </div>
+        <section className="self-end thin-panel grid grid-cols-[auto_1fr] items-center gap-4 p-5 max-sm:grid-cols-1">
+          <div className="grid h-16 w-16 place-items-center rounded-full border border-clay text-clay">成她</div>
+          <div>
+            <strong className="block text-2xl font-normal leading-tight">{cardTitle}</strong>
+            <span className="mt-1 block text-sm text-[var(--muted)]">{cardText}</span>
+          </div>
+          <Link className="action-primary col-start-2 max-sm:col-start-1" href={actionHref}>
+            {actionText}
+          </Link>
+        </section>
+      </div>
+      <aside className="grid content-start gap-4">
+        <section className="thin-panel p-5">
+          <div className="mb-5 flex justify-between sans text-xs text-[var(--muted)]">
+            <span>当前状态</span>
+            <span className="pill">{cardTitle}</span>
+          </div>
+          <div className="text-6xl leading-none">0%</div>
+          <div className="mt-2 sans text-xs text-clay">已完成 0 天 · 收集 0 张卡</div>
+          <Link className="action-primary mt-4 text-center" href={actionHref}>
+            {actionText}
+          </Link>
+        </section>
+      </aside>
+    </section>
+  );
+}
+
+function ProgressDayCard({
+  completedDays,
+  currentDay,
+  item,
+}: {
+  completedDays: number[];
+  currentDay: number;
+  item: { day: number; title: string; note: string };
+}) {
+  const state = getProgressCardState({ day: item.day, currentDay, completedDays });
+  const href = item.day <= currentDay + 1 ? `/day/${Math.min(item.day, publishedDayLimit)}` : "/home";
+
+  const styles: Record<ProgressCardState, string> = {
+    completed: "border-ink/50 bg-ink text-soft",
+    today: "progress-today border-clay bg-[#f7ead8] text-ink",
+    tomorrow: "border-clay/25 bg-[#fbf1df] text-[#563a2e]",
+    future: "border-[var(--line)]/35 bg-soft/35 text-[var(--muted)]/45",
+  };
+
+  return (
+    <Link
+      className={`grid min-h-[108px] content-between border p-3 transition ${styles[state]}`}
+      href={href}
+      aria-disabled={item.day > currentDay + 1}
+    >
+      <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
+        Day {String(item.day).padStart(2, "0")}
+      </div>
+      <div>
+        <h2 className={`m-0 text-sm font-normal leading-tight ${state === "completed" ? "text-soft/85" : "text-inherit"}`}>
+          {item.title}
+        </h2>
+        <p className={`mt-1 line-clamp-2 sans text-[10px] leading-relaxed ${state === "completed" ? "text-soft/60" : ""}`}>
+          {item.note}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+function readLocalProgress() {
+  if (typeof window === "undefined") return { currentDay: currentUser.currentDay, completedDays: currentUser.completedDays };
+  const raw = window.localStorage.getItem(LOCAL_PROGRESS_KEY);
+  if (!raw) return { currentDay: currentUser.currentDay, completedDays: currentUser.completedDays };
+
+  try {
+    const parsed = JSON.parse(raw) as { currentDay?: number; completedDays?: number[] };
+    return {
+      currentDay: Number.isInteger(parsed.currentDay) ? Number(parsed.currentDay) : currentUser.currentDay,
+      completedDays: Array.isArray(parsed.completedDays) ? parsed.completedDays.filter(Number.isInteger) : currentUser.completedDays,
+    };
+  } catch {
+    window.localStorage.removeItem(LOCAL_PROGRESS_KEY);
+    return { currentDay: currentUser.currentDay, completedDays: currentUser.completedDays };
+  }
 }
