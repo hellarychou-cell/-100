@@ -1,86 +1,265 @@
-import Link from "next/link";
-import { AuthGate } from "@/components/AuthGate";
-import { currentUser } from "@/lib/content";
+"use client";
 
-const entries = [
-  { day: "Day 01", title: "那句“还行吧”", text: "你发现自己习惯把成绩说轻，把辛苦藏起来。" },
-  { day: "Day 02", title: "你先别急着变好", text: "对话里反复出现“我应该更快一点”的声音。" },
-  { day: "Day 03", title: "你不是不会拒绝", text: "你开始辨认：答应之前，身体会先紧一下。" },
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { AuthGate } from "@/components/AuthGate";
+import { currentUser, dayContents } from "@/lib/content";
+import {
+  LOCAL_REFLECTION_KEY,
+  SelfReflectionEntry,
+  summarizeReflectionEntry,
+} from "@/lib/self-reflection";
+
+const aiRecords = [
+  {
+    day: 1,
+    title: "那句「还行吧」",
+    note: "你开始分辨：哪些回答是习惯性的安全，哪些才是身体里真正想说的话。",
+  },
+  {
+    day: 3,
+    title: "父母的情绪不是你的责任",
+    note: "你把一句让你不舒服的话，慢慢拆回到过去的身体记忆里。",
+  },
+  {
+    day: 7,
+    title: "那 2 分",
+    note: "你看见那个一直追着满分跑的自己，也开始练习把「够了」还给她。",
+  },
 ];
 
+type Tab = "writing" | "ai";
+
 export default function AiSummaryPage() {
+  const [tab, setTab] = useState<Tab>("writing");
+  const [entries, setEntries] = useState<SelfReflectionEntry[]>([]);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(LOCAL_REFLECTION_KEY);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+      setEntries(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      window.localStorage.removeItem(LOCAL_REFLECTION_KEY);
+    }
+  }, []);
+
+  const sortedEntries = useMemo(
+    () =>
+      [...entries].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [entries],
+  );
+
+  const latestEntry = sortedEntries[0];
+
   return (
     <AuthGate>
-    <main className="viewport">
-      <section className="paper-frame grid grid-rows-[56px_1fr]">
-        <header className="topbar">
-          <div className="brand">成她100</div>
-          <span>AI 总结</span>
-          <Link
-            aria-label="回到我的匣子"
-            className="grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/60 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft"
-            href="/treasure"
-          >
-            ×
-          </Link>
-        </header>
-        <section className="grid min-h-0 grid-cols-[minmax(320px,.72fr)_minmax(440px,1fr)] gap-8 p-[clamp(18px,2.8vw,34px)] max-lg:grid-cols-1">
-          <div className="grid min-h-0 grid-rows-[auto_1fr_auto] max-lg:block">
-            <div>
-              <div className="eyebrow mb-3">AI reflection book</div>
-              <h1 className="display-title text-[clamp(52px,6.6vw,92px)]">AI 陪你<br />看见的。</h1>
-            </div>
-            <div className="self-center border-y border-[var(--line)] py-5 max-lg:my-5">
-              <small className="sans text-[11px] uppercase tracking-wider text-clay">最近一次洞察</small>
-              <p className="mt-3 text-lg leading-[1.85] text-[#563a2e]">
-                你不是不想拒绝，而是太习惯在别人失望之前，先替关系补上一块。
-              </p>
-            </div>
-            <div className="grid grid-cols-3 border-y border-[var(--line)]">
-              <Metric value={String(currentUser.aiConversations).padStart(2, "0")} label="本月对话" />
-              <Metric value="03" label="关联 Day" />
-              <Metric value="02" label="高频主题" last />
-            </div>
-          </div>
-          <section className="grid min-h-0 grid-rows-[auto_1fr_auto_auto] gap-4">
-            <div className="flex flex-wrap gap-2">
-              {["关系边界", "自我价值", "害怕失望", "身体紧张"].map((tag) => (
-                <span key={tag} className="pill">{tag}</span>
-              ))}
-            </div>
-            <section className="grid grid-rows-3 gap-3">
-              {entries.map((entry) => (
-                <div key={entry.day} className="grid grid-cols-[82px_1fr_auto] items-start gap-4 border-t border-[var(--line)] pt-3">
-                  <div className="sans text-[11px] uppercase tracking-wider text-clay">{entry.day}</div>
-                  <div>
-                    <strong className="block text-xl font-normal leading-tight">{entry.title}</strong>
-                    <p className="m-0 mt-1 sans text-xs leading-relaxed text-[var(--muted)]">{entry.text}</p>
-                  </div>
-                  <span className="text-link">查看</span>
+      <main className="viewport">
+        <section className="paper-frame grid grid-rows-[64px_1fr]">
+          <header className="topbar">
+            <div className="brand">成她100</div>
+            <span>我的匣子 · 自我看见记录</span>
+            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/treasure">
+              返回匣子
+            </Link>
+          </header>
+
+          <section className="min-h-0 overflow-y-auto">
+            <div className="grid gap-8 px-[clamp(18px,4vw,52px)] py-[clamp(24px,4vw,48px)] lg:grid-cols-[0.84fr_1.16fr]">
+              <aside className="grid content-start gap-5">
+                <div>
+                  <p className="sans mb-2 text-xs uppercase tracking-[0.26em] text-clay">
+                    Reflection Archive
+                  </p>
+                  <h1 className="max-w-[9em] text-[clamp(42px,7vw,86px)] leading-[0.9] text-ink">
+                    自我看见记录。
+                  </h1>
                 </div>
-              ))}
-            </section>
-            <button className="text-link justify-self-center bg-transparent">展开更多对话摘要</button>
-            <section className="thin-panel flex items-center justify-between gap-4 p-4">
-              <div>
-                <strong className="block text-2xl font-normal">生成本周小结</strong>
-                <span className="sans text-xs text-[var(--muted)]">汇总这一周的对话，提炼关键词和下一步提醒。</span>
+                <p className="max-w-sm leading-[1.9] text-[var(--muted)]">
+                  这里不做流水账，只留下每天真正被触动的那一句、身体给出的信号，以及 AI
+                  陪你看见后的线索。
+                </p>
+
+                <div className="grid grid-cols-3 border border-[var(--line)]">
+                  <Metric label="书写" value={sortedEntries.length} />
+                  <Metric label="AI 对话" value={currentUser.aiConversations} />
+                  <Metric label="本周回看" value={latestEntry ? 1 : 0} />
+                </div>
+
+                {latestEntry ? (
+                  <div className="thin-panel bg-clay/5 p-5">
+                    <p className="sans mb-2 text-xs uppercase tracking-[0.18em] text-clay">
+                      最近一次
+                    </p>
+                    <p className="text-lg leading-relaxed text-[#3f281f]">
+                      {summarizeReflectionEntry(latestEntry)}
+                    </p>
+                  </div>
+                ) : null}
+              </aside>
+
+              <div className="grid content-start gap-4">
+                <div className="flex flex-wrap gap-2">
+                  <TabButton active={tab === "writing"} onClick={() => setTab("writing")}>
+                    我的书写
+                  </TabButton>
+                  <TabButton active={tab === "ai"} onClick={() => setTab("ai")}>
+                    AI 陪我看见
+                  </TabButton>
+                </div>
+
+                {tab === "writing" ? (
+                  <WritingRecords entries={sortedEntries} />
+                ) : (
+                  <AIRecords />
+                )}
               </div>
-              <button className="action-primary">生成小结</button>
-            </section>
+            </div>
           </section>
         </section>
-      </section>
-    </main>
+      </main>
     </AuthGate>
   );
 }
 
-function Metric({ value, label, last = false }: { value: string; label: string; last?: boolean }) {
+function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className={`p-4 sans text-xs text-[var(--muted)] ${last ? "" : "border-r border-[var(--line)]"}`}>
-      <strong className="mb-1 block font-serif text-3xl font-normal leading-none text-ink">{value}</strong>
-      {label}
+    <div className="border-r border-[var(--line)] p-4 last:border-r-0">
+      <p className="sans text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">{label}</p>
+      <p className="mt-2 text-3xl text-clay">{value}</p>
     </div>
   );
+}
+
+function TabButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`sans border px-4 py-2 text-xs uppercase tracking-[0.16em] transition ${
+        active
+          ? "border-clay bg-clay text-soft"
+          : "border-[var(--line)] bg-soft text-[var(--muted)] hover:border-clay/50 hover:text-clay"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
+function WritingRecords({ entries }: { entries: SelfReflectionEntry[] }) {
+  if (!entries.length) {
+    return (
+      <div className="thin-panel grid min-h-[360px] place-items-center p-8 text-center">
+        <div className="max-w-sm">
+          <p className="text-2xl text-ink">还没有保存书写。</p>
+          <p className="mt-3 leading-[1.8] text-[var(--muted)]">
+            从任意一天的故事页进入「今日自我看见」，写下三句话后，它会自动收进这里。
+          </p>
+          <Link className="action-primary mt-5 inline-flex" href="/day/1">
+            去 Day 01 写下第一条
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3">
+      {entries.map((entry) => {
+        const day = dayContents.find((item) => item.day === entry.day);
+        return (
+          <article
+            className="thin-panel grid gap-4 p-5 md:grid-cols-[120px_1fr]"
+            key={entry.id}
+          >
+            <div>
+              <p className="sans text-xs uppercase tracking-[0.18em] text-clay">
+                Day {String(entry.day).padStart(2, "0")}
+              </p>
+              <p className="mt-2 text-xl leading-tight text-ink">{day?.title ?? "今日书写"}</p>
+              <p className="sans mt-2 text-[11px] text-[var(--muted)]">
+                {formatDate(entry.createdAt)}
+              </p>
+            </div>
+            <div className="grid gap-3 text-sm leading-[1.85] text-[#4f3429]">
+              <RecordLine label="戳到我的" value={entry.touched} />
+              <RecordLine label="身体反应" value={entry.body} />
+              <RecordLine label="我想说" value={entry.sentence} />
+              <div className="border-t border-[var(--line)] pt-3 text-clay">
+                {summarizeReflectionEntry(entry)}
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function AIRecords() {
+  return (
+    <div className="grid gap-3">
+      {aiRecords.map((record) => (
+        <article className="thin-panel grid gap-3 p-5" key={record.day}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="sans text-xs uppercase tracking-[0.18em] text-clay">
+                Day {String(record.day).padStart(2, "0")}
+              </p>
+              <h2 className="mt-1 text-2xl text-ink">{record.title}</h2>
+            </div>
+            <Link className="action-ghost !px-3 !py-2 !text-xs" href={`/day/${record.day}/ai`}>
+              回到对话
+            </Link>
+          </div>
+          <p className="leading-[1.85] text-[var(--muted)]">{record.note}</p>
+        </article>
+      ))}
+
+      <div className="border border-clay/30 bg-clay/5 p-5">
+        <p className="sans mb-2 text-xs uppercase tracking-[0.18em] text-clay">
+          Weekly Review
+        </p>
+        <p className="text-xl leading-relaxed text-[#3f281f]">
+          每 7 天可以把这一周的书写和 AI 对话一起交给 AI，生成一份「这一周我更看见了什么」。
+        </p>
+        <p className="mt-3 text-sm leading-[1.8] text-[var(--muted)]">
+          后续接入真实 AI 存储后，这里会自动汇总你的书写关键词、重复出现的情绪、最常被触发的关系场景，以及下一周最适合练习的一句话。
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RecordLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-1">
+      <span className="sans text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">
+        {label}
+      </span>
+      <span>{value || "还没有写下这一项。"}</span>
+    </div>
+  );
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }

@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
 import { dayContents } from "@/lib/content";
 import { dayAIPrompts } from "@/lib/ai-prompts";
+import {
+  buildReflectionSeedMessage,
+  LOCAL_REFLECTION_KEY,
+  SelfReflectionEntry,
+} from "@/lib/self-reflection";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -16,8 +21,10 @@ export default function AIDayPage({ params }: PageProps) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [summarized, setSummarized] = useState(false);
+  const [reflectionSeeded, setReflectionSeeded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     params.then(({ day }) => setDayNum(Number(day)));
@@ -31,6 +38,21 @@ export default function AIDayPage({ params }: PageProps) {
   }, [messages]);
 
   const initialQuestion = day?.aiQuestion ?? "";
+
+  useEffect(() => {
+    if (!dayNum || reflectionSeeded || searchParams.get("from") !== "reflection") return;
+    const entry = readLatestReflection(dayNum);
+    if (!entry) return;
+    setMessages([
+      { role: "user", content: buildReflectionSeedMessage(entry) },
+      {
+        role: "assistant",
+        content:
+          "我看到你刚才写下来了。我们先不急着分析，也不急着解决。只看一个地方：这三句话里，最有重量的是哪个词？",
+      },
+    ]);
+    setReflectionSeeded(true);
+  }, [dayNum, reflectionSeeded, searchParams]);
 
   async function send(text: string, forceMode?: "summarize") {
     if (!text.trim() || loading) return;
@@ -116,7 +138,11 @@ export default function AIDayPage({ params }: PageProps) {
                     AI
                   </div>
                   <div className="thin-panel flex-1 p-4">
-                    <p className="leading-[1.85] text-[#4f3429]">{initialQuestion}</p>
+                    <p className="leading-[1.85] text-[#4f3429]">
+                      {reflectionSeeded
+                        ? "你已经带着刚才写下的内容进来了。AI 会基于那段书写继续陪你看见。"
+                        : initialQuestion}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -199,4 +225,17 @@ export default function AIDayPage({ params }: PageProps) {
       </main>
     </AuthGate>
   );
+}
+
+function readLatestReflection(day: number) {
+  const raw = window.localStorage.getItem(LOCAL_REFLECTION_KEY);
+  if (!raw) return null;
+
+  try {
+    const entries = JSON.parse(raw) as SelfReflectionEntry[];
+    return Array.isArray(entries) ? entries.find((entry) => entry.day === day) ?? null : null;
+  } catch {
+    window.localStorage.removeItem(LOCAL_REFLECTION_KEY);
+    return null;
+  }
 }

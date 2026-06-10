@@ -4,6 +4,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { MysteryCard } from "@/components/MysteryCard";
 import { AIHoverTip } from "@/components/AIHoverTip";
 import { DayFooter } from "@/components/DayFooter";
+import { SelfReflectionBox } from "@/components/SelfReflectionBox";
 import { dayContents, mysteryCards } from "@/lib/content";
 import { getDayDocumentContent } from "@/lib/day-document";
 
@@ -92,15 +93,12 @@ export default async function DayPage({ params }: PageProps) {
               </div>
             </section>
             <section className="relative border-t border-[var(--line)] pt-4">
-              <SectionTitle number="3" title="AI 今日对话" />
+              <SectionTitle number="3" title="今日自我看见" />
               <AIHoverTip methodTitle={documentContent.aiMethod.title} methodNote={documentContent.aiMethod.note} />
-              <p className="mb-4 leading-[1.8] text-[#4f3429]">{day.aiQuestion}</p>
-              <Link
-                className="action-primary inline-block text-center"
-                href={`/day/${day.day}/ai`}
-              >
-                开启对话
-              </Link>
+              <p className="mb-4 leading-[1.8] text-[#4f3429]">
+                {day.aiQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。
+              </p>
+              <SelfReflectionBox aiHref={`/day/${day.day}/ai`} day={day.day} />
             </section>
             {documentContent.extraSections.map((section, index) => (
               <section key={section.title} className="border-t border-[var(--line)] pt-4">
