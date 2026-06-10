@@ -6,6 +6,7 @@ import { getProgressCardState, ProgressCardState, shouldShowAssessmentPrompt } f
 import { getLocalUser, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { currentUser, dayContents, phases } from "@/lib/content";
 import { getReadableCurrentDay } from "@/lib/progress";
+import { getSeedlingState, SeedlingState } from "@/lib/seedling-state";
 import { supabase } from "@/lib/supabase";
 
 type ProgressState = {
@@ -16,6 +17,7 @@ type ProgressState = {
   hasAssessment: boolean;
   isMember: boolean;
   loading: boolean;
+  totalScore100: number | null;
 };
 
 const publishedDayLimit = dayContents.length;
@@ -46,6 +48,7 @@ export function HomeDashboard() {
     hasAssessment: false,
     isMember: false,
     loading: true,
+    totalScore100: null,
   });
   const [expanded, setExpanded] = useState(false);
   const [assessmentPromptDismissed, setAssessmentPromptDismissed] = useState(false);
@@ -55,7 +58,8 @@ export function HomeDashboard() {
 
     async function loadProgress() {
       const localUser = getLocalUser();
-      const localHasAssessment = Boolean(window.localStorage.getItem(LOCAL_RESULT_KEY));
+      const localAssessment = readLocalAssessment();
+      const localHasAssessment = Boolean(localAssessment);
       const localProgress = readLocalProgress();
       if (localUser && !cancelled) {
         setState((current) => ({
@@ -67,6 +71,7 @@ export function HomeDashboard() {
           hasAssessment: localHasAssessment,
           isMember: localUser.isMember,
           loading: Boolean(supabase),
+          totalScore100: localAssessment?.totalScore100 ?? null,
         }));
       }
 
@@ -79,6 +84,7 @@ export function HomeDashboard() {
             cardsCollected: localProgress.completedDays.length,
             hasAssessment: localHasAssessment,
             loading: false,
+            totalScore100: localAssessment?.totalScore100 ?? null,
           }));
         }
         return;
@@ -100,8 +106,9 @@ export function HomeDashboard() {
           .maybeSingle(),
         supabase
           .from("assessments")
-          .select("id")
+          .select("id,total_score_100")
           .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase
@@ -128,6 +135,10 @@ export function HomeDashboard() {
           hasAssessment: Boolean(assessment),
           isMember: isMemberActive,
           loading: false,
+          totalScore100:
+            assessment?.total_score_100 !== undefined && assessment?.total_score_100 !== null
+              ? Number(assessment.total_score_100)
+              : localAssessment?.totalScore100 ?? null,
         });
 
       }
@@ -152,6 +163,7 @@ export function HomeDashboard() {
   }, [state.currentDay]);
 
   const completionRate = Math.round((state.completedDays.length / 100) * 100);
+  const seedlingState = getSeedlingState(state.totalScore100);
   if (state.loading) {
     return <LoadingState />;
   }
@@ -208,6 +220,7 @@ export function HomeDashboard() {
           <div className="progress-track">
             <i className="progress-fill" style={{ width: `${completionRate}%` }} />
           </div>
+          <PlantStateDisplay seedling={seedlingState} />
         </div>
 
         <div className="grid min-h-0 grid-cols-[1fr_280px] gap-6 p-[clamp(16px,2.4vw,28px)] max-lg:grid-cols-1">
@@ -360,6 +373,28 @@ function LoadingState() {
   );
 }
 
+function PlantStateDisplay({ seedling }: { seedling: SeedlingState }) {
+  return (
+    <section className="mt-4 grid grid-cols-[auto_1fr] items-center gap-4 rounded-none border border-[#d8b98a]/60 bg-[#fbf1df]/70 p-4">
+      <div className={`seedling-illustration seedling-${seedling.icon}`} aria-hidden="true">
+        <span className="seedling-pot" />
+        <span className="seedling-soil" />
+        <span className="seedling-stem" />
+        <span className="seedling-leaf seedling-leaf-left" />
+        <span className="seedling-leaf seedling-leaf-right" />
+        <span className="seedling-crown" />
+      </div>
+      <div className="min-w-0">
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <span className="eyebrow">内在小苗苗</span>
+          <span className="sans text-xs text-clay">{seedling.label}</span>
+        </div>
+        <p className="m-0 text-sm leading-[1.75] text-[#563a2e]">{seedling.sentence}</p>
+      </div>
+    </section>
+  );
+}
+
 function ProgressDayCard({
   completedDays,
   currentDay,
@@ -457,5 +492,21 @@ function readLocalProgress() {
   } catch {
     window.localStorage.removeItem(LOCAL_PROGRESS_KEY);
     return { currentDay: currentUser.currentDay, completedDays: currentUser.completedDays };
+  }
+}
+
+function readLocalAssessment() {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(LOCAL_RESULT_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { result?: { totalScore100?: number } };
+    return typeof parsed.result?.totalScore100 === "number"
+      ? { totalScore100: parsed.result.totalScore100 }
+      : null;
+  } catch {
+    window.localStorage.removeItem(LOCAL_RESULT_KEY);
+    return null;
   }
 }

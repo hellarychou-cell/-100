@@ -200,6 +200,158 @@ textarea {
   pointer-events: none;
 }
 
+.seedling-illustration {
+  position: relative;
+  width: 72px;
+  height: 78px;
+  flex: 0 0 auto;
+}
+
+.seedling-pot {
+  position: absolute;
+  left: 17px;
+  bottom: 0;
+  width: 38px;
+  height: 23px;
+  border: 1px solid rgba(91, 56, 44, 0.42);
+  background: linear-gradient(180deg, #c99a5b, #8f6042);
+  clip-path: polygon(8% 0, 92% 0, 78% 100%, 22% 100%);
+}
+
+.seedling-soil {
+  position: absolute;
+  left: 14px;
+  bottom: 19px;
+  width: 44px;
+  height: 10px;
+  border-radius: 999px;
+  background: #5b382c;
+}
+
+.seedling-stem {
+  position: absolute;
+  left: 35px;
+  bottom: 23px;
+  width: 3px;
+  height: 22px;
+  border-radius: 999px;
+  background: #5f7f4a;
+  transform-origin: bottom;
+  animation: seedling-sway 2.8s ease-in-out infinite;
+}
+
+.seedling-leaf,
+.seedling-crown {
+  position: absolute;
+  display: block;
+  background: #78935b;
+  transform-origin: center;
+}
+
+.seedling-leaf {
+  width: 18px;
+  height: 11px;
+  border-radius: 999px 999px 999px 3px;
+  bottom: 39px;
+  opacity: 0;
+}
+
+.seedling-leaf-left {
+  left: 21px;
+  transform: rotate(-28deg);
+}
+
+.seedling-leaf-right {
+  right: 20px;
+  transform: scaleX(-1) rotate(-28deg);
+}
+
+.seedling-crown {
+  left: 20px;
+  bottom: 45px;
+  width: 34px;
+  height: 28px;
+  border-radius: 50% 50% 48% 52%;
+  background: radial-gradient(circle at 30% 32%, #9cb978, #5f7f4a 72%);
+  opacity: 0;
+}
+
+.seedling-seed .seedling-stem,
+.seedling-seed .seedling-leaf,
+.seedling-seed .seedling-crown {
+  display: none;
+}
+
+.seedling-seed .seedling-soil::after {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: -5px;
+  width: 11px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9a6a45;
+}
+
+.seedling-sprout .seedling-stem {
+  height: 15px;
+}
+
+.seedling-sprout .seedling-leaf-left {
+  opacity: 1;
+  left: 27px;
+  bottom: 34px;
+  width: 12px;
+  height: 8px;
+}
+
+.seedling-seedling .seedling-leaf {
+  opacity: 1;
+}
+
+.seedling-sapling .seedling-stem {
+  height: 36px;
+  width: 4px;
+}
+
+.seedling-sapling .seedling-leaf {
+  opacity: 1;
+  bottom: 51px;
+}
+
+.seedling-sapling .seedling-leaf-left {
+  left: 18px;
+}
+
+.seedling-sapling .seedling-leaf-right {
+  right: 17px;
+}
+
+.seedling-tree .seedling-stem {
+  height: 37px;
+  width: 5px;
+  background: #6b4a35;
+}
+
+.seedling-tree .seedling-crown,
+.seedling-tree .seedling-leaf {
+  opacity: 1;
+}
+
+.seedling-tree .seedling-leaf {
+  bottom: 48px;
+}
+
+@keyframes seedling-sway {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
 /* Make decorative radio indicator spans non-interactive so label/input receive clicks */
 .peer + span,
 .peer ~ span {
