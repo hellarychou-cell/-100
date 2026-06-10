@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ReportRadar } from "@/components/ReportRadar";
 import {
   ASSESSMENT_DIMENSIONS,
@@ -9,6 +9,12 @@ import {
   DimensionId,
   DimensionScore,
 } from "@/lib/assessment";
+import {
+  getDimensionInterpretation,
+  getModeInsight,
+  getReportSummary,
+  getTopAndLowDimensions,
+} from "@/lib/assessment-report-copy";
 import { LOCAL_PROFILE_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
@@ -18,20 +24,19 @@ type StoredResult = {
 };
 
 type Profile = {
+  age?: string | number | null;
+  currentIssue?: string | null;
+  idealState?: string | null;
+  identity?: string | null;
   name?: string;
-};
-
-const WHY_FROM_DAY: Record<number, string> = {
-  1: `你的内耗程度较重或极重，建议从第一天完整走完100天，看见自己的底层程序。`,
-  8: `你的内耗处于中等区间，建议从 Day 8 开始，跳过 W1 概念引入，在稳定中逐步推进。`,
-  26: `你的内耗处于轻度，建议从 Day 26 开始，跳过觉醒期，从理解期追溯来源。`,
-  51: `你的内耗几乎无，建议从 Day 51 开始，跳过觉醒期和理解期，直接进入工具实操重建阶段。`,
 };
 
 export function AssessmentResultClient() {
   const [stored, setStored] = useState<StoredResult | null>(null);
   const [profile, setProfile] = useState<Profile>({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const reportRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +53,11 @@ export function AssessmentResultClient() {
         const { data: userData } = await supabase.auth.getUser();
         if (userData.user) {
           const [{ data: profileData }, { data: assessmentData }] = await Promise.all([
-            supabase.from("profiles").select("display_name").eq("id", userData.user.id).maybeSingle(),
+            supabase
+              .from("profiles")
+              .select("display_name,age,identity,current_issue,ideal_state")
+              .eq("id", userData.user.id)
+              .maybeSingle(),
             supabase
               .from("assessments")
               .select("raw_total,total_score_100,dimension_scores,primary_mode,recommended_day,created_at")
@@ -59,7 +68,15 @@ export function AssessmentResultClient() {
           ]);
 
           if (!cancelled) {
-            if (profileData?.display_name) setProfile({ name: profileData.display_name });
+            if (profileData) {
+              setProfile({
+                age: profileData.age,
+                currentIssue: profileData.current_issue,
+                idealState: profileData.ideal_state,
+                identity: profileData.identity,
+                name: profileData.display_name,
+              });
+            }
             if (assessmentData) {
               setStored({
                 createdAt: assessmentData.created_at,
@@ -85,16 +102,28 @@ export function AssessmentResultClient() {
     };
   }, []);
 
+  useEffect(() => {
+    function onSave() {
+      void saveReportImage(reportRef.current, setSaving);
+    }
+
+    window.addEventListener("save-assessment-report", onSave);
+    return () => window.removeEventListener("save-assessment-report", onSave);
+  }, []);
+
   const result = stored?.result;
   const dimensionRows = useMemo(() => {
     if (!result) return [];
-    return ASSESSMENT_DIMENSIONS.map((dimension) => ({
-      id: dimension.id,
-      name: dimension.name,
-      score: result.dimensionScores[dimension.id].raw,
-      index: result.dimensionScores[dimension.id].index,
-      text: buildDimensionText(dimension.name, result.dimensionScores[dimension.id].index),
-    }));
+    return ASSESSMENT_DIMENSIONS.map((dimension) => {
+      const score = result.dimensionScores[dimension.id];
+      return {
+        id: dimension.id,
+        interpretation: getDimensionInterpretation(dimension.id, score.index),
+        name: dimension.name,
+        score: score.raw,
+        index: score.index,
+      };
+    });
   }, [result]);
 
   if (loading) {
@@ -106,121 +135,244 @@ export function AssessmentResultClient() {
   }
 
   const name = profile.name || "她";
+  const createdAt = stored ? new Date(stored.createdAt) : new Date();
+  const reportId = `BLC-${formatDateId(createdAt)}-${Math.abs(result.rawTotal * 37 + Math.round(result.totalScore100)).toString(36).toUpperCase()}`;
+  const summary = getReportSummary(result.rawTotal);
+  const modeInsight = getModeInsight(result.primaryMode);
+  const { top, low } = getTopAndLowDimensions(dimensionRows);
 
   return (
-    <section className="grid min-h-0 grid-cols-[minmax(320px,.76fr)_minmax(470px,1fr)] overflow-hidden max-lg:grid-cols-1 max-lg:overflow-auto">
-      <aside className="grid border-r border-[var(--line)] bg-paper/50 p-[clamp(22px,3vw,38px)] max-lg:border-b max-lg:border-r-0">
-        <div>
-          <div className="eyebrow mb-3">Personal report · 42 questions</div>
-          <h1 className="display-title text-[clamp(44px,5.3vw,78px)]">
-            {name}的
-            <br />
-            底层代码
-            <br />
-            诊断。
-          </h1>
-        </div>
-        <div className="self-center">
-          <div className="flex items-end gap-3">
-            <strong className="text-[104px] font-normal leading-[.8]">{Math.round(result.totalScore100)}</strong>
-            <span className="pb-3 sans text-sm text-[var(--muted)]">/ 100</span>
-          </div>
-          <p className="mt-5 max-w-md text-[17px] leading-[1.85] text-[#563a2e]">
-            看见，是中女觉醒的第一步。这个分数不是给你贴标签，而是帮你知道：旧程序在哪里最用力。
-          </p>
-        </div>
-        <div className="grid gap-3 self-end sans text-sm">
-          <Link className="action-primary w-max" href="/day/1">
-            点击进入我的100天
-          </Link>
-        </div>
-      </aside>
-      <section className="grid min-h-0 grid-rows-[auto_1fr] gap-4 overflow-auto p-[clamp(18px,2.4vw,30px)] max-lg:overflow-visible">
-        <div className="grid grid-cols-[180px_1fr] items-center gap-6 max-sm:grid-cols-1">
+    <section className="min-h-0 overflow-auto bg-[#f4e6d2]/45 p-[clamp(14px,2.4vw,28px)]">
+      <article
+        ref={reportRef}
+        className="mx-auto grid max-w-6xl gap-6 border border-[#d8b98a] bg-[#fffaf1] p-[clamp(18px,3vw,34px)] text-[#3f281f] shadow-[0_18px_70px_rgba(63,40,31,.12)]"
+      >
+        <header className="grid grid-cols-[1fr_auto] gap-4 border-b border-[#d8b98a]/70 pb-5 max-sm:grid-cols-1">
           <div>
-            <ReportRadar data={dimensionRows.map((row) => ({ name: row.name.slice(0, 2), value: row.index }))} />
+            <div className="eyebrow mb-3">Bottom Layer Code Diagnosis Report</div>
+            <h1 className="font-serif text-[clamp(42px,6vw,82px)] font-normal leading-[.92]">
+              底层代码
+              <br />
+              诊断报告
+            </h1>
+            <p className="mt-4 max-w-xl text-sm leading-[1.9] text-[#6c4a3a]">
+              看见，就是改变的开始。这份报告不是给你贴标签，而是帮你看见那些一直在后台替你做决定的旧程序。
+            </p>
           </div>
-          <div className="border-y border-[var(--line)] py-5">
-            <h2 className="m-0 text-4xl font-normal leading-none">主模式：{result.primaryMode}</h2>
-            <p className="mt-3 leading-[1.75] text-[#563a2e]">{buildModeText(result.primaryMode)}</p>
-            <details>
-              <summary className="text-link mt-2 cursor-pointer list-none">展开完整解读</summary>
-              <p className="mt-3 leading-[1.75] text-[#563a2e]">
-                接下来最重要的，不是立刻推翻自己，而是先在每天的小场景里看见旧程序。你可以先学习识别“这一刻到底是谁在替我做决定”。
-              </p>
-            </details>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <TooltipPill
-                label={`主模式：${result.primaryMode}`}
-                tooltip={buildModeText(result.primaryMode)}
-              />
-              <TooltipPill
-                href={`/day/${result.recommendedDay}`}
-                label={`推荐起点：Day ${result.recommendedDay}`}
-                tooltip={WHY_FROM_DAY[result.recommendedDay] ?? "系统根据你的总分和维度分布，选择一个相对稳定的入口。"}
-              />
-              <TooltipPill
-                label={`测评时间：${stored ? new Date(stored.createdAt).toLocaleDateString("zh-CN") : "今天"}`}
-                tooltip="这是你最近一次完成测评并保存下来的报告时间。"
-              />
+          <div className="grid content-between justify-items-end gap-4 text-right max-sm:justify-items-start max-sm:text-left">
+            <div>
+              <div className="sans text-xs text-[var(--muted)]">报告对象</div>
+              <strong className="block font-serif text-4xl font-normal">{name}</strong>
+              <span className="sans text-xs text-clay">
+                {profile.age ? `${profile.age} · ` : ""}
+                {profile.identity || "未填写身份"}
+              </span>
             </div>
+            <button
+              className="no-print action-primary !bg-[#5b382c]"
+              disabled={saving}
+              onClick={() => void saveReportImage(reportRef.current, setSaving)}
+              type="button"
+            >
+              {saving ? "正在生成图片" : "保存报告图片"}
+            </button>
           </div>
-        </div>
-        <section className="grid grid-cols-2 gap-x-5 max-sm:grid-cols-1">
-          {dimensionRows.map((dimension) => (
-            <details key={dimension.id} className="border-t border-[var(--line)] py-2">
-              <summary className="grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-3">
-                <div className="grid gap-2 sans text-xs text-[var(--muted)]">
-                  <div className="flex justify-between">
-                    <span>{dimension.name}</span>
-                    <span>{dimension.score}/35</span>
+        </header>
+
+        <section className="grid grid-cols-[minmax(270px,.8fr)_1.2fr] gap-6 max-lg:grid-cols-1">
+          <aside className="grid content-start gap-5 border-r border-[#d8b98a]/60 pr-6 max-lg:border-b max-lg:border-r-0 max-lg:pb-5 max-lg:pr-0">
+            <section className="grid gap-4">
+              <div className="grid grid-cols-[180px_1fr] items-center gap-5 max-sm:grid-cols-1">
+                <ReportRadar data={dimensionRows.map((row) => ({ name: row.name.slice(0, 2), value: row.index }))} />
+                <div>
+                  <div className="sans text-xs text-[var(--muted)]">总分</div>
+                  <div className="flex items-end gap-2">
+                    <strong className="text-[78px] font-normal leading-none">{result.rawTotal}</strong>
+                    <span className="pb-2 sans text-sm text-[var(--muted)]">/ 180</span>
                   </div>
-                  <div className="progress-track">
-                    <i className="progress-fill" style={{ width: `${dimension.index}%` }} />
-                  </div>
+                  <span className="pill !border-[#d8b98a] !bg-[#f7ead8]">{summary.title}</span>
                 </div>
-                <span className="grid h-6 w-6 place-items-center rounded-full border border-[var(--line)] text-clay">+</span>
-              </summary>
-              <p className="m-0 pt-2 text-sm leading-relaxed text-[#563a2e]">{dimension.text}</p>
-            </details>
-          ))}
+              </div>
+              <div className="grid gap-3 border-y border-[#d8b98a]/60 py-4">
+                <ReportFact label="底层代码模式" value={result.primaryMode} />
+                <ReportFact label="核心信念" value={modeInsight.coreCode} />
+                <ReportFact label="人格成熟度" value={summary.maturity} />
+                <ReportFact label="内在小苗苗" value={summary.seedling} />
+              </div>
+              {profile.currentIssue || profile.idealState ? (
+                <div className="grid gap-3 text-sm leading-relaxed text-[#563a2e]">
+                  {profile.currentIssue ? <ReportNote label="我当下最想解决的问题" text={String(profile.currentIssue)} /> : null}
+                  {profile.idealState ? <ReportNote label="我想抵达的状态" text={String(profile.idealState)} /> : null}
+                </div>
+              ) : null}
+            </section>
+
+            <section className="grid gap-3">
+              <div className="eyebrow">核心洞察</div>
+              <p className="m-0 text-sm leading-[1.85] text-[#563a2e]">{summary.bottomCode}</p>
+              {summary.likelyPatterns ? (
+                <ul className="m-0 grid gap-2 p-0">
+                  {summary.likelyPatterns.map((pattern) => (
+                    <li key={pattern} className="list-none border-l border-clay/50 pl-3 text-sm leading-relaxed text-[#563a2e]">
+                      {pattern}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          </aside>
+
+          <section className="grid content-start gap-5">
+            <section className="grid gap-2">
+              <div className="flex items-end justify-between gap-3 border-b border-[#d8b98a]/60 pb-2">
+                <div>
+                  <div className="eyebrow mb-1">Six dimensions</div>
+                  <h2 className="m-0 text-3xl font-normal leading-none">六维度解读</h2>
+                </div>
+                <span className="sans text-xs text-[var(--muted)]">点击小三角展开</span>
+              </div>
+              <div className="grid gap-2">
+                {dimensionRows.map((dimension) => (
+                  <details key={dimension.id} className="group border border-[#d8b98a]/55 bg-[#fff4df]/60">
+                    <summary className="grid cursor-pointer list-none grid-cols-[1fr_auto] items-center gap-4 p-3">
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <strong className="font-serif text-lg font-normal">{dimension.name}</strong>
+                          <span className="sans text-xs text-clay">{dimension.score}/35 · {dimension.interpretation.title}</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-[#5b382c]/10">
+                          <i className="block h-full rounded-full bg-gradient-to-r from-[#8f6042] to-[#c99a5b]" style={{ width: `${dimension.index}%` }} />
+                        </div>
+                      </div>
+                      <span className="grid h-8 w-8 place-items-center border border-[#d8b98a] text-clay transition group-open:rotate-90">›</span>
+                    </summary>
+                    <div className="border-t border-[#d8b98a]/50 p-3 text-sm leading-[1.85] text-[#563a2e]">
+                      <p className="m-0">{dimension.interpretation.body}</p>
+                      {dimension.interpretation.drain ? (
+                        <p className="mb-0 mt-2 text-[#7a563f]">隐形内耗来源：{dimension.interpretation.drain}</p>
+                      ) : null}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+
+            <section className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+              <InsightCard
+                label="核心内耗源"
+                title={`${top[0]?.name ?? ""} + ${top[1]?.name ?? ""}`}
+                text={`${top[0]?.name ?? "最高维度"}和${top[1]?.name ?? "第二高维度"}是目前最容易被触发的位置，代表你最需要先看见的旧程序组合。`}
+              />
+              <InsightCard
+                label="优势区域"
+                title={low?.name ?? "稳定维度"}
+                text={low ? `${low.name}是你当前相对稳定的支撑点，可以作为进入100天练习时的内在资源。` : "你的稳定维度会在这里显示。"}
+              />
+            </section>
+
+            <section className="grid gap-3 border border-[#d8b98a]/70 bg-[#f7ead8]/70 p-4">
+              <div className="eyebrow">三句话给你</div>
+              <div className="grid gap-2">
+                {modeInsight.lines.map((line, index) => (
+                  <p key={line} className="m-0 border-l border-[#5b382c]/40 pl-3 text-sm leading-[1.8] text-[#563a2e]">
+                    {index + 1}. {line}
+                  </p>
+                ))}
+              </div>
+            </section>
+
+            <section className="grid grid-cols-[1fr_auto] items-end gap-4 border-t border-[#d8b98a]/70 pt-4 max-sm:grid-cols-1">
+              <div className="grid gap-3">
+                <p className="m-0 text-sm leading-[1.85] text-[#563a2e]">
+                  你的底层代码诊断报告已经生成。你看到了自己的隐形内耗来源，也看到了那些一直在替你做决定的旧程序。
+                  如果你想更深入地了解你的底层代码，拆掉那些卡住你的旧程序，可以预约1v1底层代码解读。
+                </p>
+                <div className="flex flex-wrap gap-3 no-print">
+                  <Link className="action-primary !bg-[#5b382c]" href={`/day/${result.recommendedDay}`}>
+                    开启我的100天旅程
+                  </Link>
+                  <button
+                    className="action-ghost"
+                    disabled={saving}
+                    onClick={() => void saveReportImage(reportRef.current, setSaving)}
+                    type="button"
+                  >
+                    {saving ? "正在生成图片" : "保存图片"}
+                  </button>
+                </div>
+              </div>
+              <div className="grid justify-items-center gap-2">
+                <div className="grid h-20 w-20 grid-cols-5 grid-rows-5 gap-1 border border-[#d8b98a] bg-soft p-2">
+                  {Array.from({ length: 25 }, (_, index) => (
+                    <span key={index} className={qrBlocks.has(index) ? "bg-[#5b382c]" : "bg-transparent"} />
+                  ))}
+                </div>
+                <span className="sans text-[10px] text-[var(--muted)]">扫码预约解读</span>
+              </div>
+            </section>
+          </section>
         </section>
-      </section>
+
+        <footer className="flex items-center justify-between gap-4 border-t border-[#d8b98a]/70 pt-4 sans text-[10px] uppercase tracking-[0.14em] text-[var(--muted)] max-sm:flex-col max-sm:items-start">
+          <span>成她100 · 底层代码重写系统</span>
+          <span>报告编号：{reportId} · {createdAt.toLocaleDateString("zh-CN")}</span>
+        </footer>
+      </article>
     </section>
   );
 }
 
-function TooltipPill({
-  href,
-  label,
-  tooltip,
-}: {
-  href?: string;
-  label: string;
-  tooltip: string;
-}) {
-  const content = (
-    <>
-      {label}
-      <span className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden w-64 border border-[var(--line)] bg-soft p-3 text-left text-xs leading-relaxed text-[#563a2e] shadow-xl group-hover:block">
-        {tooltip}
-      </span>
-    </>
-  );
+const qrBlocks = new Set([0, 1, 2, 4, 5, 7, 8, 10, 12, 14, 16, 17, 19, 20, 22, 23, 24]);
 
-  if (href) {
-    return (
-      <Link className="pill group relative cursor-pointer border border-clay/45 bg-[#f7ead8] text-clay transition hover:bg-clay hover:text-soft" href={href}>
-        {content}
-      </Link>
-    );
-  }
-
+function ReportFact({ label, value }: { label: string; value: string }) {
   return (
-    <span className="pill group relative cursor-help border border-clay/45 bg-[#f7ead8] text-clay transition hover:bg-clay hover:text-soft">
-      {content}
-    </span>
+    <div className="grid grid-cols-[96px_1fr] gap-3 text-sm">
+      <span className="sans text-xs text-[var(--muted)]">{label}</span>
+      <strong className="font-normal text-[#3f281f]">{value}</strong>
+    </div>
   );
+}
+
+function ReportNote({ label, text }: { label: string; text: string }) {
+  return (
+    <div className="border border-[#d8b98a]/55 bg-[#fff4df]/60 p-3">
+      <div className="sans mb-1 text-[10px] uppercase tracking-[0.14em] text-clay">{label}</div>
+      <p className="m-0">{text}</p>
+    </div>
+  );
+}
+
+function InsightCard({ label, text, title }: { label: string; text: string; title: string }) {
+  return (
+    <div className="border border-[#d8b98a]/55 bg-[#fff4df]/60 p-4">
+      <div className="eyebrow mb-2">{label}</div>
+      <h3 className="m-0 text-2xl font-normal leading-tight">{title}</h3>
+      <p className="mb-0 mt-2 text-sm leading-[1.75] text-[#563a2e]">{text}</p>
+    </div>
+  );
+}
+
+async function saveReportImage(element: HTMLElement | null, setSaving: (saving: boolean) => void) {
+  if (!element) return;
+  setSaving(true);
+  try {
+    const { toPng } = await import("html-to-image");
+    const dataUrl = await toPng(element, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: "#fffaf1",
+      filter: (node) => !(node instanceof HTMLElement && node.classList.contains("no-print")),
+    });
+    const link = document.createElement("a");
+    link.download = `成她100-底层代码诊断报告-${Date.now()}.png`;
+    link.href = dataUrl;
+    link.click();
+  } catch (error) {
+    console.error(error);
+    window.print();
+  } finally {
+    setSaving(false);
+  }
 }
 
 function EmptyReport({ title, text }: { title: string; text: string }) {
@@ -249,18 +401,9 @@ function readJson<T>(key: string): T | null {
   }
 }
 
-function buildModeText(mode: string) {
-  if (mode === "讨好型") return "你的系统很擅长照顾别人，也很容易把别人的反应当成自己的责任。";
-  if (mode === "证明型") return "你很容易把价值感放在结果上，好像必须不断做到，才允许自己安心。";
-  if (mode === "失权型") return "你可能习惯先看别人怎么想，再决定自己可不可以要。";
-  if (mode === "高敏内耗型") return "你对细节和关系氛围很敏锐，也容易因此消耗太多精力。";
-  if (mode === "冻结拖延型") return "你不是没有能力行动，而是重要的事会先触发紧张和迟疑。";
-  if (mode === "财富收缩型") return "你向往拥有更多，但身体里也可能同时运行着不配得和不安全。";
-  return "你的六个维度交织在一起，报告会帮你找到最适合先打开的入口。";
-}
-
-function buildDimensionText(name: string, index: number) {
-  if (index >= 70) return `${name}是目前很容易被触发的位置。先不用急着改变，先学习在日常里抓到它出现的那一秒。`;
-  if (index >= 40) return `${name}处在中间区间，说明你已经有一些觉察，但遇到特定关系或压力时仍会被旧程序带走。`;
-  return `${name}目前相对稳定，可以作为你进入 100 天练习时的支撑点。`;
+function formatDateId(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
 }

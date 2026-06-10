@@ -19,7 +19,7 @@ export default function AssessmentResultPage() {
           <div className="flex items-center gap-2">
             <button
               className="action-ghost !px-3 !py-2 !text-xs"
-              onClick={() => window.print()}
+              onClick={() => window.dispatchEvent(new Event("save-assessment-report"))}
               type="button"
             >
               保存报告
