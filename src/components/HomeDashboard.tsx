@@ -151,7 +151,6 @@ export function HomeDashboard() {
     return phases[3];
   }, [state.currentDay]);
 
-  const visibleDays = expanded ? allDaysData : allDaysData.slice(0, 14);
   const completionRate = Math.round((state.completedDays.length / 100) * 100);
   if (state.loading) {
     return <LoadingState />;
@@ -254,15 +253,94 @@ export function HomeDashboard() {
               {expanded ? "收起" : "展开全部"}
             </button>
           </div>
-          <div className="grid grid-cols-[repeat(7,minmax(0,1fr))] gap-3 max-lg:grid-cols-[repeat(4,minmax(0,1fr))] max-sm:grid-cols-2">
-            {visibleDays.map((item) => (
-              <ProgressDayCard
-                key={item.day}
-                currentDay={state.currentDay}
-                completedDays={state.completedDays}
-                item={item}
-              />
-            ))}
+          <div className="grid gap-6">
+            {/* 觉醒期 */}
+            <div>
+              <div className="mb-3 flex items-center gap-3">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-[#5b382c] text-xs text-soft">🌱</span>
+                <div>
+                  <strong className="text-sm font-normal text-[#5b382c]">第一阶段：觉醒期</strong>
+                  <span className="ml-2 sans text-xs text-[var(--muted)]">Day 1-25</span>
+                </div>
+              </div>
+              <div className="h-px bg-[#5b382c]/20" />
+              <div className="mt-3 grid grid-cols-[repeat(7,minmax(0,1fr))] gap-3 max-lg:grid-cols-[repeat(4,minmax(0,1fr))] max-sm:grid-cols-2">
+                {(expanded ? allDaysData.filter(d => d.day >= 1 && d.day <= 25) : allDaysData.filter(d => d.day >= 1 && d.day <= 7)).map((item) => (
+                  <ProgressDayCard
+                    key={item.day}
+                    currentDay={state.currentDay}
+                    completedDays={state.completedDays}
+                    item={item}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* 理解期 */}
+            <div>
+              <div className="mb-3 flex items-center gap-3">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-[#8B6914] text-xs text-soft">🌾</span>
+                <div>
+                  <strong className="text-sm font-normal text-[#8B6914]">第二阶段：理解期</strong>
+                  <span className="ml-2 sans text-xs text-[var(--muted)]">Day 26-50</span>
+                </div>
+              </div>
+              <div className="h-px bg-[#8B6914]/20" />
+              <div className="mt-3 grid grid-cols-[repeat(7,minmax(0,1fr))] gap-3 max-lg:grid-cols-[repeat(4,minmax(0,1fr))] max-sm:grid-cols-2">
+                {expanded && allDaysData.filter(d => d.day >= 26 && d.day <= 50).map((item) => (
+                  <ProgressDayCard
+                    key={item.day}
+                    currentDay={state.currentDay}
+                    completedDays={state.completedDays}
+                    item={item}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* 重建期 */}
+            <div>
+              <div className="mb-3 flex items-center gap-3">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-[#2D5A4A] text-xs text-soft">🌿</span>
+                <div>
+                  <strong className="text-sm font-normal text-[#2D5A4A]">第三阶段：重建期</strong>
+                  <span className="ml-2 sans text-xs text-[var(--muted)]">Day 51-80</span>
+                </div>
+              </div>
+              <div className="h-px bg-[#2D5A4A]/20" />
+              <div className="mt-3 grid grid-cols-[repeat(7,minmax(0,1fr))] gap-3 max-lg:grid-cols-[repeat(4,minmax(0,1fr))] max-sm:grid-cols-2">
+                {expanded && allDaysData.filter(d => d.day >= 51 && d.day <= 80).map((item) => (
+                  <ProgressDayCard
+                    key={item.day}
+                    currentDay={state.currentDay}
+                    completedDays={state.completedDays}
+                    item={item}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* 创造期 */}
+            <div>
+              <div className="mb-3 flex items-center gap-3">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-[#6B4A8B] text-xs text-soft">🌸</span>
+                <div>
+                  <strong className="text-sm font-normal text-[#6B4A8B]">第四阶段：创造期</strong>
+                  <span className="ml-2 sans text-xs text-[var(--muted)]">Day 81-100</span>
+                </div>
+              </div>
+              <div className="h-px bg-[#6B4A8B]/20" />
+              <div className="mt-3 grid grid-cols-[repeat(7,minmax(0,1fr))] gap-3 max-lg:grid-cols-[repeat(4,minmax(0,1fr))] max-sm:grid-cols-2">
+                {expanded && allDaysData.filter(d => d.day >= 81 && d.day <= 100).map((item) => (
+                  <ProgressDayCard
+                    key={item.day}
+                    currentDay={state.currentDay}
+                    completedDays={state.completedDays}
+                    item={item}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

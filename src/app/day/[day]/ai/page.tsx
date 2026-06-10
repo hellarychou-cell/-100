@@ -30,7 +30,7 @@ export default function AIDayPage({ params }: PageProps) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const initialQuestion = prompts?.userQuestion ?? "";
+  const initialQuestion = day?.aiQuestion ?? "";
 
   async function send(text: string, forceMode?: "summarize") {
     if (!text.trim() || loading) return;
@@ -99,7 +99,7 @@ export default function AIDayPage({ params }: PageProps) {
 
           <div className="border-b border-[var(--line)] bg-ink/3 px-[clamp(18px,2.4vw,28px)] py-3">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="pill">{prompts.aiMethod}</span>
+              <span className="pill">{prompts.method}</span>
               {!summarized && (
                 <span className="sans text-xs text-[var(--muted)]">
                   输入「总结」可结束对话并保存

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dayAIPrompts, SUMMARIZE_PROMPT } from "@/lib/ai-prompts";
+import { dayAIPrompts } from "@/lib/ai-prompts";
+
+const SUMMARIZE_PROMPT = "请帮我总结一下这段对话里我发现了什么，以及还有哪些地方值得继续探索。";
 
 const MINIMAX_API_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2";
 const MINIMAX_MODEL = "MiniMax-Text-01";

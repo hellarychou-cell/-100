@@ -43,7 +43,9 @@ export default async function DayPage({ params }: PageProps) {
               <h1 className="display-title text-[clamp(42px,5.2vw,76px)]">{day.title}</h1>
               <div className="mb-1 flex flex-wrap gap-2">
                 <span className="pill">Day {String(day.day).padStart(2, "0")}</span>
+                <span className="pill bg-[#5b382c] text-soft">{day.phase}</span>
                 <span className="pill">{day.dimension}</span>
+                {day.cardPoint && <span className="pill bg-[#8B6914] text-soft">卡点：{day.cardPoint}</span>}
               </div>
             </div>
             <div className="mt-4 grid max-w-3xl gap-2 text-base leading-[1.82] text-[#4f3429]">
