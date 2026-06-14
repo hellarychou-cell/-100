@@ -3,46 +3,42 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
-import { currentUser, dayContents } from "@/lib/content";
+import { dayContents } from "@/lib/content";
 import {
+  AIConversationEntry,
+  LOCAL_AI_CONVERSATION_KEY,
   LOCAL_REFLECTION_KEY,
   SelfReflectionEntry,
+  summarizeAIConversation,
   summarizeReflectionEntry,
 } from "@/lib/self-reflection";
-
-const aiRecords = [
-  {
-    day: 1,
-    title: "那句「还行吧」",
-    note: "你开始分辨：哪些回答是习惯性的安全，哪些才是身体里真正想说的话。",
-  },
-  {
-    day: 3,
-    title: "父母的情绪不是你的责任",
-    note: "你把一句让你不舒服的话，慢慢拆回到过去的身体记忆里。",
-  },
-  {
-    day: 7,
-    title: "那 2 分",
-    note: "你看见那个一直追着满分跑的自己，也开始练习把「够了」还给她。",
-  },
-];
 
 type Tab = "writing" | "ai";
 
 export default function AiSummaryPage() {
   const [tab, setTab] = useState<Tab>("writing");
   const [entries, setEntries] = useState<SelfReflectionEntry[]>([]);
+  const [aiEntries, setAiEntries] = useState<AIConversationEntry[]>([]);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(LOCAL_REFLECTION_KEY);
-    if (!raw) return;
 
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        setEntries(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        window.localStorage.removeItem(LOCAL_REFLECTION_KEY);
+      }
+    }
+
+    const aiRaw = window.localStorage.getItem(LOCAL_AI_CONVERSATION_KEY);
+    if (!aiRaw) return;
     try {
-      const parsed = JSON.parse(raw);
-      setEntries(Array.isArray(parsed) ? parsed : []);
+      const parsed = JSON.parse(aiRaw);
+      setAiEntries(Array.isArray(parsed) ? parsed : []);
     } catch {
-      window.localStorage.removeItem(LOCAL_REFLECTION_KEY);
+      window.localStorage.removeItem(LOCAL_AI_CONVERSATION_KEY);
     }
   }, []);
 
@@ -86,7 +82,7 @@ export default function AiSummaryPage() {
 
                 <div className="grid grid-cols-3 border border-[var(--line)]">
                   <Metric label="书写" value={sortedEntries.length} />
-                  <Metric label="AI 对话" value={currentUser.aiConversations} />
+                  <Metric label="AI 对话" value={aiEntries.length} />
                   <Metric label="本周回看" value={latestEntry ? 1 : 0} />
                 </div>
 
@@ -115,7 +111,7 @@ export default function AiSummaryPage() {
                 {tab === "writing" ? (
                   <WritingRecords entries={sortedEntries} />
                 ) : (
-                  <AIRecords />
+                  <AIRecords entries={aiEntries} />
                 )}
               </div>
             </div>
@@ -209,10 +205,26 @@ function WritingRecords({ entries }: { entries: SelfReflectionEntry[] }) {
   );
 }
 
-function AIRecords() {
+function AIRecords({ entries }: { entries: AIConversationEntry[] }) {
+  if (!entries.length) {
+    return (
+      <div className="thin-panel grid min-h-[360px] place-items-center p-8 text-center">
+        <div className="max-w-sm">
+          <p className="text-2xl text-ink">还没有 AI 对话记录。</p>
+          <p className="mt-3 leading-[1.8] text-[var(--muted)]">
+            从每天故事页写下「今日自我看见」后，点击「让 AI 陪我看见」，对话会收进这里。
+          </p>
+          <Link className="action-primary mt-5 inline-flex" href="/day/1">
+            去 Day 01 开始
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-3">
-      {aiRecords.map((record) => (
+      {entries.map((record) => (
         <article className="thin-panel grid gap-3 p-5" key={record.day}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -225,7 +237,7 @@ function AIRecords() {
               回到对话
             </Link>
           </div>
-          <p className="leading-[1.85] text-[var(--muted)]">{record.note}</p>
+          <p className="leading-[1.85] text-[var(--muted)]">{summarizeAIConversation(record)}</p>
         </article>
       ))}
 

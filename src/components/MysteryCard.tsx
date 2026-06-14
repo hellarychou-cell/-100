@@ -20,11 +20,6 @@ type MysteryCardProps = {
 
 export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
   const [flipped, setFlipped] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const canExpand = back.content.length > (small ? 56 : 120);
-  const shownContent = canExpand && !expanded
-    ? `${back.content.slice(0, small ? 56 : 120)}...`
-    : back.content;
 
   return (
     <div
@@ -63,23 +58,11 @@ export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
           <div className={`${small ? "p-2" : "p-3"} sans text-xs uppercase tracking-wider text-clay/60`}>
             {back.type === "tool" ? "工具卡" : back.type === "blank" ? "空白卡" : back.type === "gratitude" ? "感恩卡" : back.type === "benefit" ? "福利卡" : "背面"}
           </div>
-          <div className={`grid content-center gap-3 overflow-hidden ${small ? "p-3" : "p-5"} text-center`}>
+          <div className={`grid min-h-0 grid-rows-[auto_1fr_auto] gap-3 overflow-hidden ${small ? "p-3" : "p-5"} text-center`}>
             <strong className={`${small ? "text-sm" : "text-lg"} font-normal`}>{back.title}</strong>
-            <p className={`${small ? "text-[11px]" : "text-sm"} ${expanded ? "max-h-52 overflow-auto text-left" : ""} leading-relaxed`}>
-              “{shownContent}”
+            <p className={`${small ? "text-[11px]" : "text-sm"} min-h-0 overflow-auto whitespace-pre-line text-left leading-relaxed`}>
+              “{back.content}”
             </p>
-            {canExpand ? (
-              <button
-                className="text-link mx-auto bg-transparent"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setExpanded((current) => !current);
-                }}
-                type="button"
-              >
-                {expanded ? "收起" : "点击展开全部"}
-              </button>
-            ) : null}
             {back.dayNum && (
               <small className="sans text-xs text-clay/60">—— Day {back.dayNum}</small>
             )}

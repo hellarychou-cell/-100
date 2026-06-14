@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
 import { dayContents, heroImage } from "@/lib/content";
 import { markDayCompleted } from "@/lib/progress";
@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 
 export function QuoteCardClient({ dayNum }: { dayNum: number }) {
   const day = dayContents.find((item) => item.day === dayNum) ?? dayContents[0];
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function saveProgress() {
@@ -57,7 +59,7 @@ export function QuoteCardClient({ dayNum }: { dayNum: number }) {
           ×
         </Link>
         <div className="grid place-items-center border-r border-[var(--line)] bg-paper/50 p-6 max-md:border-b max-md:border-r-0">
-          <div className="grid aspect-[3/4.8] w-56 grid-rows-[2fr_1fr] overflow-hidden border border-ink/20 bg-soft shadow-2xl">
+          <div ref={cardRef} className="grid aspect-[3/4.8] w-56 grid-rows-[2fr_1fr] overflow-hidden border border-ink/20 bg-soft shadow-2xl">
             <div
               className="relative bg-cover bg-center"
               style={{ backgroundImage: `linear-gradient(rgba(36,22,16,.08),rgba(36,22,16,.28)),url(${heroImage})` }}
@@ -85,13 +87,42 @@ export function QuoteCardClient({ dayNum }: { dayNum: number }) {
             完成当天后生成一张书签式金句卡。回到状态页后，Day {String(day.day).padStart(2, "0")} 会变成已读状态。
           </p>
           <div className="flex gap-3 max-sm:grid">
-            <button className="action-primary" type="button">保存图片</button>
+            <button
+              className="action-primary"
+              disabled={saving}
+              onClick={() => void saveQuoteImage(cardRef.current, setSaving)}
+              type="button"
+            >
+              {saving ? "正在保存" : "保存图片"}
+            </button>
             <Link className="action-ghost" href="/home">回到我的状态</Link>
           </div>
         </section>
       </section>
     </main>
   );
+}
+
+async function saveQuoteImage(element: HTMLElement | null, setSaving: (saving: boolean) => void) {
+  if (!element) return;
+  setSaving(true);
+  try {
+    const { toPng } = await import("html-to-image");
+    const dataUrl = await toPng(element, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: "#f8efe1",
+    });
+    const link = document.createElement("a");
+    link.download = `成她100-Day金句卡-${Date.now()}.png`;
+    link.href = dataUrl;
+    link.click();
+  } catch (error) {
+    console.error(error);
+    window.print();
+  } finally {
+    setSaving(false);
+  }
 }
 
 function readLocalProgress() {

@@ -102,15 +102,6 @@ export function AssessmentResultClient() {
     };
   }, []);
 
-  useEffect(() => {
-    function onSave() {
-      void saveReportImage(reportRef.current, setSaving);
-    }
-
-    window.addEventListener("save-assessment-report", onSave);
-    return () => window.removeEventListener("save-assessment-report", onSave);
-  }, []);
-
   const result = stored?.result;
   const dimensionRows = useMemo(() => {
     if (!result) return [];
@@ -168,14 +159,6 @@ export function AssessmentResultClient() {
                 {profile.identity || "未填写身份"}
               </span>
             </div>
-            <button
-              className="no-print action-primary !bg-[#5b382c]"
-              disabled={saving}
-              onClick={() => void saveReportImage(reportRef.current, setSaving)}
-              type="button"
-            >
-              {saving ? "正在生成图片" : "保存报告图片"}
-            </button>
           </div>
         </header>
 
@@ -288,8 +271,11 @@ export function AssessmentResultClient() {
                   如果你想更深入地了解你的底层代码，拆掉那些卡住你的旧程序，可以预约1v1底层代码解读。
                 </p>
                 <div className="flex flex-wrap gap-3 no-print">
-                  <Link className="action-primary !bg-[#5b382c]" href={`/day/${result.recommendedDay}`}>
-                    开启我的100天旅程
+                  <Link className="action-primary !bg-[#5b382c]" href="/home">
+                    开始我的100天
+                  </Link>
+                  <Link className="action-ghost" href={`/day/${result.recommendedDay}`}>
+                    建议从 Day {result.recommendedDay} 开始
                   </Link>
                   <button
                     className="action-ghost"

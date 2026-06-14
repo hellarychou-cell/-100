@@ -1,32 +1,17 @@
 import Link from "next/link";
 import { KnowledgeDayGrid } from "@/components/KnowledgeDayGrid";
 import { readRootMarkdown } from "@/lib/markdown";
-
-const previewDays = [
-  { day: 1, title: "那句“还行吧”", note: "你不是低调，是把“我做到了”藏太久" },
-  { day: 2, title: "你不是不会拒绝", note: "你是用“我有用”抵押“我被爱”" },
-  { day: 3, title: "妈妈又打来电话了", note: "父母的情绪不是你的责任" },
-  { day: 4, title: "同学群里的一张照片", note: "你不是嫉妒，是替你妈再骂自己一遍" },
-  { day: 5, title: "老公那句“你不要这么累”", note: "你不是贤妻，是 3 代女人在交保护费" },
-  { day: 6, title: "周一早上 6 点的闹钟", note: "你不是自律，是不敢停" },
-  { day: 7, title: "那 2 分", note: "你不是不够好，是在等永远不会来的“够了”" },
-  ...Array.from({ length: 93 }, (_, index) => {
-    const day = index + 8;
-    const week =
-      day <= 25
-        ? "我的“性格”不是我"
-        : day <= 50
-          ? "追溯来源"
-          : day <= 80
-            ? "练习新反应"
-            : "整合与绽放";
-    return { day, title: week, note: "内容筹备中，正式上线前以终版文档为准" };
-  }),
-];
+import { getScheduleDays } from "@/lib/schedule";
 
 export default function KnowledgePage() {
   const blocks = readRootMarkdown("成她-知识库页.md").filter((block) => block.type !== "heading" || block.level <= 2);
   const introBlocks = blocks.slice(0, 18);
+  const previewDays = getScheduleDays().map((day) => ({
+    day: day.day,
+    note: `${day.dimension || "全维度"} · ${day.bodyNote || "测评日"} · ${day.mysteryCard || "神秘卡待定"}`,
+    status: day.day <= 7 ? "已上线" : "排期已定",
+    title: day.title,
+  }));
 
   return (
     <main className="viewport">
@@ -84,7 +69,7 @@ export default function KnowledgePage() {
           <aside className="group grid content-start gap-3 sans text-xs text-[var(--muted)]">
             <span className="pill">觉醒期 · Day 1-25</span>
             <div className="thin-panel p-4 leading-relaxed opacity-0 transition-opacity group-hover:opacity-100">
-              Day 1-7 已按终版内容展示标题。Day 8-25 先展示阶段主题，正式内容后续再替换。
+              Day 1-7 已按终版内容展示。Day 8-100 已按完整排期表显示主题、身体小语和神秘卡。
             </div>
           </aside>
           <KnowledgeDayGrid days={previewDays} />

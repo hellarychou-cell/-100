@@ -3,11 +3,11 @@ import { AuthGate } from "@/components/AuthGate";
 import { currentUser } from "@/lib/content";
 
 const drawers = [
-  { title: "测评结果", desc: "底层代码诊断报告、雷达图、推荐起点", href: "/assessment/result", meta: "最近一次测评：主模式 · 讨好型" },
+  { title: "测评结果", desc: "底层代码诊断报告、雷达图、推荐起点", href: "/assessment/result?from=treasure", meta: "最近一次测评：主模式 · 讨好型" },
   { title: "知识库", desc: "Day 1-100 内容目录", href: "/knowledge", meta: "当前打开到 Day 03" },
   { title: "神秘卡", desc: "已收集的女性力量卡与今日卡", href: "/cards", meta: "已收集 2 张卡" },
   { title: "自我看见记录", desc: "每日书写与 AI 陪你看见的总结", href: "/ai-summary", meta: "书写 + AI 回看" },
-  { title: "个人进度", desc: "当前 Day、完成状态、成长路线", href: "/home", meta: "觉醒期 W1 · 已完成 2 天" },
+  { title: "身体驿站", desc: "身体小语的延展阅读，随 Day 自动解锁", href: "/body-station", meta: "Day 1-7 已上线" },
 ];
 
 export default function TreasurePage() {

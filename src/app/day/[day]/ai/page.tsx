@@ -6,7 +6,10 @@ import { AuthGate } from "@/components/AuthGate";
 import { dayContents } from "@/lib/content";
 import { dayAIPrompts } from "@/lib/ai-prompts";
 import {
+  AIConversationEntry,
   buildReflectionSeedMessage,
+  createAIConversationEntry,
+  LOCAL_AI_CONVERSATION_KEY,
   LOCAL_REFLECTION_KEY,
   SelfReflectionEntry,
 } from "@/lib/self-reflection";
@@ -56,6 +59,7 @@ export default function AIDayPage({ params }: PageProps) {
 
   async function send(text: string, forceMode?: "summarize") {
     if (!text.trim() || loading) return;
+    if (!day || !dayNum) return;
 
     const mode = forceMode ?? (text.includes("总结") || text === "停" ? "summarize" : "chat");
 
@@ -76,10 +80,18 @@ export default function AIDayPage({ params }: PageProps) {
       });
       const data = await res.json();
       if (data.reply) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+        const assistantMsg: Message = { role: "assistant", content: data.reply };
+        const nextMessages = [...messages, userMsg, assistantMsg];
+        setMessages((prev) => [...prev, assistantMsg]);
+        saveAIConversation(dayNum, nextMessages, day.title);
         if (mode === "summarize") {
           setSummarized(true);
         }
+      } else if (data.error) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "AI 服务暂时没有返回内容，请稍后再试。" },
+        ]);
       }
     } catch {
       setMessages((prev) => [
@@ -224,6 +236,30 @@ export default function AIDayPage({ params }: PageProps) {
         </section>
       </main>
     </AuthGate>
+  );
+}
+
+function saveAIConversation(day: number, messages: Message[], title: string) {
+  const raw = window.localStorage.getItem(LOCAL_AI_CONVERSATION_KEY);
+  let entries: AIConversationEntry[] = [];
+
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      entries = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      window.localStorage.removeItem(LOCAL_AI_CONVERSATION_KEY);
+    }
+  }
+
+  const existing = entries.find((entry) => entry.day === day);
+  const nextEntry = existing
+    ? { ...existing, messages, title, updatedAt: new Date().toISOString() }
+    : createAIConversationEntry({ day, messages, title });
+
+  window.localStorage.setItem(
+    LOCAL_AI_CONVERSATION_KEY,
+    JSON.stringify([nextEntry, ...entries.filter((entry) => entry.day !== day)]),
   );
 }
 

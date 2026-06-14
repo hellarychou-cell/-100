@@ -7,6 +7,7 @@ import { DayFooter } from "@/components/DayFooter";
 import { SelfReflectionBox } from "@/components/SelfReflectionBox";
 import { dayContents, mysteryCards } from "@/lib/content";
 import { getDayDocumentContent } from "@/lib/day-document";
+import { getScheduleDay } from "@/lib/schedule";
 
 type PageProps = {
   params: Promise<{ day: string }>;
@@ -18,7 +19,11 @@ export default async function DayPage({ params }: PageProps) {
   const day = dayContents.find((item) => item.day === dayNum);
   if (!day) notFound();
   const documentContent = await getDayDocumentContent(day.day);
+  const scheduleDay = getScheduleDay(day.day);
   const card = mysteryCards[day.day];
+  const mirrorLines = documentContent.mirror
+    ? documentContent.mirror.split(/\n{2,}/).map((line) => line.trim()).filter(Boolean)
+    : (day.mirror ?? ["内容即将打开。"]);
 
   return (
     <AuthGate>
@@ -45,12 +50,12 @@ export default async function DayPage({ params }: PageProps) {
               <div className="mb-1 flex flex-wrap gap-2">
                 <span className="pill">Day {String(day.day).padStart(2, "0")}</span>
                 <span className="pill bg-[#5b382c] text-soft">{day.phase}</span>
-                <span className="pill">{day.dimension}</span>
+                <span className="pill">{scheduleDay?.dimension || day.dimension}</span>
                 {day.cardPoint && <span className="pill bg-[#8B6914] text-soft">卡点：{day.cardPoint}</span>}
               </div>
             </div>
             <div className="mt-4 grid max-w-3xl gap-2 text-base leading-[1.82] text-[#4f3429]">
-              {(day.mirror ?? ["内容即将打开。"]).map((line) => (
+              {mirrorLines.map((line) => (
                 <p key={line} className="m-0">{line}</p>
               ))}
             </div>
@@ -90,6 +95,12 @@ export default async function DayPage({ params }: PageProps) {
               <SectionTitle number="2" title="身体小语" />
               <div className="thin-panel m-0 grid gap-3 p-4 leading-[1.82] text-[#563a2e]">
                 {renderParagraphs(documentContent.bodyNote)}
+                <Link
+                  className="sans mt-1 text-xs text-[#8f6042]/70 transition hover:text-clay"
+                  href={`/body-station/${day.day}?from=day`}
+                >
+                  戳戳了解更多
+                </Link>
               </div>
             </section>
             <section className="relative border-t border-[var(--line)] pt-4">

@@ -1,9 +1,14 @@
-"use client";
-
 import Link from "next/link";
 import { AssessmentResultClient } from "@/components/AssessmentResultClient";
 
-export default function AssessmentResultPage() {
+type AssessmentResultPageProps = {
+  searchParams: Promise<{ from?: string }>;
+};
+
+export default async function AssessmentResultPage({ searchParams }: AssessmentResultPageProps) {
+  const params = await searchParams;
+  const closeHref = params.from === "treasure" ? "/treasure" : "/home";
+
   return (
     <main className="viewport">
       <style>{`
@@ -17,17 +22,10 @@ export default function AssessmentResultPage() {
           <div className="brand">成她100</div>
           <span>底层代码诊断报告</span>
           <div className="flex items-center gap-2">
-            <button
-              className="action-ghost !px-3 !py-2 !text-xs"
-              onClick={() => window.dispatchEvent(new Event("save-assessment-report"))}
-              type="button"
-            >
-              保存报告
-            </button>
             <Link
               aria-label="返回主页"
               className="grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/60 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft"
-              href="/home"
+              href={closeHref}
             >
               ×
             </Link>

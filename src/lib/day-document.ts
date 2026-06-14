@@ -7,6 +7,7 @@ export type DayExtraSection = {
 };
 
 export type DayDocumentContent = {
+  mirror: string;
   story: string;
   bodyNote: string;
   aiMethod: {
@@ -26,6 +27,7 @@ export async function getDayDocumentContent(day: number): Promise<DayDocumentCon
 
 export function parseDayDocumentContent(source: string, day: number): DayDocumentContent {
   const dayBlock = extractDayBlock(source, day);
+  const mirror = cleanupMarkdown(extractSection(dayBlock, "🪞 今日镜子", "📖 她的故事"));
   const story = cleanupMarkdown(extractSection(dayBlock, "📖 她的故事", "🌿 今日身体小语"));
   const bodyNote = cleanupMarkdown(extractSection(dayBlock, "🌿 今日身体小语", "🤖 AI · 今日对话"));
   const aiBlock = extractSection(dayBlock, "🤖 AI · 今日对话", "🎴 今日神秘卡");
@@ -36,6 +38,7 @@ export function parseDayDocumentContent(source: string, day: number): DayDocumen
   const openingMatch = aiBlock.match(/---\s*([\s\S]*?)\[\s*输入框\s*\]/);
 
   return {
+    mirror,
     story,
     bodyNote,
     aiMethod: {

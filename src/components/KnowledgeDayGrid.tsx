@@ -5,6 +5,7 @@ import { useState } from "react";
 type KnowledgeDay = {
   day: number;
   note: string;
+  status?: string;
   title: string;
 };
 
@@ -25,7 +26,7 @@ export function KnowledgeDayGrid({ days }: { days: KnowledgeDay[] }) {
               className="relative grid min-h-[118px] content-between border border-[var(--line)] bg-soft/48 p-3 text-ink/75"
             >
               <div className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
-                Day {String(item.day).padStart(2, "0")}
+                Day {String(item.day).padStart(2, "0")} · {item.status ?? "排期"}
               </div>
               <div>
                 <h2 className="m-0 text-base font-normal leading-tight">{item.title}</h2>
