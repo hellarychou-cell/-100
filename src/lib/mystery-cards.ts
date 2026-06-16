@@ -6,6 +6,7 @@ export const mysteryCards: Record<
       description: string;
       age?: string;
       quote: string;
+      symbol?: string;
     };
     back: {
       type: "tool" | "blank" | "gratitude" | "benefit";
@@ -20,7 +21,8 @@ export const mysteryCards: Record<
       name: "杨绛",
       age: "96 岁出版全集",
       description: "一辈子安静，但骨头最硬。",
-      quote: "我和谁都不争，和谁争我都不屑。",
+      quote: `"还行"是一句很安全的话。`,
+      symbol: "🌸",
     },
     back: {
       type: "gratitude",
@@ -34,7 +36,8 @@ export const mysteryCards: Record<
       name: "上野千鹤子",
       age: "女性主义社会学家",
       description: "把女性的沉默处境，说成可以被看见的问题。",
-      quote: "一个人也可以活得很有尊严。",
+      quote: "对不起，我不能。",
+      symbol: "✊",
     },
     back: {
       type: "tool",
@@ -45,10 +48,11 @@ export const mysteryCards: Record<
   },
   3: {
     front: {
-      name: "李红",
-      age: "虚构女性力量代表",
-      description: "把“不是我的责任”重新说出口。",
-      quote: "我不是来替所有人稳定情绪的。",
+      name: "苏敏",
+      age: "自驾出走的阿姨",
+      description: "用方向盘把自己从旧生活里开出来。",
+      quote: "方向盘比电话沉。",
+      symbol: "🚗",
     },
     back: {
       type: "blank",
@@ -59,10 +63,11 @@ export const mysteryCards: Record<
   },
   4: {
     front: {
-      name: "贾玲",
-      age: "导演 / 演员",
-      description: "把自己重新带到镜头中央。",
-      quote: "我想赢一次。",
+      name: "张爱玲",
+      age: "作家",
+      description: "把比较里的灰色说出来。",
+      quote: "我不看同学的近照。我只看天。",
+      symbol: "🍷",
     },
     back: {
       type: "tool",
@@ -73,10 +78,11 @@ export const mysteryCards: Record<
   },
   5: {
     front: {
-      name: "苏敏",
-      age: "自驾出走的阿姨",
-      description: "用方向盘把自己从旧生活里开出来。",
-      quote: "我想为自己活一次。",
+      name: "杨本芬",
+      age: "作家",
+      description: "六十岁以后，把厨房和人生都写出来。",
+      quote: "锅里炖着我的第一本书。",
+      symbol: "✒️",
     },
     back: {
       type: "benefit",
@@ -87,10 +93,11 @@ export const mysteryCards: Record<
   },
   6: {
     front: {
-      name: "林青霞",
-      age: "演员 / 作者",
-      description: "把光环放下后，仍然选择写自己的路。",
-      quote: "人生到了某个阶段，要学会跟自己相处。",
+      name: "李娟",
+      age: "作家",
+      description: "把阿勒泰的风，写成自己的节奏。",
+      quote: "天一亮，羊先开始走。",
+      symbol: "🐑",
     },
     back: {
       type: "gratitude",
@@ -101,10 +108,11 @@ export const mysteryCards: Record<
   },
   7: {
     front: {
-      name: "杨绛 / 钱媛",
-      age: "7 / 100",
-      description: "一个人，也是一支完整的队伍。",
-      quote: "我们仨走散了，我得把还没做完的事做完。",
+      name: "李清照",
+      age: "宋代词人",
+      description: "七个字，不需要任何人打分。",
+      quote: "生当作人杰。",
+      symbol: "🌸",
     },
     back: {
       type: "tool",

@@ -60,7 +60,7 @@ export function DayFooter({ day }: DayFooterProps) {
         }
       }
 
-      // 跳转到金句卡页面
+      // 跳转到今日看见卡页面
       router.push(`/quote-card?day=${day}`);
     } catch (error) {
       console.error("Failed to collect today:", error);
@@ -71,7 +71,7 @@ export function DayFooter({ day }: DayFooterProps) {
 
   return (
     <footer className="flex items-center justify-between border-t border-[var(--line)] px-[clamp(16px,2.4vw,30px)] sans text-xs text-[var(--muted)]">
-      <span>完成后会生成今日金句卡，可保存图片。</span>
+      <span>完成后会生成今日看见卡，可保存图片。</span>
       <button
         className="text-link bg-transparent transition hover:text-clay"
         onClick={handleCollectToday}

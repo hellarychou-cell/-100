@@ -26,10 +26,10 @@ test("Day 1-7 all have mystery cards with front and back copy", () => {
   }
 });
 
-test("Day 7 mystery card is the Satir iceberg tool card", () => {
+test("Day 7 mystery card pairs Li Qingzhao with the Satir iceberg tool card", () => {
   const card = mysteryCards[7];
 
-  assert.match(card.front.name, /杨绛|钱媛/);
+  assert.match(card.front.name, /李清照/);
   assert.match(card.back.title, /萨提亚|冰山/);
   assert.match(card.back.content, /行为|感受|期待|渴望/);
 });

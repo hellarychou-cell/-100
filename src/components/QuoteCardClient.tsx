@@ -5,12 +5,19 @@ import { useEffect, useRef, useState } from "react";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
 import { dayContents, heroImage } from "@/lib/content";
 import { markDayCompleted } from "@/lib/progress";
+import {
+  createTodaySeeingCard,
+  LOCAL_TODAY_SEEING_KEY,
+  type TodaySeeingCard,
+} from "@/lib/today-seeing-card";
+import { AIConversationEntry, LOCAL_AI_CONVERSATION_KEY } from "@/lib/self-reflection";
 import { supabase } from "@/lib/supabase";
 
 export function QuoteCardClient({ dayNum }: { dayNum: number }) {
   const day = dayContents.find((item) => item.day === dayNum) ?? dayContents[0];
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [saving, setSaving] = useState(false);
+  const [card, setCard] = useState<TodaySeeingCard | null>(null);
 
   useEffect(() => {
     async function saveProgress() {
@@ -48,6 +55,27 @@ export function QuoteCardClient({ dayNum }: { dayNum: number }) {
     saveProgress();
   }, [day.day]);
 
+  useEffect(() => {
+    const nextCard = createTodaySeeingCard({
+      aiEntry: readAIEntry(day.day),
+      bodyNote: day.bodyNote,
+      day: day.day,
+      mirror: Array.isArray(day.mirror) ? day.mirror.join(" ") : "",
+      title: day.title,
+    });
+    setCard(nextCard);
+    saveSeeingCard(nextCard);
+  }, [day]);
+
+  const displayCard =
+    card ??
+    createTodaySeeingCard({
+      bodyNote: day.bodyNote,
+      day: day.day,
+      mirror: Array.isArray(day.mirror) ? day.mirror.join(" ") : "",
+      title: day.title,
+    });
+
   return (
     <main className="viewport grid place-items-center">
       <section className="relative grid h-[min(560px,calc(100vh_-_28px))] w-full max-w-4xl grid-cols-[330px_1fr] overflow-hidden border border-paper/50 bg-soft shadow-2xl max-md:h-auto max-md:grid-cols-1">
@@ -59,32 +87,45 @@ export function QuoteCardClient({ dayNum }: { dayNum: number }) {
           ×
         </Link>
         <div className="grid place-items-center border-r border-[var(--line)] bg-paper/50 p-6 max-md:border-b max-md:border-r-0">
-          <div ref={cardRef} className="grid aspect-[3/4.8] w-56 grid-rows-[2fr_1fr] overflow-hidden border border-ink/20 bg-soft shadow-2xl">
+          <div ref={cardRef} className="grid aspect-[3/4.8] w-64 grid-rows-[auto_auto_1fr_auto] overflow-hidden border border-ink/20 bg-[#fff8ed] px-6 py-5 shadow-2xl">
+            <span className="sans text-[10px] uppercase tracking-[0.16em] text-clay">
+              成她100 · Day {String(day.day).padStart(2, "0")}
+            </span>
+            <h2 className="mt-4 text-3xl font-normal leading-none text-ink">{displayCard.title}</h2>
+            <div className="mt-5 min-h-0 overflow-hidden text-[#3f281f]">
+              <p className="sans text-[11px] uppercase tracking-[0.14em] text-clay/80">今天你说</p>
+              <p className="mt-1 text-sm leading-relaxed">“{displayCard.userExcerpt}”</p>
+              <div className="my-4 h-px bg-[var(--line)]" />
+              <p className="sans text-[11px] uppercase tracking-[0.14em] text-clay/80">AI 看见的</p>
+              <ol className="mt-2 grid gap-1 text-sm leading-relaxed">
+                {displayCard.aiSeeings.map((item, index) => (
+                  <li key={item}>{String(index + 1).padStart(2, "0")}　{item}</li>
+                ))}
+              </ol>
+              <div className="my-4 h-px bg-[var(--line)]" />
+              <p className="sans text-[11px] uppercase tracking-[0.14em] text-clay/80">今晚带回身体的</p>
+              <p className="mt-1 text-sm leading-relaxed">{displayCard.bodyAction}</p>
+            </div>
+            <p className="mt-3 sans text-[11px] tracking-wider text-clay">-- 成她100 · 今天的看见</p>
+          </div>
+          <div className="hidden">
             <div
               className="relative bg-cover bg-center"
               style={{ backgroundImage: `linear-gradient(rgba(36,22,16,.08),rgba(36,22,16,.28)),url(${heroImage})` }}
-            >
-              <span className="sans absolute left-4 top-4 text-[10px] uppercase tracking-[0.16em] text-paper/90">
-                Day {String(day.day).padStart(2, "0")}
-              </span>
-            </div>
-            <div className="grid content-center bg-soft px-5 py-4">
-              <p className="m-0 text-[17px] leading-normal text-[#342117]">{day.quote}</p>
-              <span className="mt-3 sans text-[11px] tracking-wider text-clay">- {day.quoteBy}</span>
-            </div>
+            />
           </div>
         </div>
         <section className="grid grid-rows-[auto_1fr_auto] gap-5 p-9 max-md:p-6">
           <div>
             <div className="eyebrow mb-3">Today bookmark</div>
             <h1 className="display-title text-5xl">
-              今天，
+              今日
               <br />
-              你收下了。
+              看见卡。
             </h1>
           </div>
           <p className="self-center max-w-sm text-[17px] leading-[1.85] text-[#563a2e]">
-            完成当天后生成一张书签式金句卡。回到状态页后，Day {String(day.day).padStart(2, "0")} 会变成已读状态。
+            今天你收下的不只是进度，也是一小段被看见的证据。回到状态页后，Day {String(day.day).padStart(2, "0")} 会变成已读状态。
           </p>
           <div className="flex gap-3 max-sm:grid">
             <button
@@ -114,7 +155,7 @@ async function saveQuoteImage(element: HTMLElement | null, setSaving: (saving: b
       backgroundColor: "#f8efe1",
     });
     const link = document.createElement("a");
-    link.download = `成她100-Day金句卡-${Date.now()}.png`;
+    link.download = `成她100-Day今日看见卡-${Date.now()}.png`;
     link.href = dataUrl;
     link.click();
   } catch (error) {
@@ -122,6 +163,28 @@ async function saveQuoteImage(element: HTMLElement | null, setSaving: (saving: b
     window.print();
   } finally {
     setSaving(false);
+  }
+}
+
+function readAIEntry(day: number) {
+  const entries = readJson<AIConversationEntry[]>(LOCAL_AI_CONVERSATION_KEY);
+  return Array.isArray(entries) ? entries.find((entry) => entry.day === day) ?? null : null;
+}
+
+function saveSeeingCard(card: TodaySeeingCard) {
+  const cards = readJson<TodaySeeingCard[]>(LOCAL_TODAY_SEEING_KEY) ?? [];
+  const next = [card, ...cards.filter((item) => item.day !== card.day)];
+  window.localStorage.setItem(LOCAL_TODAY_SEEING_KEY, JSON.stringify(next));
+}
+
+function readJson<T>(key: string): T | null {
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    window.localStorage.removeItem(key);
+    return null;
   }
 }
 

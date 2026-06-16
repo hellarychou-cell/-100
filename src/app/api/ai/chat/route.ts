@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dayAIPrompts } from "@/lib/ai-prompts";
+import { buildContextPrompt, type ClientContext } from "@/lib/user-context";
 
 const SUMMARIZE_PROMPT = "请帮我总结一下这段对话里我发现了什么，以及还有哪些地方值得继续探索。";
 
@@ -9,7 +10,7 @@ const MINIMAX_MODEL = "MiniMax-Text-01";
 type Message = { role: "user" | "assistant"; content: string };
 
 export async function POST(req: NextRequest) {
-  const { day, messages, mode } = await req.json();
+  const { clientContext, day, messages, mode } = await req.json();
 
   if (!day || !messages) {
     return NextResponse.json({ error: "Missing day or messages" }, { status: 400 });
@@ -28,7 +29,11 @@ export async function POST(req: NextRequest) {
   }
 
   // 构建请求消息
-  const systemMsg = { role: "system" as const, content: promptConfig.systemPrompt };
+  const contextPrompt = buildContextPrompt(clientContext as ClientContext | undefined);
+  const systemMsg = {
+    role: "system" as const,
+    content: [contextPrompt, promptConfig.systemPrompt].filter(Boolean).join("\n\n"),
+  };
   const historyMsgs: Message[] = messages.map((m: { role: string; content: string }) => ({
     role: m.role as "user" | "assistant",
     content: m.content,

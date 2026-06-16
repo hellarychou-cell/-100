@@ -13,6 +13,14 @@ export type ScheduleDay = {
   title: string;
 };
 
+export type ScheduleWoman = {
+  cardType: string;
+  day: number;
+  field: string;
+  name: string;
+  quoteSource: string;
+};
+
 const schedulePath = path.join(process.cwd(), "100天内容 · 完整排期表.md");
 
 export function getScheduleDays() {
@@ -21,6 +29,10 @@ export function getScheduleDays() {
 
 export function getScheduleDay(day: number) {
   return getScheduleDays().find((item) => item.day === day) ?? null;
+}
+
+export function getScheduleWomen() {
+  return parseScheduleWomenMarkdown(readFileSync(schedulePath, "utf8"));
 }
 
 export function parseScheduleMarkdown(source: string): ScheduleDay[] {
@@ -55,6 +67,28 @@ export function parseScheduleMarkdown(source: string): ScheduleDay[] {
   }
 
   return Array.from(byDay.values()).sort((a, b) => a.day - b.day);
+}
+
+export function parseScheduleWomenMarkdown(source: string): ScheduleWoman[] {
+  const scopedSource = sliceBetween(source, "## 十、神秘卡正面", "## 十一、金句来源分类");
+  return scopedSource
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("|") && /\|\s*\d+\s*\|/.test(line))
+    .map((row) => {
+      const cells = row
+        .split("|")
+        .slice(1, -1)
+        .map((cell) => cleanupCell(cell));
+      return {
+        day: Number(cells[0]),
+        name: cells[1] || "",
+        field: cells[2] || "",
+        cardType: cells[3] || "",
+        quoteSource: cells[4] || "",
+      };
+    })
+    .filter((item) => Number.isInteger(item.day) && item.day >= 1 && item.day <= 100);
 }
 
 function sliceBetween(source: string, startText: string, endText: string) {

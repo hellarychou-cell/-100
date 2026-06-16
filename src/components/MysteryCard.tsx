@@ -8,8 +8,10 @@ type MysteryCardProps = {
     description: string;
     age?: string;
     quote: string;
+    symbol?: string;
   };
   back: {
+    gift?: string;
     type: "tool" | "blank" | "gratitude" | "benefit" | string;
     title: string;
     content: string;
@@ -41,7 +43,7 @@ export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
             📿 {front.name} · {front.age}
           </small>
           <div className="m-auto grid place-items-center">
-            <div className={small ? "text-2xl" : "text-4xl"}>她</div>
+            <div className={small ? "text-2xl" : "text-4xl"}>{front.symbol ?? "她"}</div>
           </div>
           <div className={`${small ? "p-3" : "p-4"} text-center`}>
             <p className={`${small ? "text-[11px]" : "text-sm"} leading-relaxed text-paper/90`}>“{front.quote}”</p>
@@ -63,6 +65,7 @@ export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
             <p className={`${small ? "text-[11px]" : "text-sm"} min-h-0 overflow-auto whitespace-pre-line text-left leading-relaxed`}>
               “{back.content}”
             </p>
+            {back.gift ? <p className="sans text-left text-xs leading-relaxed text-clay/70">礼物：{back.gift}</p> : null}
             {back.dayNum && (
               <small className="sans text-xs text-clay/60">—— Day {back.dayNum}</small>
             )}

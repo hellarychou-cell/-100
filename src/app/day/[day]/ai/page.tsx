@@ -3,8 +3,15 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
+import { LOCAL_PROFILE_KEY, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { dayContents } from "@/lib/content";
 import { dayAIPrompts } from "@/lib/ai-prompts";
+import {
+  buildSisterTriggerText,
+  findTriggeredSister,
+  LOCAL_SISTER_TRIGGER_LOG_KEY,
+  type SisterTriggerLog,
+} from "@/lib/sister-profiles";
 import {
   AIConversationEntry,
   buildReflectionSeedMessage,
@@ -13,6 +20,7 @@ import {
   LOCAL_REFLECTION_KEY,
   SelfReflectionEntry,
 } from "@/lib/self-reflection";
+import { buildClientContext } from "@/lib/user-context";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -73,6 +81,7 @@ export default function AIDayPage({ params }: PageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          clientContext: readClientContext(dayNum),
           day: dayNum,
           messages: [...messages, userMsg],
           mode,
@@ -80,10 +89,13 @@ export default function AIDayPage({ params }: PageProps) {
       });
       const data = await res.json();
       if (data.reply) {
-        const assistantMsg: Message = { role: "assistant", content: data.reply };
+        const trigger = mode === "chat" ? readSisterTrigger(text, dayNum) : null;
+        const reply = trigger ? `${data.reply}\n\n${trigger.text}` : data.reply;
+        const assistantMsg: Message = { role: "assistant", content: reply };
         const nextMessages = [...messages, userMsg, assistantMsg];
         setMessages((prev) => [...prev, assistantMsg]);
         saveAIConversation(dayNum, nextMessages, day.title);
+        if (trigger) saveTriggerLog(dayNum, trigger.name);
         if (mode === "summarize") {
           setSummarized(true);
         }
@@ -274,4 +286,60 @@ function readLatestReflection(day: number) {
     window.localStorage.removeItem(LOCAL_REFLECTION_KEY);
     return null;
   }
+}
+
+function readClientContext(currentDay: number) {
+  return buildClientContext({
+    assessment: readJson(LOCAL_RESULT_KEY),
+    currentDay,
+    profile: readJson(LOCAL_PROFILE_KEY),
+    writingEntries: readJson<SelfReflectionEntry[]>(LOCAL_REFLECTION_KEY) ?? [],
+    aiEntries: readJson<AIConversationEntry[]>(LOCAL_AI_CONVERSATION_KEY) ?? [],
+  });
+}
+
+function readSisterTrigger(message: string, day: number) {
+  const triggerLog = readJson<SisterTriggerLog>(LOCAL_SISTER_TRIGGER_LOG_KEY) ?? {};
+  const progress = readJson<{ completedDays?: number[] }>(LOCAL_PROGRESS_KEY);
+  const completedDays = Array.isArray(progress?.completedDays) ? progress.completedDays : [];
+  const unlockedSisters = getUnlockedSisters(completedDays);
+  const profile = findTriggeredSister({ day, message, triggerLog, unlockedSisters });
+  if (!profile) return null;
+  const context = readClientContext(day);
+  return {
+    name: profile.name,
+    text: buildSisterTriggerText(profile, context.name),
+  };
+}
+
+function saveTriggerLog(day: number, sisterName: string) {
+  const triggerLog = readJson<SisterTriggerLog>(LOCAL_SISTER_TRIGGER_LOG_KEY) ?? {};
+  const key = String(day);
+  const values = triggerLog[key] ?? [];
+  if (values.includes(sisterName)) return;
+  window.localStorage.setItem(LOCAL_SISTER_TRIGGER_LOG_KEY, JSON.stringify({ ...triggerLog, [key]: [...values, sisterName] }));
+}
+
+function readJson<T>(key: string): T | null {
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    window.localStorage.removeItem(key);
+    return null;
+  }
+}
+
+function getUnlockedSisters(completedDays: number[]) {
+  const dayToSister: Record<number, string> = {
+    1: "杨绛",
+    2: "上野千鹤子",
+    3: "苏敏",
+    4: "张爱玲",
+    5: "杨本芬",
+    6: "李娟",
+    7: "李清照",
+  };
+  return completedDays.map((day) => dayToSister[day]).filter(Boolean);
 }
