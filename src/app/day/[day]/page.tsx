@@ -21,6 +21,12 @@ export default async function DayPage({ params }: PageProps) {
   const documentContent = await getDayDocumentContent(day.day);
   const scheduleDay = getScheduleDay(day.day);
   const card = mysteryCards[day.day];
+  const displayTitle = documentContent.title || day.title;
+  const displayPhase = documentContent.phaseLine || day.phase;
+  const displayDimension = documentContent.dimensionLine || scheduleDay?.dimension || day.dimension;
+  const displayCardPoint = documentContent.cardPointLine || day.cardPoint;
+  const storyPreview = documentContent.storyPreview || day.storyPreview;
+  const aiQuestion = documentContent.aiQuestion || day.aiQuestion;
   const mirrorLines = documentContent.mirror
     ? documentContent.mirror.split(/\n{2,}/).map((line) => line.trim()).filter(Boolean)
     : (day.mirror ?? ["内容即将打开。"]);
@@ -46,12 +52,12 @@ export default async function DayPage({ params }: PageProps) {
           <div>
             <div className="eyebrow mb-3">Awakening · Week 01</div>
             <div className="grid grid-cols-[auto_1fr] items-end gap-5 max-sm:grid-cols-1">
-              <h1 className="display-title text-[clamp(42px,5.2vw,76px)]">{day.title}</h1>
+              <h1 className="display-title text-[clamp(42px,5.2vw,76px)]">{displayTitle}</h1>
               <div className="mb-1 flex flex-wrap gap-2">
                 <span className="pill">Day {String(day.day).padStart(2, "0")}</span>
-                <span className="pill bg-[#5b382c] text-soft">{day.phase}</span>
-                <span className="pill">{scheduleDay?.dimension || day.dimension}</span>
-                {day.cardPoint && <span className="pill bg-[#8B6914] text-soft">卡点：{day.cardPoint}</span>}
+                <span className="pill bg-[#5b382c] text-soft">{displayPhase}</span>
+                <span className="pill">{displayDimension}</span>
+                {displayCardPoint && <span className="pill bg-[#8B6914] text-soft">卡点：{displayCardPoint}</span>}
               </div>
             </div>
             <div className="mt-4 grid max-w-3xl gap-2 text-base leading-[1.82] text-[#4f3429]">
@@ -82,7 +88,7 @@ export default async function DayPage({ params }: PageProps) {
         <section className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(280px,.62fr)] gap-6 overflow-auto p-[clamp(16px,2.2vw,26px)] max-lg:grid-cols-1 max-lg:overflow-auto">
           <div className="border-t border-[var(--line)] pt-4">
             <SectionTitle number="1" title="她的故事" />
-            <p className="leading-[1.82] text-[#563a2e]">{day.storyPreview}</p>
+            <p className="whitespace-pre-line leading-[1.82] text-[#563a2e]">{storyPreview}</p>
             <details>
               <summary className="text-link cursor-pointer list-none">展开余下故事</summary>
               <div className="mt-3 grid gap-3 leading-[1.82] text-[#563a2e]">
@@ -107,7 +113,7 @@ export default async function DayPage({ params }: PageProps) {
               <SectionTitle number="3" title="今日自我看见" />
               <AIHoverTip methodTitle={documentContent.aiMethod.title} methodNote={documentContent.aiMethod.note} />
               <p className="mb-4 leading-[1.8] text-[#4f3429]">
-                {day.aiQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。
+                {aiQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。
               </p>
               <SelfReflectionBox aiHref={`/day/${day.day}/ai`} day={day.day} />
             </section>

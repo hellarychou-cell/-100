@@ -13,8 +13,17 @@ import {
 import { AIConversationEntry, LOCAL_AI_CONVERSATION_KEY } from "@/lib/self-reflection";
 import { supabase } from "@/lib/supabase";
 
-export function QuoteCardClient({ dayNum }: { dayNum: number }) {
+export function QuoteCardClient({
+  dayNum,
+  documentContent,
+}: {
+  dayNum: number;
+  documentContent?: { bodyNote: string; mirror: string; title: string } | null;
+}) {
   const day = dayContents.find((item) => item.day === dayNum) ?? dayContents[0];
+  const cardTitle = documentContent?.title || day.title;
+  const cardBodyNote = documentContent?.bodyNote || day.bodyNote;
+  const cardMirror = documentContent?.mirror || (Array.isArray(day.mirror) ? day.mirror.join(" ") : "");
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [saving, setSaving] = useState(false);
   const [card, setCard] = useState<TodaySeeingCard | null>(null);
@@ -58,22 +67,22 @@ export function QuoteCardClient({ dayNum }: { dayNum: number }) {
   useEffect(() => {
     const nextCard = createTodaySeeingCard({
       aiEntry: readAIEntry(day.day),
-      bodyNote: day.bodyNote,
+      bodyNote: cardBodyNote,
       day: day.day,
-      mirror: Array.isArray(day.mirror) ? day.mirror.join(" ") : "",
-      title: day.title,
+      mirror: cardMirror,
+      title: cardTitle,
     });
     setCard(nextCard);
     saveSeeingCard(nextCard);
-  }, [day]);
+  }, [cardBodyNote, cardMirror, cardTitle, day.day]);
 
   const displayCard =
     card ??
     createTodaySeeingCard({
-      bodyNote: day.bodyNote,
+      bodyNote: cardBodyNote,
       day: day.day,
-      mirror: Array.isArray(day.mirror) ? day.mirror.join(" ") : "",
-      title: day.title,
+      mirror: cardMirror,
+      title: cardTitle,
     });
 
   return (

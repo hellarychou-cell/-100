@@ -7,15 +7,21 @@ export type DayExtraSection = {
 };
 
 export type DayDocumentContent = {
-  mirror: string;
-  story: string;
-  bodyNote: string;
   aiMethod: {
     title: string;
     note: string;
   };
   aiOpening: string;
+  aiQuestion: string;
+  bodyNote: string;
+  cardPointLine: string;
+  dimensionLine: string;
   extraSections: DayExtraSection[];
+  mirror: string;
+  phaseLine: string;
+  story: string;
+  storyPreview: string;
+  title: string;
 };
 
 const dayDocumentPath = join(process.cwd(), "成她-Day1-7.md");
@@ -26,7 +32,9 @@ export async function getDayDocumentContent(day: number): Promise<DayDocumentCon
 }
 
 export function parseDayDocumentContent(source: string, day: number): DayDocumentContent {
+  const header = extractDayHeader(source, day);
   const dayBlock = extractDayBlock(source, day);
+  const metadata = extractMetadata(dayBlock);
   const mirror = cleanupMarkdown(extractSection(dayBlock, "🪞 今日镜子", "📖 她的故事"));
   const story = cleanupMarkdown(extractSection(dayBlock, "📖 她的故事", "🌿 今日身体小语"));
   const bodyNote = cleanupMarkdown(extractSection(dayBlock, "🌿 今日身体小语", "🤖 AI · 今日对话"));
@@ -38,16 +46,28 @@ export function parseDayDocumentContent(source: string, day: number): DayDocumen
   const openingMatch = aiBlock.match(/---\s*([\s\S]*?)\[\s*输入框\s*\]/);
 
   return {
-    mirror,
-    story,
-    bodyNote,
     aiMethod: {
       title: cleanupMarkdown(methodMatch?.[1] ?? ""),
       note: cleanupMarkdown(detailsMatch?.[1] ?? ""),
     },
     aiOpening: cleanupMarkdown(openingMatch?.[1] ?? ""),
+    aiQuestion: cleanupMarkdown(openingMatch?.[1] ?? ""),
+    bodyNote,
+    cardPointLine: metadata.cardPointLine,
+    dimensionLine: metadata.dimensionLine,
     extraSections: extractExtraSections(cardAndAfter),
+    mirror,
+    phaseLine: metadata.phaseLine,
+    story,
+    storyPreview: buildStoryPreview(story),
+    title: header.title,
   };
+}
+
+function extractDayHeader(source: string, day: number) {
+  const pattern = new RegExp(`^# 成她 100 · Day ${day} · (.+)$`, "m");
+  const match = source.match(pattern);
+  return { title: cleanupMarkdown(match?.[1] ?? `Day ${day}`) };
 }
 
 function extractDayBlock(source: string, day: number) {
@@ -60,6 +80,19 @@ function extractDayBlock(source: string, day: number) {
   const rest = source.slice(startMatch.index + startMatch[0].length);
   const nextMatch = rest.match(/^# 成她 100 · Day \d+ · .+$/m);
   return nextMatch && nextMatch.index !== undefined ? rest.slice(0, nextMatch.index) : rest;
+}
+
+function extractMetadata(source: string) {
+  const metaLines = source
+    .split("\n")
+    .map((line) => cleanupMarkdown(line.replace(/^`|`$/g, "")))
+    .filter((line) => line.startsWith("📌") || line.startsWith("🏷️"));
+  const dimensionLine = metaLines.find((line) => line.includes("维度")) ?? "";
+  return {
+    cardPointLine: dimensionLine.match(/🎯\s*卡点：(.+)$/)?.[1]?.trim() ?? "",
+    dimensionLine: dimensionLine.match(/🏷️\s*维度：(.+?)(?:\s*·|$)/)?.[1]?.trim() ?? "",
+    phaseLine: metaLines.find((line) => line.startsWith("📌"))?.replace(/^📌\s*/, "") ?? "",
+  };
 }
 
 function extractSection(source: string, startTitle: string, endTitle: string) {
@@ -92,6 +125,15 @@ function extractExtraSections(source: string): DayExtraSection[] {
   return sections.filter((section) => section.content.length > 0);
 }
 
+function buildStoryPreview(story: string) {
+  const paragraphs = story
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .filter((paragraph) => !paragraph.startsWith("林夏，34 岁") && !paragraph.startsWith(">"));
+  return paragraphs.slice(0, 3).join("\n\n").slice(0, 360);
+}
+
 function cleanupMarkdown(value: string) {
   return value
     .replace(/```[\s\S]*?```/g, "")
@@ -99,6 +141,7 @@ function cleanupMarkdown(value: string) {
     .replace(/<summary>.*?<\/summary>/g, "")
     .replace(/\[\[(.*?)\]\]/g, "$1")
     .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*\*/g, "")
     .replace(/^>\s?/gm, "")
     .replace(/^\s*---\s*$/gm, "")
     .replace(/\n{3,}/g, "\n\n")

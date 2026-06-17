@@ -11,6 +11,7 @@ import {
 } from "../src/lib/body-station.ts";
 import { getDayDocumentContent } from "../src/lib/day-document.ts";
 import { getToolCards } from "../src/lib/tool-cards.ts";
+import { readRootMarkdown } from "../src/lib/markdown.ts";
 
 test("schedule parser returns 100 unique days from the latest root schedule", () => {
   const days = getScheduleDays();
@@ -42,10 +43,26 @@ test("schedule parser deduplicates days by keeping the later row", () => {
 test("latest Day 1-7 document drives full day copy", async () => {
   const dayOne = await getDayDocumentContent(1);
 
-  assert.match(dayOne.mirror, /有些声音/);
+  assert.equal(dayOne.title, `那句"还行吧"`);
+  assert.match(dayOne.phaseLine, /第一阶段/);
+  assert.match(dayOne.dimensionLine, /自我价值/);
+  assert.match(dayOne.cardPointLine, /自我声音失联/);
+  assert.match(dayOne.mirror, /有些选择/);
   assert.match(dayOne.story, /人生第一个 60 万的项目/);
+  assert.match(dayOne.storyPreview, /还行吧/);
   assert.match(dayOne.bodyNote, /喉为心声出口/);
+  assert.match(dayOne.aiQuestion, /真正想说的.*是什么/);
   assert.doesNotMatch(dayOne.story, /这里接入当天完整故事|正式上线内容以 Day 文档为准/);
+});
+
+test("latest philosophy document exposes all seven public sections", () => {
+  const blocks = readRootMarkdown("成她-理念页.md");
+  const headings = blocks.filter((block) => block.type === "heading").map((block) => block.text);
+
+  assert.ok(headings.includes("关于恬馨"));
+  for (const title of ["一", "二 · 我是谁", "三 · 我看见的事", "四 · 我做的事", "五 · 我相信的事", "六 · 写给她", "七"]) {
+    assert.ok(headings.includes(title), `missing philosophy section: ${title}`);
+  }
 });
 
 test("body station exposes seven full entries and locked placeholders through day 100", () => {
