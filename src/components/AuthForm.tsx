@@ -173,33 +173,33 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
   return (
     <>
       {showSuccess && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 backdrop-blur-sm">
-          <div className="thin-panel w-full max-w-sm p-8 text-center">
-            <div className="mb-4 text-5xl">🎉</div>
-            <h2 className="mb-3 text-3xl font-normal">恭喜你注册完成</h2>
-            <p className="mb-6 text-[#563a2e]">恭喜你加入了100天旅程，现在开始你的觉醒之路。</p>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm">
+          <div className="soft-panel w-full max-w-sm p-8 text-center">
+            <div className="mb-4 text-5xl">✦</div>
+            <h2 className="mb-3 text-3xl font-normal">账号已经建好</h2>
+            <p className="mb-6 text-[#563a2e]">先完成一次底层代码诊断，让这 100 天更像是在对你说话。</p>
             <button
               className="action-primary w-full"
-              onClick={() => router.push("/home")}
+              onClick={() => router.push("/assessment/profile")}
             >
-              进入我的100天
+              开始测评
             </button>
           </div>
         </div>
       )}
 
       <form className="grid gap-5" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-2 border border-[var(--line)] sans text-sm">
+        <div className="auth-mode-tabs grid grid-cols-2 border border-clay/20 bg-[#fff8ed]/62 p-1 sans text-sm shadow-inner">
           <button
             type="button"
-            className={`p-3 text-center ${!isRegister ? "bg-ink text-soft" : ""}`}
+            className={`p-3 text-center transition ${!isRegister ? "bg-[#D9A07F] text-white shadow-sm" : "text-clay hover:bg-paper/70"}`}
             onClick={() => handleSwitchMode("login")}
           >
             登录
           </button>
           <button
             type="button"
-            className={`p-3 text-center ${isRegister ? "bg-ink text-soft" : ""}`}
+            className={`p-3 text-center transition ${isRegister ? "bg-[#D9A07F] text-white shadow-sm" : "text-clay hover:bg-paper/70"}`}
             onClick={() => handleSwitchMode("register")}
           >
             注册
@@ -231,14 +231,23 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             onChange={setPhone}
             hidden={!isRegister}
           />
-          <Field
-            label="密码"
-            name="password"
-            placeholder={isRegister ? "设置密码（至少6位）" : "请输入密码"}
-            type="password"
-            value={password}
-            onChange={setPassword}
-          />
+          <div className="grid gap-2">
+            <Field
+              label="密码"
+              name="password"
+              placeholder={isRegister ? "设置密码（至少6位）" : "请输入密码"}
+              type="password"
+              value={password}
+              onChange={setPassword}
+            />
+            {!isRegister && (
+              <div className="auth-field-action-row">
+                <Link className="auth-forgot-link" href="/auth/forgot-password">
+                  忘记密码？
+                </Link>
+              </div>
+            )}
+          </div>
           {isRegister && (
             <Field
               label="确认密码"
@@ -251,19 +260,12 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
           )}
         </div>
 
-        {message && <p className="m-0 text-sm text-clay">{message}</p>}
+        {message && <p className="m-0 border-l border-clay/40 bg-[#fff8ed]/70 px-3 py-2 text-sm text-clay">{message}</p>}
 
         <button className="action-primary disabled:opacity-60" disabled={loading} type="submit">
           {loading ? "正在处理..." : isRegister ? "注册并进入我的100天" : "登录并进入我的100天"}
         </button>
 
-        {!isRegister && (
-          <div className="flex justify-end">
-            <Link className="text-link text-xs" href="/auth/forgot-password">
-              忘记密码
-            </Link>
-          </div>
-        )}
       </form>
     </>
   );
@@ -289,7 +291,7 @@ function Field({
   if (hidden) return null;
 
   return (
-    <label className="grid gap-1 border border-[var(--line)] bg-soft/70 p-3 sans text-sm text-[var(--muted)]">
+    <label className="field-shell grid gap-1 p-3 sans text-sm text-[var(--muted)]">
       <span className="text-[11px] uppercase tracking-wider text-clay">{label}</span>
       <input
         className="w-full bg-transparent text-ink outline-none placeholder:text-[var(--muted)]/55"

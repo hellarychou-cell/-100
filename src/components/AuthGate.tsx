@@ -100,12 +100,14 @@ function activeLocal(user: LocalUser): GateState {
 
 function GateNotice({ title, text, action }: { title: string; text: string; action?: ReactNode }) {
   return (
-    <main className="viewport grid place-items-center">
-      <section className="paper-frame grid max-w-2xl gap-5 p-[clamp(28px,5vw,58px)] text-center">
-        <div className="eyebrow">Private area</div>
-        <h1 className="display-title text-[clamp(44px,7vw,82px)]">{title}</h1>
-        <p className="mx-auto max-w-md text-base leading-[1.85] text-[#563a2e]">{text}</p>
-        <div className="flex justify-center">{action}</div>
+    <main className="viewport botanical-page gate-notice grid place-items-center">
+      <section className="paper-frame grid w-full max-w-2xl place-items-center overflow-hidden p-[clamp(28px,6vw,70px)] text-center">
+        <div className="soft-panel grid w-full max-w-lg gap-5 p-[clamp(26px,5vw,48px)]">
+          <div className="page-kicker mx-auto">Private area</div>
+          <h1 className="display-title text-[clamp(42px,7vw,78px)]">{title}</h1>
+          <p className="mx-auto max-w-md text-base leading-[1.9] text-[#563a2e]">{text}</p>
+          <div className="flex justify-center">{action}</div>
+        </div>
       </section>
     </main>
   );

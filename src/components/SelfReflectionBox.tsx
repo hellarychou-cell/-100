@@ -44,37 +44,27 @@ export function SelfReflectionBox({
   }
 
   return (
-    <form className="thin-panel grid gap-3 p-4" onSubmit={handleSave}>
+    <form className="self-reflection--compact" onSubmit={handleSave}>
       <Field
-        label="今天故事里，哪一句最戳到你？"
+        label="我在哪里失去重量，很难说出“不”？背后的担心是什么？"
         name="touched"
-        placeholder="比如：那 2 分 / 我不是不会拒绝"
+        placeholder="把你的真实想法写下来..."
       />
-      <Field
-        label="那一刻，你身体哪里有反应？"
-        name="body"
-        placeholder="比如：胸口紧、胃里酸、肩膀很重"
-      />
-      <Field
-        label="如果不急着改变，你想对自己说一句什么？"
-        name="sentence"
-        placeholder="比如：我可以先看见，不用马上变好"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-3">
-        <span className="sans text-xs text-[var(--muted)]">
-          先写下来，AI 再帮你看见。你也可以只保存，不开启对话。
-        </span>
-        <div className="flex flex-wrap gap-2">
+      <input name="body" type="hidden" value="" />
+      <input name="sentence" type="hidden" value="" />
+      <div className="self-reflection--compact__actions">
+        <span>0/300</span>
+        <div>
           {message ? <span className="sans self-center text-xs text-clay">{message}</span> : null}
-          <button className="action-ghost !px-3 !py-2 !text-xs" type="submit">
-            只保存
+          <button className="self-reflection--compact__save" type="submit">
+            保存
           </button>
           <button
-            className="action-primary !px-3 !py-2 !text-xs"
+            className="action-primary"
             onClick={(event) => handleAi(event.currentTarget.form!)}
             type="button"
           >
-            让 AI 陪我看见
+            💬 去跨时空对话
           </button>
         </div>
       </div>
@@ -92,10 +82,9 @@ function Field({
   placeholder: string;
 }) {
   return (
-    <label className="grid gap-1">
-      <span className="sans text-[11px] uppercase tracking-wider text-clay">{label}</span>
+    <label>
+      <span>{label}</span>
       <textarea
-        className="min-h-[54px] resize-none border border-[var(--line)] bg-soft/50 p-3 text-sm leading-relaxed text-[#3f281f] outline-none placeholder:text-[#3f281f]/45"
         name={name}
         placeholder={placeholder}
       />

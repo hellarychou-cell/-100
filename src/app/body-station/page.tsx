@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthGate } from "@/components/AuthGate";
 import { BodyStationIndexClient } from "@/components/BodyStationIndexClient";
 import { getBodyStationIndex } from "@/lib/body-station";
+import { MobileTopBar } from "@/components/MobileTopBar";
 
 export default function BodyStationPage() {
   const items = getBodyStationIndex();
@@ -10,18 +11,11 @@ export default function BodyStationPage() {
   return (
     <AuthGate>
       <main className="viewport">
-        <section className="paper-frame grid min-h-[calc(100vh-28px)] grid-rows-[56px_auto_1fr] overflow-auto">
-          <header className="topbar">
-            <div className="brand">成她100</div>
-            <span>身体驿站</span>
-            <Link
-              aria-label="回到我的匣子"
-              className="grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/60 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft"
-              href="/treasure"
-            >
-              ×
-            </Link>
-          </header>
+        <section className="paper-frame body-station-page grid min-h-[calc(100vh-28px)] grid-rows-[56px_auto_1fr] overflow-auto">
+          <MobileTopBar
+            rightAction={<Link aria-label="回到我的匣子" className="mobile-topbar__action" href="/treasure">返回匣子</Link>}
+            title="身体驿站"
+          />
 
           <section className="grid grid-cols-[minmax(260px,.72fr)_minmax(360px,1fr)] gap-8 border-b border-[var(--line)] px-[clamp(20px,4vw,54px)] py-[clamp(28px,5vw,56px)] max-lg:grid-cols-1">
             <div>

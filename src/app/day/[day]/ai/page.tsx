@@ -1,4 +1,5 @@
 import { AIDayClient } from "@/components/AIDayClient";
+import { getDayCompanion } from "@/lib/day-companion";
 import { getDayDocumentContent } from "@/lib/day-document";
 
 type PageProps = { params: Promise<{ day: string }> };
@@ -12,6 +13,7 @@ export default async function AIDayPage({ params }: PageProps) {
 
   return (
     <AIDayClient
+      companion={getDayCompanion(dayNum)}
       dayNum={dayNum}
       documentAiQuestion={documentContent?.aiQuestion}
       documentTitle={documentContent?.title}

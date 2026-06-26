@@ -10,6 +10,7 @@ import { getSisterProfile } from "@/lib/sister-profiles";
 import { supabase } from "@/lib/supabase";
 import type { ScheduleWoman } from "@/lib/schedule";
 import type { ToolCard } from "@/lib/tool-cards";
+import { MobileTopBar } from "@/components/MobileTopBar";
 
 export function CollectionClient({ scheduleWomen, toolCards }: { scheduleWomen: ScheduleWoman[]; toolCards: ToolCard[] }) {
   const [completedDays, setCompletedDays] = useState<number[]>([]);
@@ -59,20 +60,17 @@ export function CollectionClient({ scheduleWomen, toolCards }: { scheduleWomen: 
 
   return (
     <AuthGate>
-      <main className="viewport">
-        <section className="paper-frame grid grid-rows-[56px_1fr]">
-          <header className="topbar">
-            <div className="brand">成她100</div>
-            <span>我的集卡</span>
-            <Link aria-label="回到我的匣子" className="grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/60 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft" href="/treasure">
-              ×
-            </Link>
-          </header>
+      <main className="viewport botanical-page">
+        <section className="paper-frame collection-page grid grid-rows-[56px_1fr]">
+          <MobileTopBar
+            rightAction={<Link aria-label="回到我的匣子" className="mobile-topbar__action" href="/treasure">返回匣子</Link>}
+            title="神秘卡册"
+          />
 
-          <section className="grid min-h-0 gap-7 overflow-auto p-[clamp(18px,2.8vw,34px)] lg:grid-cols-[320px_1fr]">
+          <section className="grid min-h-0 gap-7 overflow-auto p-[clamp(18px,2.8vw,36px)] lg:grid-cols-[320px_1fr]">
             <aside className="grid content-start gap-5">
               <div>
-                <div className="eyebrow mb-3">Collection</div>
+                <div className="page-kicker mb-3">Collection</div>
                 <h1 className="display-title text-5xl">不是一个人走完。</h1>
               </div>
               <p className="text-[15px] leading-[1.75] text-[#563a2e]">
@@ -83,18 +81,22 @@ export function CollectionClient({ scheduleWomen, toolCards }: { scheduleWomen: 
                 <Metric label="我的姐妹" value={`${state.sisterSlots.filter((slot) => slot.unlocked).length}/${state.sisterSlots.length + 1}`} />
               </div>
 
-              <SelectedCard selectedSister={selectedSister} selectedTool={selectedTool} />
+              {selected ? (
+                <div className="collection-page__selected">
+                  <SelectedCard selectedSister={selectedSister} selectedTool={selectedTool} />
+                </div>
+              ) : null}
             </aside>
 
             <div className="grid content-start gap-8">
               {state.allComplete ? (
-                <div className="thin-panel border-clay/40 bg-clay/5 p-4 text-clay">你已经集齐全部神秘卡牌✓</div>
+                <div className="soft-panel border-clay/40 bg-clay/5 p-4 text-clay">你已经集齐全部神秘卡牌✓</div>
               ) : null}
               <CollectionSection title="工具卡" count={`${state.toolSlots.filter((slot) => slot.unlocked).length} / ${state.toolSlots.length}`}>
                 {state.toolSlots.map((slot) => (
                   <button
-                    className={`min-h-24 border p-3 text-left transition ${
-                      slot.unlocked ? "border-[var(--line)] bg-[#f7ead8] text-[#3f281f] hover:-translate-y-0.5" : "border-[var(--line)]/40 bg-soft/35 text-[var(--muted)] opacity-60"
+                    className={`min-h-24 border p-3 text-left shadow-[0_8px_20px_rgba(91,56,44,.06)] transition ${
+                      slot.unlocked ? "border-clay/25 bg-[#f7ead8] text-[#3f281f] hover:-translate-y-0.5" : "border-[var(--line)]/40 bg-soft/35 text-[var(--muted)] opacity-60"
                     }`}
                     key={slot.file}
                     onClick={() => setSelected({ kind: "tool", file: slot.file })}
@@ -112,7 +114,7 @@ export function CollectionClient({ scheduleWomen, toolCards }: { scheduleWomen: 
                   const profile = getSisterProfile(slot.name);
                   return (
                     <button
-                      className={`min-h-24 border p-3 text-left transition ${
+                      className={`min-h-24 border p-3 text-left shadow-[0_8px_20px_rgba(91,56,44,.06)] transition ${
                         slot.unlocked ? "border-gold/50 bg-gradient-to-br from-[#241610] via-[#744531] to-gold text-paper hover:-translate-y-0.5" : "border-[var(--line)]/40 bg-soft/35 text-[var(--muted)] opacity-60"
                       }`}
                       key={`${slot.name}-${slot.firstDay}`}
@@ -168,7 +170,7 @@ function SelectedCard({
     );
   }
   return (
-    <div className="grid aspect-[3/4.25] w-56 place-items-center border border-[var(--line)] bg-soft/35 text-center text-[var(--muted)]">
+    <div className="grid aspect-[3/4.25] w-56 place-items-center border border-[var(--line)] bg-soft/35 text-center text-[var(--muted)] shadow-[0_12px_28px_rgba(91,56,44,.08)]">
       <span>点一张已解锁的卡查看</span>
     </div>
   );

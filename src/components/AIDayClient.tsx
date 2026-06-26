@@ -6,6 +6,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { LOCAL_PROFILE_KEY, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { dayContents } from "@/lib/content";
 import { dayAIPrompts } from "@/lib/ai-prompts";
+import type { DayCompanion } from "@/lib/day-companion";
 import {
   buildSisterTriggerText,
   findTriggeredSister,
@@ -21,14 +22,17 @@ import {
   SelfReflectionEntry,
 } from "@/lib/self-reflection";
 import { buildClientContext } from "@/lib/user-context";
+import { MobileTopBar } from "@/components/MobileTopBar";
 
 type Message = { role: "user" | "assistant"; content: string };
 
 export function AIDayClient({
+  companion,
   dayNum,
   documentAiQuestion,
   documentTitle,
 }: {
+  companion?: DayCompanion | null;
   dayNum: number;
   documentAiQuestion?: string;
   documentTitle?: string;
@@ -44,6 +48,8 @@ export function AIDayClient({
 
   const day = dayContents.find((d) => d.day === dayNum);
   const prompts = dayNum ? dayAIPrompts[dayNum] : null;
+  const companionLabel = companion?.label ?? "🌿 成她";
+  const companionSymbol = companion?.symbol ?? "🌿";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -83,6 +89,7 @@ export function AIDayClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clientContext: readClientContext(dayNum),
+          companion,
           day: dayNum,
           messages: [...messages, userMsg],
           mode,
@@ -128,24 +135,24 @@ export function AIDayClient({
 
   return (
     <AuthGate>
-      <main className="viewport">
-        <section className="paper-frame grid grid-rows-[54px_1fr_56px]">
-          <header className="topbar !h-[54px]">
-            <div className="brand">成她100</div>
-            <span>Day {String(day.day).padStart(2, "0")} · AI 对话</span>
-            <div className="flex items-center gap-2">
+      <main className="viewport botanical-page">
+        <section className="paper-frame ai-chat">
+          <MobileTopBar
+            rightAction={
               <button
-                className="action-ghost !px-3 !py-2 !text-xs"
+                className="mobile-topbar__action"
                 onClick={() => router.push(`/day/${dayNum}`)}
                 type="button"
               >
-                返回
+                返回内容
               </button>
-            </div>
-          </header>
+            }
+            title="跨时空的对话"
+          />
 
-          <div className="border-b border-[var(--line)] bg-ink/3 px-[clamp(18px,2.4vw,28px)] py-3">
+          <div className="ai-chat__status">
             <div className="flex flex-wrap items-center gap-3">
+              <span className="pill !border-clay/40 !bg-[#fff8ed] !text-[#5b382c]">今日陪你的人：{companionLabel}</span>
               <span className="pill">{prompts.method}</span>
               {!summarized && (
                 <span className="sans text-xs text-[var(--muted)]">
@@ -155,14 +162,13 @@ export function AIDayClient({
             </div>
           </div>
 
-          <section className="min-h-0 overflow-y-auto p-[clamp(18px,2.4vw,28px)]">
+          <section className="ai-chat__conversation">
             <div className="mx-auto max-w-2xl">
               <div className="mb-6 grid gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-clay sans text-xs text-clay">
-                    AI
-                  </div>
-                  <div className="thin-panel flex-1 p-4">
+                  <CompanionAvatar symbol={companionSymbol} />
+                  <div className="soft-panel ai-chat__bubble ai-chat__bubble--assistant flex-1 p-4">
+                    <div className="sans mb-2 text-[11px] tracking-[0.08em] text-clay">{companionLabel} · 跨时空的对话</div>
                     <p className="leading-[1.85] text-[#4f3429]">
                       {reflectionSeeded
                         ? "你已经带着刚才写下的内容进来了。AI 会基于那段书写继续陪你看见。"
@@ -180,11 +186,14 @@ export function AIDayClient({
                         msg.role === "user" ? "border-ink bg-ink text-soft" : "border-clay text-clay"
                       } sans text-xs`}
                     >
-                      {msg.role === "user" ? "我" : "AI"}
+                      {msg.role === "user" ? "我" : companionSymbol}
                     </div>
-                    <div className={`flex-1 p-4 leading-[1.85] ${
-                      msg.role === "user" ? "bg-ink/5 text-right" : "thin-panel text-[#4f3429]"
+                    <div className={`ai-chat__bubble flex-1 p-4 leading-[1.85] shadow-[0_10px_24px_rgba(91,56,44,.06)] ${
+                      msg.role === "user" ? "border border-clay/10 bg-[#fff8ed]/76 text-right text-[#4f3429]" : "soft-panel text-[#4f3429]"
                     }`}>
+                      {msg.role === "assistant" ? (
+                        <div className="sans mb-2 text-left text-[11px] uppercase tracking-[0.14em] text-clay">{companionLabel}</div>
+                      ) : null}
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     </div>
                   </div>
@@ -193,17 +202,16 @@ export function AIDayClient({
 
               {loading && (
                 <div className="mb-4 flex items-start gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-clay sans text-xs text-clay">
-                    AI
-                  </div>
-                  <div className="thin-panel flex-1 p-4">
+                  <CompanionAvatar symbol={companionSymbol} />
+                  <div className="soft-panel ai-chat__bubble ai-chat__bubble--assistant flex-1 p-4">
+                    <div className="sans mb-2 text-[11px] uppercase tracking-[0.14em] text-clay">{companionLabel}</div>
                     <p className="leading-[1.85] text-[var(--muted)]">……</p>
                   </div>
                 </div>
               )}
 
               {summarized && (
-                <div className="thin-panel mb-4 border border-clay/40 bg-clay/5 p-4 text-center">
+                <div className="soft-panel mb-4 border border-clay/40 bg-clay/5 p-4 text-center">
                   <p className="sans text-sm text-clay">
                     已生成总结，保存成功。可返回今日内容继续其他环节。
                   </p>
@@ -222,7 +230,7 @@ export function AIDayClient({
           </section>
 
           {!summarized && (
-            <footer className="flex items-center gap-3 border-t border-[var(--line)] px-[clamp(18px,2.4vw,28px)]">
+            <footer className="ai-chat__composer">
               <input
                 className="flex-1 bg-transparent py-4 text-lg text-ink outline-none placeholder:text-[var(--muted)]"
                 placeholder="写下你的第一句话……"
@@ -249,6 +257,14 @@ export function AIDayClient({
         </section>
       </main>
     </AuthGate>
+  );
+}
+
+function CompanionAvatar({ symbol }: { symbol: string }) {
+  return (
+    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-clay/55 bg-[#fff8ed] sans text-sm text-clay shadow-[0_4px_12px_rgba(156,96,72,.12)]">
+      {symbol}
+    </div>
   );
 }
 

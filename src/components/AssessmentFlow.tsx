@@ -70,45 +70,40 @@ export function AssessmentFlow() {
   }
 
   return (
-    <section className="grid min-h-0 grid-cols-[300px_1fr] overflow-hidden max-lg:grid-cols-1 max-lg:overflow-auto">
-      <aside className="grid border-r border-[var(--line)] bg-paper/50 p-[clamp(22px,3vw,36px)] max-lg:border-b max-lg:border-r-0">
-        <div>
-          <div className="eyebrow mb-3">Assessment · Step {step + 1} / 6</div>
-          <h1 className="display-title text-[clamp(38px,4.4vw,62px)]">{dimension.name}</h1>
+    <section className="assessment-flow">
+      <header className="assessment-flow__header">
+        <div className="assessment-flow__eyebrow">Assessment · Step {step + 1} / 6</div>
+        <h1>{dimension.name}</h1>
+        <p>{dimension.subtitle}</p>
+        <div className="assessment-flow__progress-copy">
+          <span>当前维度 {step + 1} / 6</span>
+          <span>已完成 {answeredCount} / 42</span>
         </div>
-        <p className="self-center text-base leading-[1.85] text-[#563a2e] max-lg:hidden">
-          请根据你的真实感受选择。没有对错，越真实，报告越贴近你。
-        </p>
-        <div className="self-end">
-          <div className="mb-2 flex justify-between sans text-xs text-[var(--muted)]">
-            <span>当前维度 {step + 1} / 6</span>
-            <span>已完成 {answeredCount} / 42</span>
-          </div>
-          <div className="progress-track">
-            <i className="progress-fill" style={{ width: `${progress}%` }} />
-          </div>
+        <div className="progress-track">
+          <i className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
-      </aside>
-      <section className="grid min-h-0 grid-rows-[auto_1fr_auto] gap-4 overflow-hidden p-[clamp(18px,2.5vw,32px)] max-lg:overflow-visible">
-        <div className="flex items-end justify-between gap-5 border-b border-[var(--line)] pb-4 max-sm:grid">
-          <h2 className="m-0 text-4xl font-normal leading-none">{dimension.subtitle}</h2>
-          <div className="sans text-xs text-[var(--muted)]">左：完全不符 · 右：完全符合</div>
-        </div>
-        <section className="grid min-h-0 grid-rows-[repeat(7,minmax(0,1fr))] gap-1.5">
-          {dimension.questions.map((question) => (
-            <div
-              key={question.id}
-              className="grid grid-cols-[1fr_250px] items-center gap-4 border-b border-ink/10 py-1 max-sm:grid-cols-1"
-            >
-              <div className="text-base leading-normal text-[#3f281f]">{question.text}</div>
+      </header>
+
+      <div className="assessment-flow__scale-guide">
+        <span>← 左：完全不符</span><i>·</i><span>右：完全符合 →</span>
+      </div>
+
+      <section className="assessment-flow__questions">
+          {dimension.questions.map((question, index) => (
+            <article key={question.id} className="assessment-flow__question">
+              <div className="assessment-flow__question-copy">
+                <span className="assessment-flow__question-number">{index + 1}</span>
+                <p>{question.text}</p>
+              </div>
               <Slider active={answers[question.id]} name={question.id} onChange={(value) => setAnswer(question.id, value)} />
-            </div>
+            </article>
           ))}
-        </section>
-        <div className="flex items-center justify-between gap-4 border-t border-[var(--line)] pt-4">
-          <div className="flex gap-4">
+      </section>
+
+      <footer className="assessment-flow__footer">
+          <div className="assessment-flow__back-actions">
             <Link className="text-link" href="/assessment/profile">
-              基础信息
+              ▧　基础信息
             </Link>
             {step > 0 ? (
               <button className="text-link bg-transparent" onClick={() => setStep((current) => current - 1)} type="button">
@@ -116,14 +111,14 @@ export function AssessmentFlow() {
               </button>
             ) : null}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="assessment-flow__next-actions">
             {message ? <span className="sans text-xs text-clay">{message}</span> : null}
             <button className="action-primary" onClick={goNext} type="button">
               {isLastStep ? "生成报告" : "下一维度"}
             </button>
           </div>
-        </div>
-      </section>
+      </footer>
+      <p className="assessment-flow__footnote">⌁ 一个维度共 7 题，请如实作答。</p>
     </section>
   );
 }
@@ -138,29 +133,25 @@ function Slider({
   onChange: (value: number) => void;
 }) {
   return (
-    <fieldset className="grid gap-1">
+    <fieldset className="assessment-flow__slider">
       <legend className="sr-only">请选择符合程度</legend>
-      <div className="relative flex h-6 items-center">
-        <div className="absolute left-2 right-2 h-px bg-ink/30" />
-        <div className="relative z-10 grid w-full grid-cols-5">
+      <div className="assessment-flow__slider-track">
+        <i />
+        <div>
           {[1, 2, 3, 4, 5].map((value) => (
-            <label key={value} className="group mx-auto grid h-6 w-6 cursor-pointer place-items-center" title={`${value} 分`}>
+            <label key={value} title={`${value} 分`}>
               <input
                 checked={active === value}
-                className="peer sr-only"
+                className="sr-only"
                 name={name}
                 onChange={() => onChange(value)}
                 type="radio"
                 value={value}
               />
-              <span className="h-2.5 w-2.5 rounded-full border border-ink/30 bg-soft transition group-hover:h-4 group-hover:w-4 peer-checked:h-5 peer-checked:w-5 peer-checked:bg-ink peer-checked:shadow-[0_0_0_5px_rgba(156,96,72,.12)]" />
+              <span>{value}</span>
             </label>
           ))}
         </div>
-      </div>
-      <div className="flex justify-between sans text-[10px] text-[var(--muted)]">
-        <span>完全不符</span>
-        <span>完全符合</span>
       </div>
     </fieldset>
   );

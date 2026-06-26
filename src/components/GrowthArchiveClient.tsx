@@ -15,11 +15,12 @@ import {
   summarizeReflectionEntry,
 } from "@/lib/self-reflection";
 import { buildClientContext } from "@/lib/user-context";
+import { MobileTopBar } from "@/components/MobileTopBar";
 
 type Tab = "writing" | "ai" | "profile";
 
 export function GrowthArchiveClient() {
-  const [tab, setTab] = useState<Tab>("writing");
+  const [tab, setTab] = useState<Tab>("profile");
   const [entries, setEntries] = useState<SelfReflectionEntry[]>([]);
   const [aiEntries, setAiEntries] = useState<AIConversationEntry[]>([]);
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
@@ -58,18 +59,15 @@ export function GrowthArchiveClient() {
   return (
     <AuthGate>
       <main className="viewport">
-        <section className="paper-frame grid grid-rows-[64px_1fr]">
-          <header className="topbar">
-            <div className="brand">成她100</div>
-            <span>我的匣子 · 成长档案</span>
-            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/treasure">
-              返回匣子
-            </Link>
-          </header>
+        <section className="paper-frame growth-archive grid grid-rows-[56px_1fr]">
+          <MobileTopBar
+            rightAction={<Link className="mobile-topbar__action" href="/treasure">返回匣子</Link>}
+            title="成长档案"
+          />
 
           <section className="min-h-0 overflow-y-auto">
-            <div className="grid gap-8 px-[clamp(18px,4vw,52px)] py-[clamp(24px,4vw,48px)] lg:grid-cols-[0.84fr_1.16fr]">
-              <aside className="grid content-start gap-5">
+            <div className="growth-archive__content">
+              <aside className="growth-archive__hero">
                 <div>
                   <p className="sans mb-2 text-xs uppercase tracking-[0.26em] text-clay">Growth Archive</p>
                   <h1 className="max-w-[8em] text-[clamp(42px,7vw,86px)] leading-[0.9] text-ink">
@@ -81,22 +79,22 @@ export function GrowthArchiveClient() {
                   陪你看见后的线索，慢慢收起来。
                 </p>
 
-                <div className="grid grid-cols-3 border border-[var(--line)]">
-                  <Metric label="书写" value={sortedEntries.length} />
-                  <Metric label="AI 对话" value={sortedAiEntries.length} />
-                  <Metric label="已留下" value={totalArchiveCount} />
+                <div className="growth-archive__summary">
+                  <Metric icon="✍" label="书写" unit="篇记录" value={sortedEntries.length} />
+                  <Metric icon="☵" label="AI 对话" unit="次深度对话" value={sortedAiEntries.length} />
+                  <Metric icon="▥" label="已留下" unit="个线索" value={totalArchiveCount} />
                 </div>
 
                 {latestEntry ? (
-                  <div className="thin-panel bg-clay/5 p-5">
+                  <div className="growth-archive__latest thin-panel bg-clay/5 p-5">
                     <p className="sans mb-2 text-xs uppercase tracking-[0.18em] text-clay">最近一次</p>
                     <p className="text-lg leading-relaxed text-[#3f281f]">{summarizeReflectionEntry(latestEntry)}</p>
                   </div>
                 ) : null}
               </aside>
 
-              <div className="grid content-start gap-4">
-                <div className="flex flex-wrap gap-2">
+              <div className="growth-archive__records">
+                <div className="growth-archive__tabs">
                   <TabButton active={tab === "writing"} onClick={() => setTab("writing")}>我的书写</TabButton>
                   <TabButton active={tab === "ai"} onClick={() => setTab("ai")}>AI 陪我看见</TabButton>
                   <TabButton active={tab === "profile"} onClick={() => setTab("profile")}>成长画像</TabButton>
@@ -104,7 +102,14 @@ export function GrowthArchiveClient() {
 
                 {tab === "writing" ? <WritingRecords entries={sortedEntries} /> : null}
                 {tab === "ai" ? <AIRecords entries={sortedAiEntries} /> : null}
-                {tab === "profile" ? <GrowthProfilePanel profile={growthProfile} /> : null}
+                {tab === "profile" ? (
+                  <GrowthProfilePanel
+                    aiEntries={sortedAiEntries}
+                    assessment={assessment}
+                    entries={sortedEntries}
+                    profile={growthProfile}
+                  />
+                ) : null}
               </div>
             </div>
           </section>
@@ -114,11 +119,12 @@ export function GrowthArchiveClient() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ icon, label, unit, value }: { icon: string; label: string; unit: string; value: number }) {
   return (
     <div className="border-r border-[var(--line)] p-4 last:border-r-0">
-      <p className="sans text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">{label}</p>
-      <p className="mt-2 text-3xl text-clay">{value}</p>
+      <span aria-hidden>{icon}</span>
+      <p>{label}</p>
+      <p><strong>{value}</strong> {unit}</p>
     </div>
   );
 }
@@ -183,40 +189,142 @@ function AIRecords({ entries }: { entries: AIConversationEntry[] }) {
   );
 }
 
-function GrowthProfilePanel({ profile }: { profile: ReturnType<typeof createGrowthProfile> }) {
+function GrowthProfilePanel({
+  aiEntries,
+  assessment,
+  entries,
+  profile,
+}: {
+  aiEntries: AIConversationEntry[];
+  assessment: Record<string, unknown> | null;
+  entries: SelfReflectionEntry[];
+  profile: ReturnType<typeof createGrowthProfile>;
+}) {
+  const dimensions = getGrowthDimensions(assessment);
+  const sceneItems = profile.repeatedScenes.length
+    ? profile.repeatedScenes.slice(0, 3).map((item) => `${item.name}　${item.count}次`)
+    : ["原生家庭　0次", "客户关系　0次", "同辈对比　0次"];
+  const emotionItems = profile.emotionWords.length
+    ? profile.emotionWords.slice(0, 4).map((item) => item.word)
+    : ["累", "不知道怎么办", "想哭", "烦"];
+  const loosenedItems = profile.latestLoosened.length
+    ? profile.latestLoosened.slice(0, 3)
+    : ["开始允许自己停一下", "表达边界", "把感受说出来"];
+
   return (
-    <div className="grid gap-4">
-      <section className="thin-panel bg-[#fff8ed] p-6">
-        <p className="sans text-xs uppercase tracking-[0.18em] text-clay">{profile.walkedDays} days</p>
-        <h2 className="mt-2 text-4xl font-normal text-ink">{profile.name}的成长画像</h2>
-        <p className="mt-3 max-w-xl leading-[1.85] text-[#563a2e]">
-          它不是评判，只是把你反复写下来的东西放到一起，让你看见：有些旧声音，已经开始松动了。
-        </p>
+    <div className="growth-profile-panel">
+      <section className="growth-profile-panel__dimensions">
+        <header>
+          <div><span aria-hidden>🌿</span><h2>{profile.name}的成长画像</h2></div>
+          <p><span>一起点 (Day 01)</span><span>现在 (Day {String(Math.max(profile.walkedDays + 1, 1)).padStart(2, "0")})</span></p>
+        </header>
+        <small>走过 {profile.walkedDays} 天</small>
+        <div className="growth-profile-panel__dimension-list">
+          {dimensions.map((item) => (
+            <div className={`growth-profile-panel__dimension growth-profile-panel__dimension--${item.tone}`} key={item.name}>
+              <span aria-hidden>{item.icon}</span>
+              <p><strong>{item.name}</strong> {item.range}</p>
+              <i><b style={{ width: `${item.score}%` }} /></i>
+              <em>›</em>
+            </div>
+          ))}
+        </div>
       </section>
-      <ArchiveList title="反复出现的场景" empty="还没有足够记录。" items={profile.repeatedScenes.map((item) => `${item.name} · ${item.count} 次`)} />
-      <ArchiveList title="高频情绪词" empty="还没有明显高频词。" items={profile.emotionWords.map((item) => `${item.word} · ${item.count} 次`)} />
-      <ArchiveList title="最近开始松动的" empty="先留下几段书写，这里会慢慢长出来。" items={profile.latestLoosened} />
-      <section className="thin-panel p-5">
-        <p className="sans mb-2 text-xs uppercase tracking-[0.18em] text-clay">最近触动你的一句</p>
-        <p className="text-xl leading-relaxed text-[#3f281f]">“{profile.latestTouchedSentence}”</p>
+
+      <section className="growth-profile-panel__signals">
+        <SignalCard className="is-scenes" icon="🌿" items={sceneItems} title="反复出现的场景" />
+        <SignalCard className="is-emotions" icon="✓" items={emotionItems} title="高频情绪词" />
+        <SignalCard className="is-loosened" icon="🌿" items={loosenedItems} title="最近开始松动的" />
       </section>
+
+      <section className="growth-profile-panel__quote">
+        <p>最近触动你的一句 <span>✦</span></p>
+        <blockquote>“{profile.latestTouchedSentence}”</blockquote>
+      </section>
+
+      <section className="growth-archive__record-columns">
+        <RecordColumn
+          empty="还没有书写记录"
+          href="/day/1"
+          items={entries.slice(0, 3).map((entry) => ({
+            day: entry.day,
+            date: formatShortDate(entry.createdAt),
+            title: summarizeReflectionEntry(entry),
+          }))}
+          title="我的书写记录"
+        />
+        <RecordColumn
+          empty="还没有 AI 对话记录"
+          href="/day/1/ai"
+          items={aiEntries.slice(0, 3).map((entry) => ({
+            day: entry.day,
+            date: formatShortDate(entry.updatedAt),
+            title: entry.title,
+          }))}
+          title="AI 陪我看见记录"
+        />
+      </section>
+
+      <p className="growth-profile-panel__footer">🌿 你的每一次诚实记录，都是系统为你看见的依据。</p>
     </div>
   );
 }
 
-function ArchiveList({ empty, items, title }: { empty: string; items: string[]; title: string }) {
+function SignalCard({ className, icon, items, title }: { className: string; icon: string; items: string[]; title: string }) {
   return (
-    <section className="thin-panel p-5">
-      <p className="sans mb-3 text-xs uppercase tracking-[0.18em] text-clay">{title}</p>
-      {items.length ? (
-        <div className="flex flex-wrap gap-2">
-          {items.map((item) => <span className="pill" key={item}>{item}</span>)}
-        </div>
-      ) : (
-        <p className="m-0 text-[var(--muted)]">{empty}</p>
-      )}
-    </section>
+    <article className={className}>
+      <h3>{title} <span>{icon}</span></h3>
+      <div>{items.map((item) => <span key={item}>{item}</span>)}</div>
+    </article>
   );
+}
+
+function RecordColumn({
+  empty,
+  href,
+  items,
+  title,
+}: {
+  empty: string;
+  href: string;
+  items: Array<{ date: string; day: number; title: string }>;
+  title: string;
+}) {
+  return (
+    <article>
+      <header><h3>{title}</h3><Link href={href}>查看全部 ›</Link></header>
+      {items.length ? items.map((item) => (
+        <Link href={`/day/${item.day}`} key={`${title}-${item.day}-${item.date}`}>
+          <span>Day {String(item.day).padStart(2, "0")}</span><strong>{item.title}</strong><time>{item.date}</time>
+        </Link>
+      )) : <p>{empty}</p>}
+      <span>…</span>
+    </article>
+  );
+}
+
+function getGrowthDimensions(assessment: Record<string, unknown> | null) {
+  const result = assessment?.result as { dimensionScores?: Record<string, { index?: number }> } | undefined;
+  const scores = result?.dimensionScores ?? {};
+  const definitions = [
+    ["self-worth", "♥", "自我价值", "clay"],
+    ["boundaries", "♟", "关系边界", "gold"],
+    ["decision", "◉", "决策自主", "clay"],
+    ["emotion", "♧", "情绪稳定", "terracotta"],
+    ["action", "⌁", "行动通道", "sage"],
+    ["wealth", "♛", "财富容器", "blue"],
+  ] as const;
+
+  return definitions.map(([id, icon, name, tone]) => {
+    const index = Math.max(0, Math.min(100, Number(scores[id]?.index ?? 45)));
+    const score = Math.max(18, Math.round(100 - index * 0.55));
+    return { icon, name, range: `${Math.max(0, score - 5)}–${Math.min(100, score + 2)}`, score, tone };
+  });
+}
+
+function formatShortDate(value: string) {
+  const date = new Date(value);
+  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function EmptyArchive({ action, href, title }: { action: string; href: string; title: string }) {

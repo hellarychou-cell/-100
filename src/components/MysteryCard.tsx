@@ -18,14 +18,15 @@ type MysteryCardProps = {
     dayNum?: number;
   };
   small?: boolean;
+  variant?: "default" | "daily";
 };
 
-export function MysteryCard({ front, back, small = false }: MysteryCardProps) {
+export function MysteryCard({ front, back, small = false, variant = "default" }: MysteryCardProps) {
   const [flipped, setFlipped] = useState(false);
 
   return (
     <div
-      className={`relative perspective-1000 ${small ? "w-36" : "w-full"}`}
+      className={`mystery-card mystery-card--${variant} relative perspective-1000 ${small ? "w-36" : "w-full"}`}
     >
       <div
         className={`relative w-full aspect-[3/4.25] cursor-pointer transition-transform duration-500 transform-style-preserve-3d ${

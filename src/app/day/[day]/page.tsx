@@ -8,6 +8,7 @@ import { SelfReflectionBox } from "@/components/SelfReflectionBox";
 import { dayContents, mysteryCards } from "@/lib/content";
 import { getDayDocumentContent } from "@/lib/day-document";
 import { getScheduleDay } from "@/lib/schedule";
+import { MobileTopBar } from "@/components/MobileTopBar";
 
 type PageProps = {
   params: Promise<{ day: string }>;
@@ -33,25 +34,18 @@ export default async function DayPage({ params }: PageProps) {
 
   return (
     <AuthGate>
-    <main className="viewport">
-      <section className="paper-frame grid grid-rows-[54px_auto_1fr_48px]">
-        <header className="topbar !h-[54px]">
-          <div className="brand">成她100</div>
-          <span>Day {String(day.day).padStart(2, "0")}</span>
-          <div className="flex items-center gap-2">
-            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/home">
-              回到状态页
-            </Link>
-            <Link className="action-ghost !px-3 !py-2 !text-xs" href="/treasure">
-              我的匣子
-            </Link>
-          </div>
-        </header>
+    <main className="viewport botanical-page">
+      <section className="paper-frame day-page">
+        <MobileTopBar
+          leftAction={<Link className="mobile-topbar__action" href="/home">返回状态</Link>}
+          rightAction={<Link className="mobile-topbar__action" href="/treasure">我的匣子</Link>}
+          title="每日内容"
+        />
 
-        <section className="grid grid-cols-[minmax(0,1fr)_174px] gap-6 border-b border-[var(--line)] bg-paper/50 p-[clamp(18px,2.4vw,28px)] max-md:grid-cols-1">
-          <div>
-            <div className="eyebrow mb-3">Awakening · Week 01</div>
-            <div className="grid grid-cols-[auto_1fr] items-end gap-5 max-sm:grid-cols-1">
+        <section className="day-page__hero">
+          <div className="day-page__intro">
+            <div className="page-kicker mb-3">Awakening · Week 01</div>
+            <div className="day-page__title-row">
               <h1 className="display-title text-[clamp(42px,5.2vw,76px)]">{displayTitle}</h1>
               <div className="mb-1 flex flex-wrap gap-2">
                 <span className="pill">Day {String(day.day).padStart(2, "0")}</span>
@@ -60,12 +54,17 @@ export default async function DayPage({ params }: PageProps) {
                 {displayCardPoint && <span className="pill bg-[#8B6914] text-soft">卡点：{displayCardPoint}</span>}
               </div>
             </div>
-            <div className="mt-4 grid max-w-3xl gap-2 text-base leading-[1.82] text-[#4f3429]">
-              {mirrorLines.map((line) => (
-                <p key={line} className="m-0">{line}</p>
-              ))}
+            <div className="day-page__mirror">
+              <div>今日镜子 🪞</div>
+              <p>{mirrorLines[0]}</p>
+              {mirrorLines.length > 1 ? (
+                <details className="day-page__mirror-details">
+                  <summary>展开全部⌄</summary>
+                  <div>{mirrorLines.slice(1).map((line) => <p key={line}>{line}</p>)}</div>
+                </details>
+              ) : null}
             </div>
-            <div className="mt-4 flex gap-4">
+            <div className="day-page__quick-nav">
               <Link className="text-link" href={`/day/${Math.max(1, day.day - 1)}`}>
                 上一天
               </Link>
@@ -78,16 +77,16 @@ export default async function DayPage({ params }: PageProps) {
               )}
             </div>
           </div>
-          <div className="grid justify-items-center gap-2">
-            <div className="sans text-[11px] uppercase tracking-wider text-clay">今日抽卡</div>
-            <MysteryCard front={card.front} back={card.back} small />
+          <div className="day-page__mystery">
+            <div>✦ 今日抽卡 ✦</div>
+            <MysteryCard front={card.front} back={card.back} small variant="daily" />
             <span className="sans text-[10px] text-[var(--muted)]">点击翻牌</span>
           </div>
         </section>
 
-        <section className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(280px,.62fr)] gap-6 overflow-auto p-[clamp(16px,2.2vw,26px)] max-lg:grid-cols-1 max-lg:overflow-auto">
-          <div className="border-t border-[var(--line)] pt-4">
-            <SectionTitle number="1" title="她的故事" />
+        <section className="day-page__sections">
+          <section className="day-page__section">
+            <SectionTitle number="1" title="她的故事 📖" />
             <p className="whitespace-pre-line leading-[1.82] text-[#563a2e]">{storyPreview}</p>
             <details>
               <summary className="text-link cursor-pointer list-none">展开余下故事</summary>
@@ -95,11 +94,11 @@ export default async function DayPage({ params }: PageProps) {
                 {renderParagraphs(documentContent.story)}
               </div>
             </details>
-          </div>
-          <div className="grid content-start gap-5">
-            <section className="border-t border-[var(--line)] pt-4">
+          </section>
+          <div className="day-page__section-stack">
+            <section className="day-page__section">
               <SectionTitle number="2" title="身体小语" />
-              <div className="thin-panel m-0 grid gap-3 p-4 leading-[1.82] text-[#563a2e]">
+              <div className="day-page__body-copy soft-panel m-0 grid gap-3 p-4 leading-[1.82] text-[#563a2e]">
                 {renderParagraphs(documentContent.bodyNote)}
                 <Link
                   className="sans mt-1 text-xs text-[#8f6042]/70 transition hover:text-clay"
@@ -109,18 +108,19 @@ export default async function DayPage({ params }: PageProps) {
                 </Link>
               </div>
             </section>
-            <section className="relative border-t border-[var(--line)] pt-4">
-              <SectionTitle number="3" title="今日自我看见" />
+            <section className="day-page__section relative">
+              <SectionTitle number="3" title="今日自我看见 ✨" />
               <AIHoverTip methodTitle={documentContent.aiMethod.title} methodNote={documentContent.aiMethod.note} />
               <p className="mb-4 leading-[1.8] text-[#4f3429]">
                 {aiQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。
               </p>
               <SelfReflectionBox aiHref={`/day/${day.day}/ai`} day={day.day} />
+              <p className="mt-3 sans text-xs leading-relaxed text-clay/75">这一段会轻轻留在成长档案里，之后你可以回来看见自己的变化。</p>
             </section>
             {documentContent.extraSections.map((section, index) => (
-              <section key={section.title} className="border-t border-[var(--line)] pt-4">
+              <section key={section.title} className="day-page__section">
                 <SectionTitle number={String(index + 4)} title={section.title} />
-                <div className="thin-panel grid gap-3 p-4 text-sm leading-[1.82] text-[#563a2e]">
+                <div className="soft-panel grid gap-3 p-4 text-sm leading-[1.82] text-[#563a2e]">
                   {renderParagraphs(section.content)}
                 </div>
               </section>
@@ -148,8 +148,8 @@ function renderParagraphs(content: string) {
 
 function SectionTitle({ number, title }: { number: string; title: string }) {
   return (
-    <div className="mb-3 flex items-center gap-3 text-2xl leading-none">
-      <span className="grid h-6 w-6 place-items-center rounded-full border border-clay sans text-[11px] text-clay">
+    <div className="day-page__section-title">
+      <span>
         {number}
       </span>
       <span>{title}</span>

@@ -12,6 +12,7 @@ import {
 } from "@/lib/today-seeing-card";
 import { AIConversationEntry, LOCAL_AI_CONVERSATION_KEY } from "@/lib/self-reflection";
 import { supabase } from "@/lib/supabase";
+import { MobileTopBar } from "@/components/MobileTopBar";
 
 export function QuoteCardClient({
   dayNum,
@@ -87,14 +88,12 @@ export function QuoteCardClient({
 
   return (
     <main className="viewport grid place-items-center">
-      <section className="relative grid h-[min(560px,calc(100vh_-_28px))] w-full max-w-4xl grid-cols-[330px_1fr] overflow-hidden border border-paper/50 bg-soft shadow-2xl max-md:h-auto max-md:grid-cols-1">
-        <Link
-          aria-label="回到我的状态"
-          className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/80 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft"
-          href="/home"
-        >
-          ×
-        </Link>
+      <section className="seeing-card-page">
+        <MobileTopBar
+          rightAction={<Link className="mobile-topbar__action" href="/home">返回状态</Link>}
+          title="今日看见卡"
+        />
+        <div className="seeing-card-page__content">
         <div className="grid place-items-center border-r border-[var(--line)] bg-paper/50 p-6 max-md:border-b max-md:border-r-0">
           <div ref={cardRef} className="grid aspect-[3/4.8] w-64 grid-rows-[auto_auto_1fr_auto] overflow-hidden border border-ink/20 bg-[#fff8ed] px-6 py-5 shadow-2xl">
             <span className="sans text-[10px] uppercase tracking-[0.16em] text-clay">
@@ -124,7 +123,7 @@ export function QuoteCardClient({
             />
           </div>
         </div>
-        <section className="grid grid-rows-[auto_1fr_auto] gap-5 p-9 max-md:p-6">
+        <section className="seeing-card-page__aside grid grid-rows-[auto_1fr_auto] gap-5 p-9 max-md:p-6">
           <div>
             <div className="eyebrow mb-3">Today bookmark</div>
             <h1 className="display-title text-5xl">
@@ -148,6 +147,7 @@ export function QuoteCardClient({
             <Link className="action-ghost" href="/home">回到我的状态</Link>
           </div>
         </section>
+        </div>
       </section>
     </main>
   );

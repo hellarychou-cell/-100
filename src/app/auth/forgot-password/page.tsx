@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { MobileTopBar } from "@/components/MobileTopBar";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -48,14 +49,12 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="viewport grid place-items-center">
-      <section className="relative grid w-full max-w-3xl grid-cols-[.82fr_1fr] overflow-hidden border border-paper/50 bg-soft text-ink shadow-2xl max-md:grid-cols-1">
-        <Link
-          aria-label="返回登录"
-          className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/80 text-lg leading-none transition hover:bg-ink hover:text-soft"
-          href="/auth?mode=login"
-        >
-          ×
-        </Link>
+      <section className="forgot-password-page">
+        <MobileTopBar
+          rightAction={<Link className="mobile-topbar__action" href="/auth?mode=login">关闭</Link>}
+          title="忘记密码"
+        />
+        <div className="forgot-password-page__content">
         <aside className="grid border-r border-[var(--line)] bg-paper/60 p-8 max-md:border-b max-md:border-r-0">
           <div className="text-xl">成她100</div>
           <h1 className="my-12 text-5xl font-normal leading-[.9] max-md:my-6">
@@ -101,6 +100,7 @@ export default function ForgotPasswordPage() {
             </form>
           )}
         </section>
+        </div>
       </section>
     </main>
   );
