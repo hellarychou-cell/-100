@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   const requestMessages = [systemMsg, ...historyMsgs, { role: "user" as const, content: userContent }];
 
   try {
-    const response = await fetch(MINIMAX_API_URL, {
+    const response = await fetch(buildMiniMaxUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -162,12 +162,30 @@ function extractMiniMaxReply(data: unknown) {
 
 function summarizeMiniMaxShape(data: unknown) {
   if (!data || typeof data !== "object") return "non-object";
-  const payload = data as { choices?: unknown; [key: string]: unknown };
+  const payload = data as {
+    base_resp?: { status_code?: unknown; status_msg?: unknown };
+    choices?: unknown;
+    [key: string]: unknown;
+  };
   const choice = Array.isArray(payload.choices) ? payload.choices[0] : undefined;
   return {
     keys: Object.keys(payload),
     choiceKeys: choice && typeof choice === "object" ? Object.keys(choice) : [],
+    baseResp: payload.base_resp
+      ? {
+          statusCode: payload.base_resp.status_code,
+          statusMsg: payload.base_resp.status_msg,
+        }
+      : undefined,
   };
+}
+
+function buildMiniMaxUrl() {
+  const groupId = process.env.MINIMAX_GROUP_ID;
+  if (!groupId) return MINIMAX_API_URL;
+  const url = new URL(MINIMAX_API_URL);
+  url.searchParams.set("GroupId", groupId);
+  return url.toString();
 }
 
 function isLocalFallbackEnabled() {
