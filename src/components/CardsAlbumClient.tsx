@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
+import { MobileTopBar } from "@/components/MobileTopBar";
 import { MysteryCard } from "@/components/MysteryCard";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -55,18 +56,11 @@ export function CardsAlbumClient({ slots }: { slots: ToolCardSlot[] }) {
   return (
     <AuthGate>
       <main className="viewport">
-        <section className="paper-frame grid grid-rows-[56px_1fr]">
-          <header className="topbar">
-            <div className="brand">成她100</div>
-            <span>神秘卡册</span>
-            <Link
-              aria-label="回到我的匣子"
-              className="grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/60 text-lg leading-none text-ink transition hover:bg-ink hover:text-soft"
-              href="/treasure"
-            >
-              ×
-            </Link>
-          </header>
+        <section className="paper-frame cards-album-page grid grid-rows-[56px_1fr]">
+          <MobileTopBar
+            rightAction={<Link aria-label="回到我的匣子" className="mobile-topbar__action" href="/treasure">返回匣子</Link>}
+            title="神秘卡册"
+          />
           <section className="grid min-h-0 grid-cols-[330px_1fr] gap-9 overflow-auto p-[clamp(18px,2.8vw,34px)] max-lg:grid-cols-1">
             <div className="grid min-h-0 grid-rows-[auto_1fr_auto] max-lg:grid-cols-[1fr_220px] max-lg:gap-5 max-sm:grid-cols-1">
               <div>

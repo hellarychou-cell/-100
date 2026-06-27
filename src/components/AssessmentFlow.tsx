@@ -56,10 +56,6 @@ export function AssessmentFlow() {
             primary_mode: result.primaryMode,
             recommended_day: result.recommendedDay,
           });
-          await supabase.from("progress").upsert({
-            user_id: data.user.id,
-            current_day: result.recommendedDay,
-          });
         }
       }
 
@@ -75,6 +71,13 @@ export function AssessmentFlow() {
         <div className="assessment-flow__eyebrow">Assessment · Step {step + 1} / 6</div>
         <h1>{dimension.name}</h1>
         <p>{dimension.subtitle}</p>
+        <details className="assessment-flow__guide">
+          <summary>人生母题测评引导语</summary>
+          <p>
+            这不是一份普通的心理测试。请根据你最近半年的真实状态作答；没有对错，越真实越准确。
+            这 42 道题会帮你看见那些你以为“本来就是我”的反应，也就是你的底层代码。
+          </p>
+        </details>
         <div className="assessment-flow__progress-copy">
           <span>当前维度 {step + 1} / 6</span>
           <span>已完成 {answeredCount} / 42</span>

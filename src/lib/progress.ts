@@ -1,6 +1,6 @@
-export function getReadableCurrentDay(savedDay: number | null | undefined, publishedDayLimit: number) {
+export function getReadableCurrentDay(savedDay: number | null | undefined) {
   if (!Number.isInteger(savedDay) || !savedDay || savedDay < 1) return 1;
-  return Math.min(savedDay, publishedDayLimit);
+  return Math.min(savedDay, 100);
 }
 
 export function markDayCompleted(
@@ -11,5 +11,12 @@ export function markDayCompleted(
   return {
     currentDay: Math.max(progress.currentDay, day + 1),
     completedDays,
+  };
+}
+
+export function startProgressFromDay(day: number) {
+  return {
+    currentDay: getReadableCurrentDay(day),
+    completedDays: [] as number[],
   };
 }

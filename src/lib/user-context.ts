@@ -98,24 +98,30 @@ export function buildClientContext({
 export function buildContextPrompt(context?: ClientContext | null) {
   if (!context) return "";
 
+  const weakestDimensions = context.weakestDimensions ?? [];
+  const repeatedScenes = context.repeatedScenes ?? [];
+  const highFrequencyEmotions = context.highFrequencyEmotions ?? [];
+  const recentWriting = context.recentWriting ?? [];
+  const recentAiThemes = context.recentAiThemes ?? [];
+
   const lines = [
     "【你认识她的背景】",
-    `称呼她：${context.name}`,
+    `称呼她：${context.name || "你"}`,
     context.age ? `年龄/阶段：${context.age}` : "",
     context.identity ? `身份：${context.identity}` : "",
     context.currentIssue ? `她当下最想解决的问题：${context.currentIssue}` : "",
     context.idealState ? `她想走向的状态：${context.idealState}` : "",
     context.primaryMode ? `测评主模式：${context.primaryMode}` : "",
-    context.weakestDimensions.length ? `目前最需要看见的维度：${context.weakestDimensions.join("、")}` : "",
+    weakestDimensions.length ? `目前最需要看见的维度：${weakestDimensions.join("、")}` : "",
     context.currentDay ? `当前进度：Day ${context.currentDay}` : "",
-    context.repeatedScenes.length
-      ? `最近反复出现的场景：${context.repeatedScenes.map((item) => `${item.name}${item.count}次`).join("、")}`
+    repeatedScenes.length
+      ? `最近反复出现的场景：${repeatedScenes.map((item) => `${item.name}${item.count}次`).join("、")}`
       : "",
-    context.highFrequencyEmotions.length
-      ? `最近高频情绪词：${context.highFrequencyEmotions.map((item) => `${item.word}${item.count}次`).join("、")}`
+    highFrequencyEmotions.length
+      ? `最近高频情绪词：${highFrequencyEmotions.map((item) => `${item.word}${item.count}次`).join("、")}`
       : "",
-    context.recentWriting.length ? `最近书写：${context.recentWriting.join(" / ")}` : "",
-    context.recentAiThemes.length ? `最近对话主题：${context.recentAiThemes.join(" / ")}` : "",
+    recentWriting.length ? `最近书写：${recentWriting.join(" / ")}` : "",
+    recentAiThemes.length ? `最近对话主题：${recentAiThemes.join(" / ")}` : "",
     "",
     "【亲密化回应规则】",
     "你要像一个认识她、记得她近况的陪伴者。可以温柔引用她最近反复出现的词，但不要显得像数据报告。",

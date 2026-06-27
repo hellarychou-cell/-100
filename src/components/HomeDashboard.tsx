@@ -67,7 +67,7 @@ export function HomeDashboard() {
           ...current,
           displayName: localUser.displayName,
           completedDays: localProgress.completedDays,
-          currentDay: getReadableCurrentDay(localProgress.currentDay, publishedDayLimit),
+          currentDay: getReadableCurrentDay(localProgress.currentDay),
           cardsCollected: localProgress.completedDays.length,
           hasAssessment: localHasAssessment,
           isMember: localUser.isMember,
@@ -81,7 +81,7 @@ export function HomeDashboard() {
           setState((current) => ({
             ...current,
             completedDays: localProgress.completedDays,
-            currentDay: getReadableCurrentDay(localProgress.currentDay, publishedDayLimit),
+            currentDay: getReadableCurrentDay(localProgress.currentDay),
             cardsCollected: localProgress.completedDays.length,
             hasAssessment: localHasAssessment,
             loading: false,
@@ -131,7 +131,7 @@ export function HomeDashboard() {
         setState({
           cardsCollected: progress?.cards_collected ?? completedDays.length,
           completedDays,
-          currentDay: getReadableCurrentDay(progress?.current_day, publishedDayLimit),
+          currentDay: getReadableCurrentDay(progress?.current_day),
           displayName: profile?.display_name ?? String(user.user_metadata?.display_name ?? currentUser.name),
           hasAssessment: Boolean(assessment),
           isMember: isMemberActive,
@@ -152,9 +152,10 @@ export function HomeDashboard() {
   }, []);
 
   const today = useMemo(
-    () => dayContents.find((day) => day.day === state.currentDay) ?? dayContents[0],
+    () => allDaysData.find((day) => day.day === state.currentDay) ?? allDaysData[0],
     [state.currentDay],
   );
+  const todayHref = `/day/${Math.min(today.day, publishedDayLimit)}`;
   const currentPhase = useMemo(() => {
     const day = state.currentDay;
     if (day <= 25) return phases[0];
@@ -173,18 +174,19 @@ export function HomeDashboard() {
     <main className="viewport botanical-page overflow-auto">
       {shouldShowAssessmentPrompt({ hasAssessment: state.hasAssessment, dismissed: assessmentPromptDismissed }) ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-sm">
-          <div className="soft-panel relative w-full max-w-md p-8 text-center">
+          <div className="chengta-dialog relative">
             <button
               aria-label="关闭测评提示"
-              className="absolute right-3 top-3 grid h-8 w-8 place-items-center border border-[var(--line)] bg-soft/80 text-lg leading-none transition hover:bg-ink hover:text-soft"
+              className="chengta-dialog__close"
               onClick={() => setAssessmentPromptDismissed(true)}
               type="button"
             >
               ×
             </button>
+            <span className="chengta-dialog__mark" aria-hidden>✦</span>
             <div className="eyebrow mb-3">Before reading</div>
-            <h2 className="mb-4 text-4xl font-normal leading-tight">先做一次测评</h2>
-            <p className="mx-auto mb-6 max-w-sm text-sm leading-[1.8] text-[#563a2e]">
+            <h2>先做一次测评</h2>
+            <p>
               我们会根据测评内容判断你更适合从第几天开始阅读。你也可以先关掉这个窗口，直接浏览知识库。
             </p>
             <Link className="action-primary w-full" href="/assessment/profile">
@@ -207,7 +209,7 @@ export function HomeDashboard() {
                 <h1>{state.displayName}，<em>Day {String(state.currentDay).padStart(2, "0")}</em></h1>
               </div>
             </div>
-            <div className="home-status__percent"><strong>{completionRate}</strong><span>%<br />总进度</span></div>
+            <div className="home-status__percent" aria-label={`总进度 ${completionRate}%`}><small>总进度</small><strong>{completionRate}</strong><span>%</span></div>
             <div className="progress-track"><i className="progress-fill" style={{ width: `${completionRate}%` }} /></div>
             <div className="home-status__progress-copy">
               <p>已完成 {state.completedDays.length} 天　收集 {state.cardsCollected} 张卡</p>
@@ -224,15 +226,15 @@ export function HomeDashboard() {
               </div>
               <h2>{today.title}</h2>
               <i>{today.dimension}</i>
-              <p>{today.storyPreview}</p>
-              <Link className="action-primary" href={`/day/${today.day}`}>开始阅读</Link>
+              <p>{today.note}</p>
+              <Link className="action-primary" href={todayHref}>{today.day > publishedDayLimit ? "先读已上线内容" : "开始阅读"}</Link>
             </section>
             <section className="home-status__phase">
               <small>当前阶段</small>
               {phases.map((phase) => (
                 <div className={phase.id === currentPhase.id ? "is-current" : ""} key={phase.id}>
                   <span>{phase.id === currentPhase.id ? "✓" : ""}</span>
-                  <p><strong>{phase.name.replace(/第.阶段[：:]?/, "")}</strong><small>{phase.range}</small></p>
+                  <p><strong>{phase.name}</strong><small>{phase.range}</small></p>
                   {phase.id === currentPhase.id ? <em>当前</em> : null}
                 </div>
               ))}
@@ -250,7 +252,10 @@ export function HomeDashboard() {
               <span>●　第一阶段：自我觉醒期 (Day 1 - 25)</span><small>进行中</small>
             </div>
             <div className="home-status__day-grid">
-              {(expanded ? allDaysData.filter((item) => item.day <= 25) : [allDaysData[0], allDaysData[1], allDaysData[6], allDaysData[Math.max(0, state.currentDay - 1)]]).filter((item, index, items) => item && items.findIndex((candidate) => candidate.day === item.day) === index).map((item) => (
+              {(expanded ? allDaysData.filter((item) => item.day <= 25) : [allDaysData[0], allDaysData[1], allDaysData[6], allDaysData[Math.max(0, state.currentDay - 1)]])
+                .filter((item, index, items) => item && items.findIndex((candidate) => candidate.day === item.day) === index)
+                .sort((a, b) => a.day - b.day)
+                .map((item) => (
                 <ProgressDayCard key={item.day} currentDay={state.currentDay} completedDays={state.completedDays} item={item} />
               ))}
             </div>
@@ -336,8 +341,10 @@ function ProgressDayCard({
       </Link>
       {showLockedModal && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/35 p-4 backdrop-blur-sm" onClick={() => setShowLockedModal(false)}>
-          <div className="thin-panel relative w-full max-w-xs bg-soft p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <p className="text-[#563a2e]">你还没有进入到这一天</p>
+          <div className="chengta-dialog chengta-dialog--small" onClick={(e) => e.stopPropagation()}>
+            <span className="chengta-dialog__mark" aria-hidden>⌁</span>
+            <h2>还没走到这里</h2>
+            <p>你还没有进入到这一天。先收下前面的内容，它会慢慢解锁。</p>
             <button className="action-primary mt-4 w-full" onClick={() => setShowLockedModal(false)} type="button">
               我知道了
             </button>

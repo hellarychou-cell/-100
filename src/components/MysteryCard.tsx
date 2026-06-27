@@ -24,6 +24,40 @@ type MysteryCardProps = {
 export function MysteryCard({ front, back, small = false, variant = "default" }: MysteryCardProps) {
   const [flipped, setFlipped] = useState(false);
 
+  if (variant === "daily") {
+    return (
+      <button
+        className={`mystery-card mystery-card--daily mystery-card--daily-single relative ${small ? "w-36" : "w-full"} ${flipped ? "is-flipped" : ""}`}
+        onClick={() => setFlipped((current) => !current)}
+        type="button"
+      >
+        {!flipped ? (
+          <div className="mystery-card__daily-front">
+            <small className={`${small ? "p-2" : "p-3"} mystery-card__daily-name`}>
+              ✨ 🌙 ✨
+            </small>
+            <div className="mystery-card__moon-scene" aria-hidden>
+              <span className="mystery-card__moon" aria-hidden />
+              <i>✦</i>
+            </div>
+            <div className={`${small ? "p-3" : "p-4"} mystery-card__daily-quote`}>
+              <p>“{front.quote}”</p>
+              <span>—— {front.name}</span>
+              {front.age ? <small>{front.age}</small> : null}
+            </div>
+          </div>
+        ) : (
+          <div className="mystery-card__daily-back">
+            <div className="mystery-card__daily-back-content">
+              <strong>{back.title}</strong>
+              <p>{back.content}</p>
+            </div>
+          </div>
+        )}
+      </button>
+    );
+  }
+
   return (
     <div
       className={`mystery-card mystery-card--${variant} relative perspective-1000 ${small ? "w-36" : "w-full"}`}
@@ -40,21 +74,23 @@ export function MysteryCard({ front, back, small = false, variant = "default" }:
           style={{ backfaceVisibility: "hidden" }}
           onClick={() => setFlipped(true)}
         >
-          <small className={`${small ? "p-2" : "p-3"} sans text-[10px] uppercase tracking-[0.14em] text-paper/75`}>
-            📿 {front.name} · {front.age}
-          </small>
-          <div className="m-auto grid place-items-center">
-            <div className={small ? "text-2xl" : "text-4xl"}>{front.symbol ?? "她"}</div>
-          </div>
-          <div className={`${small ? "p-3" : "p-4"} text-center`}>
-            <p className={`${small ? "text-[11px]" : "text-sm"} leading-relaxed text-paper/90`}>“{front.quote}”</p>
-            <p className="mt-2 text-xs text-paper/60">—— {front.name}</p>
-          </div>
+          <>
+            <small className={`${small ? "p-2" : "p-3"} sans text-[10px] uppercase tracking-[0.14em] text-paper/75`}>
+              📿 {front.name} · {front.age}
+            </small>
+            <div className="m-auto grid place-items-center">
+              <div className={small ? "text-2xl" : "text-4xl"}>{front.symbol ?? "她"}</div>
+            </div>
+            <div className={`${small ? "p-3" : "p-4"} text-center`}>
+              <p className={`${small ? "text-[11px]" : "text-sm"} leading-relaxed text-paper/90`}>“{front.quote}”</p>
+              <p className="mt-2 text-xs text-paper/60">—— {front.name}</p>
+            </div>
+          </>
         </div>
 
         {/* 背面 */}
         <div
-          className="absolute inset-0 grid aspect-[3/4.25] grid-rows-[auto_1fr] cursor-pointer overflow-hidden border border-clay/50 bg-[#f7ead8] text-[#563a2e] shadow-xl backface-hidden"
+          className="absolute inset-0 grid aspect-[3/4.25] cursor-pointer grid-rows-[auto_1fr] overflow-hidden border border-clay/50 bg-[#f7ead8] text-[#563a2e] shadow-xl backface-hidden"
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           onClick={() => setFlipped(false)}
         >

@@ -13,6 +13,12 @@ type Progress = {
 export function BodyStationIndexClient({ items }: { items: BodyStationIndexItem[] }) {
   const [completedDays, setCompletedDays] = useState<number[]>([]);
   const [message, setMessage] = useState("");
+  const groups = [
+    { title: "第一阶段 · 觉醒期", range: "Day 01-25", items: items.slice(0, 25) },
+    { title: "第二阶段 · 理解期", range: "Day 26-50", items: items.slice(25, 50) },
+    { title: "第三阶段 · 重建期", range: "Day 51-75", items: items.slice(50, 75) },
+    { title: "第四阶段 · 创造期", range: "Day 76-100", items: items.slice(75, 100) },
+  ];
 
   useEffect(() => {
     async function load() {
@@ -43,56 +49,48 @@ export function BodyStationIndexClient({ items }: { items: BodyStationIndexItem[
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="body-station-index">
       {message ? (
-        <div className="thin-panel bg-clay/5 p-3 text-center sans text-xs text-clay">
+        <div className="body-station-index__message">
           {message}
         </div>
       ) : null}
-      <div className="grid grid-cols-5 gap-2.5 max-xl:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
-        {items.map((item) => {
-          const unlocked = isUnlocked(item);
-          const card = (
-            <article
-              className={`grid min-h-[132px] content-between border p-3 transition ${
-                unlocked
-                  ? "border-clay/50 bg-soft text-ink hover:-translate-y-0.5 hover:shadow-lg"
-                  : "border-[var(--line)]/40 bg-soft/35 text-ink/45"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="sans text-[10px] uppercase tracking-[0.14em] text-clay">
-                  Day {String(item.day).padStart(2, "0")}
-                </span>
-                <span className="sans text-[10px] text-[var(--muted)]">
-                  {unlocked ? "已解锁" : "锁定"}
-                </span>
-              </div>
-              <div>
-                <h2 className="m-0 text-base font-normal leading-tight">{item.title}</h2>
-                <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-[var(--muted)]">
-                  {item.bodyNote || item.subtitle}
-                </p>
-              </div>
-            </article>
-          );
+      {groups.map((group, groupIndex) => (
+        <details className="body-station-index__group" key={group.title} open={groupIndex === 0}>
+          <summary>
+            <span>{group.title}</span>
+            <small>{group.range}</small>
+          </summary>
+          <div>
+            {group.items.map((item) => {
+              const unlocked = isUnlocked(item);
+              const row = (
+                <article className={`body-station-index__row ${unlocked ? "is-unlocked" : "is-locked"}`}>
+                  <span>Day {String(item.day).padStart(2, "0")}</span>
+                  <strong>{item.title}</strong>
+                  <small>{unlocked ? "已解锁" : "锁定"}</small>
+                  <i>›</i>
+                </article>
+              );
 
-          return unlocked ? (
-            <Link key={item.day} href={`/body-station/${item.day}?from=station`}>
-              {card}
-            </Link>
-          ) : (
-            <button
-              className="block bg-transparent p-0 text-left"
-              key={item.day}
-              onClick={() => setMessage(`完成 Day ${item.day} 的内容后，身体驿站会自动解锁。`)}
-              type="button"
-            >
-              {card}
-            </button>
-          );
-        })}
-      </div>
+              return unlocked ? (
+                <Link key={item.day} href={`/body-station/${item.day}?from=station`}>
+                  {row}
+                </Link>
+              ) : (
+                <button
+                  className="body-station-index__button"
+                  key={item.day}
+                  onClick={() => setMessage(`完成 Day ${item.day} 的内容后，身体驿站会自动解锁。`)}
+                  type="button"
+                >
+                  {row}
+                </button>
+              );
+            })}
+          </div>
+        </details>
+      ))}
     </div>
   );
 }

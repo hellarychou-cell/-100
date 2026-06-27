@@ -173,15 +173,10 @@ function inferPrimaryMode(scores: Record<DimensionId, DimensionScore>): string {
 }
 
 function inferRecommendedDay(totalScore100: number): number {
-  let recommendedDay = 1;
-  // 0-20分：跳转到第51天（几乎无内耗，跳过觉醒/理解，直接进工具实操）
-  if (totalScore100 <= 20) recommendedDay = 51;
-  // 20-40分：第26天（轻度内耗，跳过觉醒，从理解期开始）
-  else if (totalScore100 <= 40) recommendedDay = 26;
-  // 40-60分：第8天（中度内耗，跳过W1概念引入）
-  else if (totalScore100 <= 60) recommendedDay = 8;
-  // 60-100分：第1天（重度/深度内耗，完整100天）
-  else recommendedDay = 1;
-
-  return Math.min(recommendedDay, PUBLISHED_DAY_LIMIT);
+  // 推荐起点是产品节奏，不受当前已上线内容数量限制。
+  // 内耗越重越需要从前面开始；内耗较轻也保留在 Day 20 以内，避免用户误以为前面的内容不重要。
+  if (totalScore100 <= 20) return 20;
+  if (totalScore100 <= 40) return 14;
+  if (totalScore100 <= 60) return 7;
+  return 1;
 }

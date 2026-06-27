@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
+import { dayContents } from "@/lib/content";
 import { supabase } from "@/lib/supabase";
 
 type DayFooterProps = {
@@ -70,15 +71,30 @@ export function DayFooter({ day }: DayFooterProps) {
   };
 
   return (
-    <footer className="flex items-center justify-between border-t border-[var(--line)] px-[clamp(16px,2.4vw,30px)] sans text-xs text-[var(--muted)]">
-      <span>完成后会生成今日看见卡，可保存图片。</span>
+    <footer className="day-footer">
       <button
-        className="text-link bg-transparent transition hover:text-clay"
+        className="day-footer__nav"
+        disabled={day <= 1}
+        onClick={() => router.push(`/day/${Math.max(1, day - 1)}`)}
+        type="button"
+      >
+        ❮ 上一天
+      </button>
+      <button
+        className="day-footer__collect"
         onClick={handleCollectToday}
         disabled={loading}
         type="button"
       >
-        {loading ? "收集中..." : "收下今天"}
+        {loading ? "收集中..." : "♡ 收下今天 ♡"}
+      </button>
+      <button
+        className="day-footer__nav"
+        disabled={day >= dayContents.length}
+        onClick={() => router.push(`/day/${Math.min(dayContents.length, day + 1)}`)}
+        type="button"
+      >
+        下一天 ❯
       </button>
     </footer>
   );

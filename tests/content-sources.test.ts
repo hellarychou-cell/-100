@@ -59,8 +59,8 @@ test("latest philosophy document exposes all seven public sections", () => {
   const blocks = readRootMarkdown("成她-理念页.md");
   const headings = blocks.filter((block) => block.type === "heading").map((block) => block.text);
 
-  assert.ok(headings.includes("关于恬馨"));
-  for (const title of ["一", "二 · 我是谁", "三 · 我看见的事", "四 · 我做的事", "五 · 我相信的事", "六 · 写给她", "七"]) {
+  assert.ok(headings.includes("成她 100 · 品牌宣言（网站理念页）"));
+  for (const title of ["〇 · 成她宣言", "一 · 我们看见的事", "二 · 我们相信的事", "三 · 我们做的事", "四 · 我们相信的女性力量", "五 · 写给她", "六 · 100 天"]) {
     assert.ok(headings.includes(title), `missing philosophy section: ${title}`);
   }
 });

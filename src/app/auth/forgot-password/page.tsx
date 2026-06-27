@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="viewport grid place-items-center">
+    <main className="viewport botanical-page grid place-items-center">
       <section className="forgot-password-page">
         <MobileTopBar
           rightAction={<Link className="mobile-topbar__action" href="/auth?mode=login">关闭</Link>}

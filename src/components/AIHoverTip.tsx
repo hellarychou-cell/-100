@@ -14,14 +14,11 @@ export function AIHoverTip({
 
   return (
     <button
-      className="mb-3 block w-full bg-transparent p-0 text-left sans text-[11px] leading-relaxed text-[var(--muted)]/70"
+      className={`ai-method-tip ${expanded ? "is-open" : ""}`}
       onClick={() => setExpanded((current) => !current)}
       type="button"
     >
-      <span className={expanded ? "" : "line-clamp-1"}>
-        {text}
-      </span>
-      {!expanded ? <span className="text-clay/70">...</span> : null}
+      <span>{expanded ? text : "深度自我看见"}</span>
     </button>
   );
 }

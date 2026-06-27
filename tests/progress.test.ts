@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getReadableCurrentDay, markDayCompleted } from "../src/lib/progress.ts";
+import { getReadableCurrentDay, markDayCompleted, startProgressFromDay } from "../src/lib/progress.ts";
 
 test("uses the saved progress day when it has published content", () => {
-  assert.equal(getReadableCurrentDay(3, 7), 3);
+  assert.equal(getReadableCurrentDay(3), 3);
 });
 
-test("falls back to latest published day when saved progress is beyond current content", () => {
-  assert.equal(getReadableCurrentDay(80, 7), 7);
+test("keeps the saved recommended day even when content is not published yet", () => {
+  assert.equal(getReadableCurrentDay(20), 20);
+});
+
+test("starts the journey from the selected day without completing earlier days", () => {
+  assert.deepEqual(startProgressFromDay(1), { currentDay: 1, completedDays: [] });
+  assert.deepEqual(startProgressFromDay(7), { currentDay: 7, completedDays: [] });
 });
 
 test("falls back to day one when saved progress is missing", () => {
-  assert.equal(getReadableCurrentDay(null, 7), 1);
+  assert.equal(getReadableCurrentDay(null), 1);
 });
 
 test("marks a day completed once and advances to the next readable day", () => {

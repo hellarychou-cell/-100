@@ -101,11 +101,12 @@ function activeLocal(user: LocalUser): GateState {
 function GateNotice({ title, text, action }: { title: string; text: string; action?: ReactNode }) {
   return (
     <main className="viewport botanical-page gate-notice grid place-items-center">
-      <section className="paper-frame grid w-full max-w-2xl place-items-center overflow-hidden p-[clamp(28px,6vw,70px)] text-center">
-        <div className="soft-panel grid w-full max-w-lg gap-5 p-[clamp(26px,5vw,48px)]">
+      <section className="paper-frame chengta-dialog-shell grid w-full max-w-2xl place-items-center overflow-hidden text-center">
+        <div className="chengta-dialog">
+          <span className="chengta-dialog__mark" aria-hidden>✦</span>
           <div className="page-kicker mx-auto">Private area</div>
-          <h1 className="display-title text-[clamp(42px,7vw,78px)]">{title}</h1>
-          <p className="mx-auto max-w-md text-base leading-[1.9] text-[#563a2e]">{text}</p>
+          <h1>{title}</h1>
+          <p>{text}</p>
           <div className="flex justify-center">{action}</div>
         </div>
       </section>

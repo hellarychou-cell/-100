@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ReportRadar } from "@/components/ReportRadar";
 import {
@@ -15,7 +16,9 @@ import {
   getReportSummary,
   getTopAndLowDimensions,
 } from "@/lib/assessment-report-copy";
-import { LOCAL_PROFILE_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
+import { LOCAL_PROFILE_KEY, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
+import { saveElementAsPng } from "@/lib/export-image";
+import { startProgressFromDay } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
 type StoredResult = {
@@ -32,10 +35,12 @@ type Profile = {
 };
 
 export function AssessmentResultClient() {
+  const router = useRouter();
   const [stored, setStored] = useState<StoredResult | null>(null);
   const [profile, setProfile] = useState<Profile>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   const reportRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -132,13 +137,32 @@ export function AssessmentResultClient() {
   const modeInsight = getModeInsight(result.primaryMode);
   const { top, low } = getTopAndLowDimensions(dimensionRows);
   const dimensionPresentation: Record<DimensionId, { symbol: string; tone: string }> = {
-    "self-worth": { symbol: "♥", tone: "rose" },
-    boundaries: { symbol: "♟", tone: "clay" },
+    "self-worth": { symbol: "✦", tone: "rose" },
+    boundaries: { symbol: "⌁", tone: "clay" },
     decision: { symbol: "◉", tone: "gold" },
-    emotion: { symbol: "◌", tone: "blue" },
-    action: { symbol: "⌁", tone: "sage" },
-    wealth: { symbol: "▣", tone: "amber" },
+    emotion: { symbol: "☾", tone: "blue" },
+    action: { symbol: "↗", tone: "sage" },
+    wealth: { symbol: "◇", tone: "amber" },
   };
+
+  async function startJourney(day: number) {
+    const nextProgress = startProgressFromDay(day);
+    window.localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(nextProgress));
+
+    if (supabase) {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        await supabase.from("progress").upsert({
+          user_id: data.user.id,
+          current_day: nextProgress.currentDay,
+          completed_days: nextProgress.completedDays,
+          cards_collected: 0,
+        });
+      }
+    }
+
+    router.push("/home");
+  }
 
   return (
     <section className="assessment-report min-h-0 overflow-auto">
@@ -148,11 +172,11 @@ export function AssessmentResultClient() {
       >
         <header className="assessment-report__header">
           <div>
-            <div className="eyebrow mb-3">Bottom Layer Code Diagnosis Report</div>
+            <div className="eyebrow mb-3">Life Theme Assessment Report</div>
             <h1 className="font-serif text-[clamp(42px,6vw,82px)] font-normal leading-[.92]">
-              底层代码 <span>/</span>
+              人生母题 <span>/</span>
               <br />
-              诊断报告
+              对照表
             </h1>
             <p className="assessment-report__meta">
               报告编号：{reportId} · {createdAt.toLocaleDateString("zh-CN")}
@@ -162,10 +186,6 @@ export function AssessmentResultClient() {
             <div>
               <div className="sans text-xs text-[var(--muted)]">报告对象</div>
               <strong className="block font-serif text-4xl font-normal">{name}</strong>
-              <span className="sans text-xs text-clay">
-                {profile.age ? `${profile.age} · ` : ""}
-                {profile.identity || "未填写身份"}
-              </span>
             </div>
           </div>
         </header>
@@ -193,10 +213,10 @@ export function AssessmentResultClient() {
                 <ReportRadar data={dimensionRows.map((row) => ({ name: row.name.slice(0, 2), value: row.index }))} showHelp={false} />
               </div>
               <div className="assessment-report__facts">
-                <ReportFact icon="✧" label="底层代码模式" value={result.primaryMode} />
-                <ReportFact icon="⌕" label="核心信念" value={modeInsight.coreCode} />
-                <ReportFact icon="♜" label="人格成熟度" value={summary.maturity} />
-                <ReportFact icon="⌁" label="内在小苗苗" value={summary.seedling} />
+                <ReportFact icon="✦" label="底层代码模式" value={result.primaryMode} />
+                <ReportFact icon="◇" label="核心信念" value={modeInsight.coreCode} />
+                <ReportFact icon="☾" label="人格成熟度" value={summary.maturity} />
+                <ReportFact icon="🌱" label="内在小苗苗" value={summary.seedling} />
               </div>
             </section>
 
@@ -283,21 +303,22 @@ export function AssessmentResultClient() {
                   如果你想更深入地了解你的底层代码，拆掉那些卡住你的旧程序，可以预约1v1底层代码解读。
                 </p>
                 <div className="flex flex-wrap gap-3 no-print">
-                  <Link className="action-primary !bg-[#5b382c]" href="/home">
+                  <button className="action-primary !bg-[#5b382c]" onClick={() => void startJourney(1)} type="button">
                     开始我的100天
-                  </Link>
-                  <Link className="action-ghost" href={`/day/${result.recommendedDay}`}>
+                  </button>
+                  <button className="action-ghost" onClick={() => void startJourney(result.recommendedDay)} type="button">
                     建议从 Day {result.recommendedDay} 开始
-                  </Link>
+                  </button>
                   <button
                     className="action-ghost"
                     disabled={saving}
-                    onClick={() => void saveReportImage(reportRef.current, setSaving)}
+                    onClick={() => void saveReportImage(reportRef.current, setSaving, setSaveMessage)}
                     type="button"
                   >
                     {saving ? "正在生成图片" : "保存图片"}
                   </button>
                 </div>
+                {saveMessage ? <p className="assessment-report__save-message">{saveMessage}</p> : null}
               </div>
               <div className="grid justify-items-center gap-2">
                 <div className="grid h-20 w-20 grid-cols-5 grid-rows-5 gap-1 border border-[#d8b98a] bg-soft p-2">
@@ -341,27 +362,21 @@ function InsightCard({ label, text, title, tone }: { label: string; text: string
   );
 }
 
-async function saveReportImage(element: HTMLElement | null, setSaving: (saving: boolean) => void) {
-  if (!element) return;
+async function saveReportImage(
+  element: HTMLElement | null,
+  setSaving: (saving: boolean) => void,
+  setSaveMessage: (message: string) => void,
+) {
   setSaving(true);
-  try {
-    const { toPng } = await import("html-to-image");
-    const dataUrl = await toPng(element, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: "#fffaf1",
-      filter: (node) => !(node instanceof HTMLElement && node.classList.contains("no-print")),
-    });
-    const link = document.createElement("a");
-    link.download = `成她100-底层代码诊断报告-${Date.now()}.png`;
-    link.href = dataUrl;
-    link.click();
-  } catch (error) {
-    console.error(error);
-    window.print();
-  } finally {
-    setSaving(false);
-  }
+  setSaveMessage("");
+  const result = await saveElementAsPng({
+    backgroundColor: "#fffaf1",
+    element,
+    fileName: `成她100-底层代码诊断报告-${Date.now()}.png`,
+    filter: (node) => !node.classList.contains("no-print"),
+  });
+  setSaveMessage(result.ok ? "报告图片已生成，浏览器会自动下载。" : result.message);
+  setSaving(false);
 }
 
 function EmptyReport({ title, text }: { title: string; text: string }) {

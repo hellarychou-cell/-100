@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { DayCompanion } from "@/lib/day-companion";
 import { dayAIPrompts } from "@/lib/ai-prompts";
+import { createLocalAIReply } from "@/lib/ai-local-fallback";
 import { buildContextPrompt, type ClientContext } from "@/lib/user-context";
 
 const SUMMARIZE_PROMPT = "请帮我总结一下这段对话里我发现了什么，以及还有哪些地方值得继续探索。";
@@ -25,27 +26,39 @@ export async function POST(req: NextRequest) {
   }
 
   const apiKey = process.env.MINIMAX_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "MINIMAX_API_KEY not configured" }, { status: 500 });
-  }
-
-  // 构建请求消息
   const contextPrompt = buildContextPrompt(clientContext as ClientContext | undefined);
   const companionPrompt = buildCompanionPrompt(companion as DayCompanion | null | undefined);
-  const systemMsg = {
-    role: "system" as const,
-    content: [contextPrompt, companionPrompt, promptConfig.systemPrompt].filter(Boolean).join("\n\n"),
-  };
   const historyMsgs: Message[] = messages.map((m: { role: string; content: string }) => ({
     role: m.role as "user" | "assistant",
     content: m.content,
   }));
+  const lastUserMsg = [...historyMsgs].reverse().find((m) => m.role === "user");
+
+  if (!apiKey) {
+    if (isLocalFallbackEnabled()) {
+      return NextResponse.json({
+        reply: createLocalAIReply({
+          companionLabel: (companion as DayCompanion | null | undefined)?.label,
+          mode,
+          userName: (clientContext as ClientContext | undefined)?.name,
+          userText: lastUserMsg?.content,
+        }),
+        source: "local-fallback",
+      });
+    }
+    return NextResponse.json({ error: "MINIMAX_API_KEY not configured" }, { status: 500 });
+  }
+
+  // 构建请求消息
+  const systemMsg = {
+    role: "system" as const,
+    content: [contextPrompt, companionPrompt, promptConfig.systemPrompt].filter(Boolean).join("\n\n"),
+  };
 
   let userContent = "";
   if (mode === "summarize") {
     userContent = SUMMARIZE_PROMPT;
   } else {
-    const lastUserMsg = [...historyMsgs].reverse().find((m) => m.role === "user");
     userContent = lastUserMsg?.content ?? "";
   }
 
@@ -68,17 +81,54 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("MiniMax API error:", response.status, errorText);
+      if (isLocalFallbackEnabled()) {
+        return NextResponse.json({
+          reply: createLocalAIReply({
+            companionLabel: (companion as DayCompanion | null | undefined)?.label,
+            mode,
+            userName: (clientContext as ClientContext | undefined)?.name,
+            userText: lastUserMsg?.content,
+          }),
+          source: "local-fallback",
+        });
+      }
       return NextResponse.json({ error: "AI service error" }, { status: 502 });
     }
 
     const data = await response.json();
     const reply = data.choices?.[0]?.messages?.[0]?.content ?? "";
+    if (!reply && isLocalFallbackEnabled()) {
+      return NextResponse.json({
+        reply: createLocalAIReply({
+          companionLabel: (companion as DayCompanion | null | undefined)?.label,
+          mode,
+          userName: (clientContext as ClientContext | undefined)?.name,
+          userText: lastUserMsg?.content,
+        }),
+        source: "local-fallback",
+      });
+    }
 
     return NextResponse.json({ reply });
   } catch (e) {
     console.error("MiniMax request failed", e);
+    if (isLocalFallbackEnabled()) {
+      return NextResponse.json({
+        reply: createLocalAIReply({
+          companionLabel: (companion as DayCompanion | null | undefined)?.label,
+          mode,
+          userName: (clientContext as ClientContext | undefined)?.name,
+          userText: lastUserMsg?.content,
+        }),
+        source: "local-fallback",
+      });
+    }
     return NextResponse.json({ error: "Request failed" }, { status: 500 });
   }
+}
+
+function isLocalFallbackEnabled() {
+  return process.env.NODE_ENV !== "production" || process.env.ENABLE_LOCAL_AI_FALLBACK === "true";
 }
 
 function buildCompanionPrompt(companion?: DayCompanion | null) {

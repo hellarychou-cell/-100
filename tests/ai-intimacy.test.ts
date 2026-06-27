@@ -5,6 +5,7 @@ import { createGrowthProfile } from "../src/lib/growth-archive.ts";
 import { createTodaySeeingCard } from "../src/lib/today-seeing-card.ts";
 import { findTriggeredSister, getSisterProfile, shouldTriggerSister } from "../src/lib/sister-profiles.ts";
 import { buildCollectionState } from "../src/lib/collection.ts";
+import { createLocalAIReply } from "../src/lib/ai-local-fallback.ts";
 
 test("client context keeps identity, recent writing, conversations, and repeated emotion words", () => {
   const context = buildClientContext({
@@ -134,4 +135,17 @@ test("collection state dedupes sister cards, keeps tool slots unique, and unlock
   assert.equal(new Set(state.toolSlots.map((slot) => slot.slot)).size, state.toolSlots.length);
   assert.deepEqual(state.sisterSlots.filter((slot) => slot.unlocked).map((slot) => slot.name), ["杨绛", "上野千鹤子"]);
   assert.equal(state.selfSlot.unlocked, true);
+});
+
+test("local AI fallback keeps chat responsive without MiniMax", () => {
+  const reply = createLocalAIReply({
+    companionLabel: "🌿 苏敏",
+    mode: "chat",
+    userText: "我妈又打电话，我很累。",
+    userName: "林夏",
+  });
+
+  assert.match(reply, /林夏/);
+  assert.match(reply, /苏敏/);
+  assert.match(reply, /一次只看一个地方/);
 });

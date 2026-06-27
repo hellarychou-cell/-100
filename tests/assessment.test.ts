@@ -28,6 +28,16 @@ test("calculates totalScore100 with the locked formula", () => {
   assert.equal(result.totalScore100, 50);
 });
 
+test("maps assessment score tiers to recommended days within the first 20 days", () => {
+  const buildAnswers = (value: number) =>
+    Object.fromEntries(Array.from({ length: 42 }, (_, index) => [`q${index + 1}`, value]));
+
+  assert.equal(calculateAssessmentResult(buildAnswers(5)).recommendedDay, 1);
+  assert.equal(calculateAssessmentResult(buildAnswers(3)).recommendedDay, 7);
+  assert.equal(calculateAssessmentResult(buildAnswers(2)).recommendedDay, 14);
+  assert.equal(calculateAssessmentResult(buildAnswers(1)).recommendedDay, 20);
+});
+
 test("calculates dimension raw scores from seven answers per dimension", () => {
   const answers = Object.fromEntries(
     Array.from({ length: 42 }, (_, index) => [`q${index + 1}`, 1]),

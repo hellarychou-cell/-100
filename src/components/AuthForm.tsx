@@ -174,10 +174,10 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     <>
       {showSuccess && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 p-4 backdrop-blur-sm">
-          <div className="soft-panel w-full max-w-sm p-8 text-center">
-            <div className="mb-4 text-5xl">✦</div>
-            <h2 className="mb-3 text-3xl font-normal">账号已经建好</h2>
-            <p className="mb-6 text-[#563a2e]">先完成一次底层代码诊断，让这 100 天更像是在对你说话。</p>
+          <div className="chengta-dialog">
+            <span className="chengta-dialog__mark" aria-hidden>✦</span>
+            <h2>账号已经建好</h2>
+            <p>先完成一次底层代码诊断，<br />让这 100 天更像是在对你说话。</p>
             <button
               className="action-primary w-full"
               onClick={() => router.push("/assessment/profile")}

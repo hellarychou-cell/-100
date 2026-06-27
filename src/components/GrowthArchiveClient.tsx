@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { LOCAL_PROFILE_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
@@ -75,8 +76,7 @@ export function GrowthArchiveClient() {
                   </h1>
                 </div>
                 <p className="max-w-sm leading-[1.9] text-[var(--muted)]">
-                  这里不做流水账。它只帮你把反复出现的场景、身体给出的信号，以及 AI
-                  陪你看见后的线索，慢慢收起来。
+                  这里不做流水账。它只帮你把反复出现的场景、身体信号和 AI 陪你看见的线索，慢慢收起来。
                 </p>
 
                 <div className="growth-archive__summary">
@@ -146,21 +146,28 @@ function TabButton({ active, children, onClick }: { active: boolean; children: R
 function WritingRecords({ entries }: { entries: SelfReflectionEntry[] }) {
   if (!entries.length) return <EmptyArchive title="还没有保存书写。" href="/day/1" action="去 Day 01 写下第一条" />;
   return (
-    <div className="grid gap-3">
+    <div className="growth-archive-list growth-archive-list--writing">
+      <header>
+        <span aria-hidden>✍</span>
+        <div>
+          <h2>我的书写</h2>
+          <p>每一天被你写下来的感受，都会变成成长画像里的线索。</p>
+        </div>
+      </header>
       {entries.map((entry) => {
         const day = dayContents.find((item) => item.day === entry.day);
         return (
-          <article className="thin-panel grid gap-4 p-5 md:grid-cols-[120px_1fr]" key={entry.id}>
-            <div>
-              <p className="sans text-xs uppercase tracking-[0.18em] text-clay">Day {String(entry.day).padStart(2, "0")}</p>
-              <p className="mt-2 text-xl leading-tight text-ink">{day?.title ?? "今日书写"}</p>
-              <p className="sans mt-2 text-[11px] text-[var(--muted)]">{formatDate(entry.createdAt)}</p>
+          <article className="growth-archive-list__card" key={entry.id}>
+            <div className="growth-archive-list__meta">
+              <span>Day {String(entry.day).padStart(2, "0")}</span>
+              <strong>{day?.title ?? "今日书写"}</strong>
+              <time>{formatDate(entry.createdAt)}</time>
             </div>
-            <div className="grid gap-3 text-sm leading-[1.85] text-[#4f3429]">
+            <div className="growth-archive-list__body">
               <RecordLine label="戳到我的" value={entry.touched} />
               <RecordLine label="身体反应" value={entry.body} />
               <RecordLine label="我想说" value={entry.sentence} />
-              <div className="border-t border-[var(--line)] pt-3 text-clay">{summarizeReflectionEntry(entry)}</div>
+              <p className="growth-archive-list__summary">{summarizeReflectionEntry(entry)}</p>
             </div>
           </article>
         );
@@ -172,17 +179,27 @@ function WritingRecords({ entries }: { entries: SelfReflectionEntry[] }) {
 function AIRecords({ entries }: { entries: AIConversationEntry[] }) {
   if (!entries.length) return <EmptyArchive title="还没有 AI 对话记录。" href="/day/1" action="去 Day 01 开始" />;
   return (
-    <div className="grid gap-3">
+    <div className="growth-archive-list growth-archive-list--ai">
+      <header>
+        <span aria-hidden>☵</span>
+        <div>
+          <h2>AI 陪我看见</h2>
+          <p>这些不是聊天记录备份，而是那些被陪你慢慢说清楚的时刻。</p>
+        </div>
+      </header>
       {entries.map((record) => (
-        <article className="thin-panel grid gap-3 p-5" key={record.id}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="sans text-xs uppercase tracking-[0.18em] text-clay">Day {String(record.day).padStart(2, "0")}</p>
-              <h2 className="mt-1 text-2xl text-ink">{record.title}</h2>
-            </div>
-            <Link className="action-ghost !px-3 !py-2 !text-xs" href={`/day/${record.day}/ai`}>回到对话</Link>
+        <article className="growth-archive-list__card" key={record.id}>
+          <div className="growth-archive-list__meta">
+            <span>Day {String(record.day).padStart(2, "0")}</span>
+            <strong>{record.title}</strong>
+            <time>{formatDate(record.updatedAt)}</time>
           </div>
-          <p className="leading-[1.85] text-[var(--muted)]">{summarizeAIConversation(record)}</p>
+          <div className="growth-archive-list__body">
+            <p>{summarizeAIConversation(record)}</p>
+            <div>
+              <Link className="growth-archive-list__link" href={`/day/${record.day}/ai`}>回到这次对话 ›</Link>
+            </div>
+          </div>
         </article>
       ))}
     </div>
@@ -210,6 +227,7 @@ function GrowthProfilePanel({
   const loosenedItems = profile.latestLoosened.length
     ? profile.latestLoosened.slice(0, 3)
     : ["开始允许自己停一下", "表达边界", "把感受说出来"];
+  const walkedDays = Math.max(0, Math.min(100, profile.walkedDays));
 
   return (
     <div className="growth-profile-panel">
@@ -218,16 +236,36 @@ function GrowthProfilePanel({
           <div><span aria-hidden>🌿</span><h2>{profile.name}的成长画像</h2></div>
           <p><span>一起点 (Day 01)</span><span>现在 (Day {String(Math.max(profile.walkedDays + 1, 1)).padStart(2, "0")})</span></p>
         </header>
-        <small>走过 {profile.walkedDays} 天</small>
+        <small>走过 {profile.walkedDays} 天 · 已收进 {entries.length + aiEntries.length} 条线索</small>
+        <div className="growth-profile-panel__overview">
+          <span>当前关键词</span>
+          <strong>{emotionItems.slice(0, 2).join(" · ")}</strong>
+          <em>{profile.repeatedScenes[0]?.name ?? "正在形成"}</em>
+        </div>
         <div className="growth-profile-panel__dimension-list">
           {dimensions.map((item) => (
             <div className={`growth-profile-panel__dimension growth-profile-panel__dimension--${item.tone}`} key={item.name}>
               <span aria-hidden>{item.icon}</span>
               <p><strong>{item.name}</strong> {item.range}</p>
-              <i><b style={{ width: `${item.score}%` }} /></i>
+              <i
+                aria-label={`${item.name} 从 ${item.initialScore} 到 ${item.score}`}
+                style={{
+                  "--current-score": `${item.score}%`,
+                  "--future-score": `${item.futureScore}%`,
+                  "--initial-score": `${item.initialScore}%`,
+                } as CSSProperties}
+              >
+                <b />
+                <span />
+              </i>
               <em>›</em>
             </div>
           ))}
+        </div>
+        <div className="growth-profile-panel__journey">
+          <span>起点</span>
+          <strong style={{ width: `${walkedDays}%` }} />
+          <span>Day {String(Math.max(profile.walkedDays + 1, 1)).padStart(2, "0")}</span>
         </div>
       </section>
 
@@ -318,7 +356,9 @@ function getGrowthDimensions(assessment: Record<string, unknown> | null) {
   return definitions.map(([id, icon, name, tone]) => {
     const index = Math.max(0, Math.min(100, Number(scores[id]?.index ?? 45)));
     const score = Math.max(18, Math.round(100 - index * 0.55));
-    return { icon, name, range: `${Math.max(0, score - 5)}–${Math.min(100, score + 2)}`, score, tone };
+    const initialScore = Math.max(12, score - 12);
+    const futureScore = Math.min(100, score + 14);
+    return { futureScore, icon, initialScore, name, range: `${initialScore}–${score}`, score, tone };
   });
 }
 

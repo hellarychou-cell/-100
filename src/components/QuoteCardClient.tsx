@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
 import { dayContents, heroImage } from "@/lib/content";
+import { saveElementAsPng } from "@/lib/export-image";
 import { markDayCompleted } from "@/lib/progress";
 import {
   createTodaySeeingCard,
@@ -27,6 +28,8 @@ export function QuoteCardClient({
   const cardMirror = documentContent?.mirror || (Array.isArray(day.mirror) ? day.mirror.join(" ") : "");
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveUrl, setSaveUrl] = useState("");
   const [card, setCard] = useState<TodaySeeingCard | null>(null);
 
   useEffect(() => {
@@ -87,92 +90,101 @@ export function QuoteCardClient({
     });
 
   return (
-    <main className="viewport grid place-items-center">
+    <main className="viewport botanical-page grid place-items-center">
       <section className="seeing-card-page">
         <MobileTopBar
-          rightAction={<Link className="mobile-topbar__action" href="/home">返回状态</Link>}
+          rightAction={<Link className="mobile-topbar__action !text-2xl" href={`/day/${day.day}`}>×</Link>}
           title="今日看见卡"
         />
         <div className="seeing-card-page__content">
-        <div className="grid place-items-center border-r border-[var(--line)] bg-paper/50 p-6 max-md:border-b max-md:border-r-0">
-          <div ref={cardRef} className="grid aspect-[3/4.8] w-64 grid-rows-[auto_auto_1fr_auto] overflow-hidden border border-ink/20 bg-[#fff8ed] px-6 py-5 shadow-2xl">
-            <span className="sans text-[10px] uppercase tracking-[0.16em] text-clay">
-              成她100 · Day {String(day.day).padStart(2, "0")}
-            </span>
-            <h2 className="mt-4 text-3xl font-normal leading-none text-ink">{displayCard.title}</h2>
-            <div className="mt-5 min-h-0 overflow-hidden text-[#3f281f]">
-              <p className="sans text-[11px] uppercase tracking-[0.14em] text-clay/80">今天你说</p>
-              <p className="mt-1 text-sm leading-relaxed">“{displayCard.userExcerpt}”</p>
-              <div className="my-4 h-px bg-[var(--line)]" />
-              <p className="sans text-[11px] uppercase tracking-[0.14em] text-clay/80">AI 看见的</p>
-              <ol className="mt-2 grid gap-1 text-sm leading-relaxed">
-                {displayCard.aiSeeings.map((item, index) => (
-                  <li key={item}>{String(index + 1).padStart(2, "0")}　{item}</li>
-                ))}
-              </ol>
-              <div className="my-4 h-px bg-[var(--line)]" />
-              <p className="sans text-[11px] uppercase tracking-[0.14em] text-clay/80">今晚带回身体的</p>
-              <p className="mt-1 text-sm leading-relaxed">{displayCard.bodyAction}</p>
+          <header className="seeing-card-page__banner">
+            <h1>今天，你被看见了。<span>✦</span></h1>
+            <p>这张卡会存进成长档案，也可以保存成图片。</p>
+          </header>
+
+          <div className="seeing-card-page__card-wrap">
+            <div ref={cardRef} className="today-seeing-card">
+              <span className="today-seeing-card__kicker">
+                成她100 · Day {String(day.day).padStart(2, "0")}
+              </span>
+              <h2>{displayCard.title}</h2>
+              <div className="today-seeing-card__divider">🌿 ┈┈┈┈┈┈┈┈┈┈┈ 🌿</div>
+              <div className="today-seeing-card__body">
+                <section>
+                  <span><i>☻</i> 今天你说：</span>
+                  <p>“{displayCard.userExcerpt}”</p>
+                </section>
+                <section>
+                  <span><i>✨</i> AI 看见的：</span>
+                  <ol>
+                  {displayCard.aiSeeings.map((item, index) => (
+                    <li key={item}><b>{String(index + 1).padStart(2, "0")}</b>{item}</li>
+                  ))}
+                  </ol>
+                </section>
+                <section>
+                  <span><i>🍃</i> 今晚带回身体的：</span>
+                  <p>{displayCard.bodyAction}</p>
+                </section>
+              </div>
+              <p>—— 成她100 · 今天的看见</p>
             </div>
-            <p className="mt-3 sans text-[11px] tracking-wider text-clay">-- 成她100 · 今天的看见</p>
+            <div className="hidden">
+              <div
+                className="relative bg-cover bg-center"
+                style={{ backgroundImage: `linear-gradient(rgba(36,22,16,.08),rgba(36,22,16,.28)),url(${heroImage})` }}
+              />
+            </div>
           </div>
-          <div className="hidden">
-            <div
-              className="relative bg-cover bg-center"
-              style={{ backgroundImage: `linear-gradient(rgba(36,22,16,.08),rgba(36,22,16,.28)),url(${heroImage})` }}
-            />
+
+          <div className="seeing-card-page__archive-tip">
+            <span>▤</span>
+            <p>这一张会进入成长档案，<br />成为最近触动你的一句候选。</p>
+            <Link href="/growth-archive">去成长档案›</Link>
           </div>
-        </div>
-        <section className="seeing-card-page__aside grid grid-rows-[auto_1fr_auto] gap-5 p-9 max-md:p-6">
-          <div>
-            <div className="eyebrow mb-3">Today bookmark</div>
-            <h1 className="display-title text-5xl">
-              今日
-              <br />
-              看见卡。
-            </h1>
-          </div>
-          <p className="self-center max-w-sm text-[17px] leading-[1.85] text-[#563a2e]">
-            今天你收下的不只是进度，也是一小段被看见的证据。回到状态页后，Day {String(day.day).padStart(2, "0")} 会变成已读状态。
-          </p>
-          <div className="flex gap-3 max-sm:grid">
+
+          <section className="seeing-card-page__actions">
             <button
               className="action-primary"
               disabled={saving}
-              onClick={() => void saveQuoteImage(cardRef.current, setSaving)}
+              onClick={() => void saveQuoteImage(cardRef.current, setSaving, setSaveMessage, setSaveUrl)}
               type="button"
             >
+              <span aria-hidden>⇩</span>
               {saving ? "正在保存" : "保存图片"}
             </button>
-            <Link className="action-ghost" href="/home">回到我的状态</Link>
-          </div>
-        </section>
+            <Link className="action-primary" href="/home"><span aria-hidden>⌂</span>回到我的状态</Link>
+          </section>
+          <p className="seeing-card-page__blessing"><span aria-hidden>🌿</span>愿你一直被看见，也一直选择看见自己</p>
+          {saveMessage || saveUrl ? (
+            <p className="seeing-card-page__save-message">
+              {saveMessage}
+              {saveUrl ? <a href={saveUrl} download={`成她100-Day${day.day}-今日看见卡.png`}>打开图片</a> : null}
+            </p>
+          ) : null}
         </div>
       </section>
     </main>
   );
 }
 
-async function saveQuoteImage(element: HTMLElement | null, setSaving: (saving: boolean) => void) {
-  if (!element) return;
+async function saveQuoteImage(
+  element: HTMLElement | null,
+  setSaving: (saving: boolean) => void,
+  setSaveMessage: (message: string) => void,
+  setSaveUrl: (url: string) => void,
+) {
   setSaving(true);
-  try {
-    const { toPng } = await import("html-to-image");
-    const dataUrl = await toPng(element, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: "#f8efe1",
-    });
-    const link = document.createElement("a");
-    link.download = `成她100-Day今日看见卡-${Date.now()}.png`;
-    link.href = dataUrl;
-    link.click();
-  } catch (error) {
-    console.error(error);
-    window.print();
-  } finally {
-    setSaving(false);
-  }
+  setSaveMessage("");
+  setSaveUrl("");
+  const result = await saveElementAsPng({
+    backgroundColor: "#f8efe1",
+    element,
+    fileName: `成她100-Day今日看见卡-${Date.now()}.png`,
+  });
+  setSaveMessage(result.ok ? "图片已生成。" : result.message);
+  setSaveUrl(result.ok && result.dataUrl ? result.dataUrl : "");
+  setSaving(false);
 }
 
 function readAIEntry(day: number) {

@@ -8,7 +8,7 @@ export default function AssessmentPage() {
       <section className="paper-frame assessment-page grid grid-rows-[56px_1fr]">
         <MobileTopBar
           rightAction={<Link className="mobile-topbar__action" href="/assessment/profile">基础信息</Link>}
-          title="42题测评"
+          title="人生母题测评"
         />
         <AssessmentFlow />
       </section>

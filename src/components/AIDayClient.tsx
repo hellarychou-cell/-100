@@ -8,9 +8,10 @@ import { dayContents } from "@/lib/content";
 import { dayAIPrompts } from "@/lib/ai-prompts";
 import type { DayCompanion } from "@/lib/day-companion";
 import {
-  buildSisterTriggerText,
   findTriggeredSister,
+  getSisterProfile,
   LOCAL_SISTER_TRIGGER_LOG_KEY,
+  sisterProfiles,
   type SisterTriggerLog,
 } from "@/lib/sister-profiles";
 import {
@@ -24,7 +25,7 @@ import {
 import { buildClientContext } from "@/lib/user-context";
 import { MobileTopBar } from "@/components/MobileTopBar";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { role: "user" | "assistant"; content: string; createdAt?: string; kind?: "sister-trigger" };
 
 export function AIDayClient({
   companion,
@@ -41,7 +42,9 @@ export function AIDayClient({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [summarized, setSummarized] = useState(false);
+  const [summaryNotice, setSummaryNotice] = useState("");
   const [reflectionSeeded, setReflectionSeeded] = useState(false);
+  const [userName, setUserName] = useState("你");
   const bottomRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,11 +52,17 @@ export function AIDayClient({
   const day = dayContents.find((d) => d.day === dayNum);
   const prompts = dayNum ? dayAIPrompts[dayNum] : null;
   const companionLabel = companion?.label ?? "🌿 成她";
+  const companionName = (companion?.name ?? companionLabel.replace(/^[^\u4e00-\u9fa5A-Za-z]+/, "").trim()) || "成她";
   const companionSymbol = companion?.symbol ?? "🌿";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const profile = readJson<{ name?: string }>(LOCAL_PROFILE_KEY);
+    setUserName(profile?.name?.trim() || "你");
+  }, []);
 
   const initialQuestion = documentAiQuestion || day?.aiQuestion || "";
 
@@ -62,11 +71,12 @@ export function AIDayClient({
     const entry = readLatestReflection(dayNum);
     if (!entry) return;
     setMessages([
-      { role: "user", content: buildReflectionSeedMessage(entry) },
+      { role: "user", content: buildReflectionSeedMessage(entry), createdAt: new Date().toISOString() },
       {
         role: "assistant",
         content:
           "我看到你刚才写下来了。我们先不急着分析，也不急着解决。只看一个地方：这三句话里，最有重量的是哪个词？",
+        createdAt: new Date().toISOString(),
       },
     ]);
     setReflectionSeeded(true);
@@ -77,8 +87,13 @@ export function AIDayClient({
     if (!day || !dayNum) return;
 
     const mode = forceMode ?? (text.includes("总结") || text === "停" ? "summarize" : "chat");
+    if (mode === "summarize" && messages.filter((message) => message.role === "user").length < 5) {
+      setSummaryNotice("今日还没有跟我聊完五句哦。");
+      return;
+    }
 
-    const userMsg: Message = { role: "user", content: text };
+    setSummaryNotice("");
+    const userMsg: Message = { role: "user", content: text, createdAt: new Date().toISOString() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -97,26 +112,32 @@ export function AIDayClient({
       });
       const data = await res.json();
       if (data.reply) {
-        const trigger = mode === "chat" ? readSisterTrigger(text, dayNum) : null;
-        const reply = trigger ? `${data.reply}\n\n${trigger.text}` : data.reply;
-        const assistantMsg: Message = { role: "assistant", content: reply };
-        const nextMessages = [...messages, userMsg, assistantMsg];
-        setMessages((prev) => [...prev, assistantMsg]);
+        const nextUserCount = [...messages, userMsg].filter((message) => message.role === "user").length;
+        const trigger = mode === "chat" && nextUserCount >= 5
+          ? readSisterTrigger(text, dayNum, companion?.name)
+          : null;
+        const assistantMsg: Message = { role: "assistant", content: data.reply, createdAt: new Date().toISOString() };
+        const triggerMsg: Message | null = trigger
+          ? { role: "assistant", content: trigger.text, createdAt: new Date().toISOString(), kind: "sister-trigger" }
+          : null;
+        const nextMessages = triggerMsg ? [...messages, userMsg, assistantMsg, triggerMsg] : [...messages, userMsg, assistantMsg];
+        setMessages((prev) => triggerMsg ? [...prev, assistantMsg, triggerMsg] : [...prev, assistantMsg]);
         saveAIConversation(dayNum, nextMessages, documentTitle || day.title);
         if (trigger) saveTriggerLog(dayNum, trigger.name);
         if (mode === "summarize") {
           setSummarized(true);
+          setSummaryNotice("");
         }
       } else if (data.error) {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "AI 服务暂时没有返回内容，请稍后再试。" },
+          { role: "assistant", content: "AI 服务暂时没有返回内容，请稍后再试。", createdAt: new Date().toISOString() },
         ]);
       }
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "抱歉，AI 服务暂时连接不上，请稍后再试。" },
+        { role: "assistant", content: "抱歉，AI 服务暂时连接不上，请稍后再试。", createdAt: new Date().toISOString() },
       ]);
     } finally {
       setLoading(false);
@@ -151,28 +172,32 @@ export function AIDayClient({
           />
 
           <div className="ai-chat__status">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="pill !border-clay/40 !bg-[#fff8ed] !text-[#5b382c]">今日陪你的人：{companionLabel}</span>
+            <div className="ai-chat__method-row">
               <span className="pill">{prompts.method}</span>
               {!summarized && (
-                <span className="sans text-xs text-[var(--muted)]">
-                  输入「总结」可结束对话并保存
-                </span>
+                <span className="ai-chat__input-hint">可以先写一句最真实的话</span>
               )}
             </div>
           </div>
 
           <section className="ai-chat__conversation">
             <div className="mx-auto max-w-2xl">
+              <header className="ai-chat__companion-header">
+                <div className="ai-chat__companion-title">
+                  <span aria-hidden>{companionSymbol}</span>
+                  <h2>{companionName}</h2>
+                </div>
+                <div className="ai-chat__traits"><span>深度对话</span><span>安全空间</span><span>温柔支持</span></div>
+              </header>
+
               <div className="mb-6 grid gap-3">
                 <div className="flex items-start gap-3">
                   <CompanionAvatar symbol={companionSymbol} />
                   <div className="soft-panel ai-chat__bubble ai-chat__bubble--assistant flex-1 p-4">
-                    <div className="sans mb-2 text-[11px] tracking-[0.08em] text-clay">{companionLabel} · 跨时空的对话</div>
                     <p className="leading-[1.85] text-[#4f3429]">
                       {reflectionSeeded
-                        ? "你已经带着刚才写下的内容进来了。AI 会基于那段书写继续陪你看见。"
-                        : initialQuestion}
+                        ? `${userName}，你已经带着刚才写下的内容进来了。我们先不急着分析，也不急着解决，只一起看见。`
+                        : `${userName}，${initialQuestion}`}
                     </p>
                   </div>
                 </div>
@@ -180,23 +205,28 @@ export function AIDayClient({
 
               {messages.map((msg, i) => (
                 <div key={i} className="mb-4 grid gap-3">
+                  {msg.kind === "sister-trigger" ? (
+                    <SisterTriggerNotice content={msg.content} />
+                  ) : (
                   <div className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                     <div
                       className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${
-                        msg.role === "user" ? "border-ink bg-ink text-soft" : "border-clay text-clay"
+                        msg.role === "user" ? "ai-chat__user-avatar border-clay" : "border-clay text-clay"
                       } sans text-xs`}
                     >
-                      {msg.role === "user" ? "我" : companionSymbol}
+                      {msg.role === "user" ? "✿" : companionSymbol}
                     </div>
                     <div className={`ai-chat__bubble flex-1 p-4 leading-[1.85] shadow-[0_10px_24px_rgba(91,56,44,.06)] ${
                       msg.role === "user" ? "border border-clay/10 bg-[#fff8ed]/76 text-right text-[#4f3429]" : "soft-panel text-[#4f3429]"
                     }`}>
-                      {msg.role === "assistant" ? (
-                        <div className="sans mb-2 text-left text-[11px] uppercase tracking-[0.14em] text-clay">{companionLabel}</div>
-                      ) : null}
                       <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <div className={`ai-chat__message-meta ${msg.role === "user" ? "is-user" : ""}`}>
+                        <span>{formatChatTime(msg.createdAt)}</span>
+                        {msg.role === "user" ? <span>✓ 已读</span> : null}
+                      </div>
                     </div>
                   </div>
+                  )}
                 </div>
               ))}
 
@@ -211,16 +241,16 @@ export function AIDayClient({
               )}
 
               {summarized && (
-                <div className="soft-panel mb-4 border border-clay/40 bg-clay/5 p-4 text-center">
-                  <p className="sans text-sm text-clay">
-                    已生成总结，保存成功。可返回今日内容继续其他环节。
+                <div className="ai-chat__summary-card">
+                  <p>
+                    已生成总结，保存成功。<br />可返回今日内容继续其他环节。
                   </p>
                   <button
                     className="action-primary mt-3"
                     onClick={() => router.push(`/day/${dayNum}`)}
                     type="button"
                   >
-                    返回今日内容
+                    返回今日内容 ♡
                   </button>
                 </div>
               )}
@@ -231,27 +261,39 @@ export function AIDayClient({
 
           {!summarized && (
             <footer className="ai-chat__composer">
-              <input
-                className="flex-1 bg-transparent py-4 text-lg text-ink outline-none placeholder:text-[var(--muted)]"
-                placeholder="写下你的第一句话……"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    send(input);
-                  }
-                }}
-                disabled={loading}
-              />
+              <div className="ai-chat__inputbar">
+                <input
+                  className="flex-1 bg-transparent py-4 text-lg text-ink outline-none placeholder:text-[var(--muted)]"
+                  placeholder="写下你的第一句话……"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send(input);
+                    }
+                  }}
+                  disabled={loading}
+                />
+                <button
+                  className="action-primary shrink-0"
+                  onClick={() => send(input)}
+                  disabled={loading || !input.trim()}
+                  type="button"
+                >
+                  发送
+                </button>
+              </div>
               <button
-                className="action-primary shrink-0"
-                onClick={() => send(input)}
-                disabled={loading || !input.trim()}
+                className="ai-chat__summarize"
+                disabled={loading}
+                onClick={() => send("总结", "summarize")}
                 type="button"
               >
-                发送
+                总结并保存到成长档案
               </button>
+              <p className="ai-chat__summary-hint">生成本次对话摘要，帮你更好地看见自己</p>
+              {summaryNotice ? <span>{summaryNotice}</span> : null}
             </footer>
           )}
         </section>
@@ -266,6 +308,59 @@ function CompanionAvatar({ symbol }: { symbol: string }) {
       {symbol}
     </div>
   );
+}
+
+function SisterTriggerNotice({ content }: { content: string }) {
+  const parsed = parseSisterTrigger(content);
+  return (
+    <div className="ai-chat__sister-trigger">
+      <div className="ai-chat__sister-trigger-title"><i />姐妹触发<i /></div>
+      <p className="ai-chat__sister-trigger-intro">你今天的话，让我想到了——</p>
+      {parsed ? (
+        <>
+          <div className="ai-chat__sister-trigger-voice">
+            <strong>{parsed.symbol} {parsed.name}</strong>
+            <p>{parsed.dailyVoice}</p>
+            {parsed.gift ? <small>礼物：{parsed.gift}</small> : null}
+          </div>
+          <p className="ai-chat__sister-trigger-to">致 {parsed.to}</p>
+        </>
+      ) : (
+        <p className="ai-chat__sister-trigger-voice">{content}</p>
+      )}
+    </div>
+  );
+}
+
+function parseSisterTrigger(content: string) {
+  try {
+    const parsed = JSON.parse(content) as {
+      dailyVoice?: string;
+      gift?: string;
+      name?: string;
+      symbol?: string;
+      to?: string;
+    };
+    if (!parsed.name || !parsed.dailyVoice) return null;
+    return {
+      dailyVoice: parsed.dailyVoice,
+      gift: parsed.gift ?? "",
+      name: parsed.name,
+      symbol: parsed.symbol ?? "🌿",
+      to: parsed.to || "你",
+    };
+  } catch {
+    const profile = sisterProfiles.find((item) => content.includes(item.name));
+    if (!profile) return null;
+    const to = content.match(/致\s*([^\s，。]+)/)?.[1] ?? "你";
+    return {
+      dailyVoice: profile.dailyVoice,
+      gift: profile.gift,
+      name: profile.name,
+      symbol: profile.symbol,
+      to,
+    };
+  }
 }
 
 function saveAIConversation(day: number, messages: Message[], title: string) {
@@ -315,17 +410,27 @@ function readClientContext(currentDay: number) {
   });
 }
 
-function readSisterTrigger(message: string, day: number) {
+function readSisterTrigger(message: string, day: number, forceName?: string) {
   const triggerLog = readJson<SisterTriggerLog>(LOCAL_SISTER_TRIGGER_LOG_KEY) ?? {};
   const progress = readJson<{ completedDays?: number[] }>(LOCAL_PROGRESS_KEY);
   const completedDays = Array.isArray(progress?.completedDays) ? progress.completedDays : [];
   const unlockedSisters = getUnlockedSisters(completedDays);
-  const profile = findTriggeredSister({ day, message, triggerLog, unlockedSisters });
+  const forcedProfile = forceName ? getSisterProfile(forceName) : null;
+  const forcedCanTrigger = forcedProfile && !(triggerLog[String(day)] ?? []).includes(forcedProfile.name);
+  const profile = forcedCanTrigger
+    ? forcedProfile
+    : findTriggeredSister({ day, message, triggerLog, unlockedSisters });
   if (!profile) return null;
   const context = readClientContext(day);
   return {
     name: profile.name,
-    text: buildSisterTriggerText(profile, context.name),
+    text: JSON.stringify({
+      dailyVoice: profile.dailyVoice,
+      gift: profile.gift,
+      name: profile.name,
+      symbol: profile.symbol,
+      to: context.name,
+    }),
   };
 }
 
@@ -335,6 +440,12 @@ function saveTriggerLog(day: number, sisterName: string) {
   const values = triggerLog[key] ?? [];
   if (values.includes(sisterName)) return;
   window.localStorage.setItem(LOCAL_SISTER_TRIGGER_LOG_KEY, JSON.stringify({ ...triggerLog, [key]: [...values, sisterName] }));
+}
+
+function formatChatTime(value?: string) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
 }
 
 function readJson<T>(key: string): T | null {

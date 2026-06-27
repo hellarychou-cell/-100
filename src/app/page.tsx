@@ -7,7 +7,8 @@ export default function PublicPage() {
         <header className="public-home__header">
           <span>成她100</span>
           <Link aria-label="打开成她宣言" className="public-home__menu" href="/philosophy">
-            <i /><i /><i />
+            <i aria-hidden>✦</i>
+            <span><b>成她</b><b>宣言</b></span>
           </Link>
         </header>
         <div aria-hidden className="public-home__branch public-home__branch--top" />
