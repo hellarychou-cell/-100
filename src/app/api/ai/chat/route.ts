@@ -65,18 +65,12 @@ export async function POST(req: NextRequest) {
   const requestMessages = [systemMsg, ...historyMsgs, { role: "user" as const, content: userContent }];
 
   try {
-    const response = await fetch(buildMiniMaxUrl(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MINIMAX_MODEL,
-        messages: requestMessages,
-        tokens_to_generate: 1024,
-      }),
+    const body = JSON.stringify({
+      model: MINIMAX_MODEL,
+      messages: requestMessages,
+      tokens_to_generate: 1024,
     });
+    let response = await requestMiniMax(apiKey, body, "bearer");
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -95,7 +89,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "AI service error" }, { status: 502 });
     }
 
-    const data = await response.json();
+    let data = await response.json();
+    if (hasMiniMaxAuthError(data)) {
+      response = await requestMiniMax(apiKey, body, "raw");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("MiniMax API raw-auth retry error:", response.status, errorText);
+        return NextResponse.json({ error: "AI service error" }, { status: 502 });
+      }
+      data = await response.json();
+    }
     const reply = extractMiniMaxReply(data);
     if (!reply && isLocalFallbackEnabled()) {
       return NextResponse.json({
@@ -186,6 +189,27 @@ function buildMiniMaxUrl() {
   const url = new URL(MINIMAX_API_URL);
   url.searchParams.set("GroupId", groupId);
   return url.toString();
+}
+
+function requestMiniMax(apiKey: string, body: string, authMode: "bearer" | "raw") {
+  const secret = apiKey.trim();
+  const authorization =
+    authMode === "raw" || /^Bearer\s+/i.test(secret) ? secret : `Bearer ${secret}`;
+
+  return fetch(buildMiniMaxUrl(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authorization,
+    },
+    body,
+  });
+}
+
+function hasMiniMaxAuthError(data: unknown) {
+  if (!data || typeof data !== "object") return false;
+  const payload = data as { base_resp?: { status_code?: unknown } };
+  return payload.base_resp?.status_code === 1004;
 }
 
 function isLocalFallbackEnabled() {
