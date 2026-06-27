@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.messages?.[0]?.content ?? "";
+    const reply = extractMiniMaxReply(data);
     if (!reply && isLocalFallbackEnabled()) {
       return NextResponse.json({
         reply: createLocalAIReply({
@@ -107,6 +107,10 @@ export async function POST(req: NextRequest) {
         }),
         source: "local-fallback",
       });
+    }
+    if (!reply) {
+      console.error("MiniMax returned no text", summarizeMiniMaxShape(data));
+      return NextResponse.json({ error: "AI service returned empty content" }, { status: 502 });
     }
 
     return NextResponse.json({ reply });
@@ -125,6 +129,45 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: "Request failed" }, { status: 500 });
   }
+}
+
+function extractMiniMaxReply(data: unknown) {
+  if (!data || typeof data !== "object") return "";
+  const payload = data as {
+    choices?: Array<{
+      message?: { content?: unknown };
+      messages?: Array<{ content?: unknown; text?: unknown }>;
+      text?: unknown;
+      content?: unknown;
+    }>;
+    reply?: unknown;
+    output_text?: unknown;
+    text?: unknown;
+  };
+
+  const choice = payload.choices?.[0];
+  const candidates = [
+    choice?.message?.content,
+    choice?.messages?.[0]?.content,
+    choice?.messages?.[0]?.text,
+    choice?.text,
+    choice?.content,
+    payload.reply,
+    payload.output_text,
+    payload.text,
+  ];
+
+  return candidates.find((item): item is string => typeof item === "string" && item.trim().length > 0)?.trim() ?? "";
+}
+
+function summarizeMiniMaxShape(data: unknown) {
+  if (!data || typeof data !== "object") return "non-object";
+  const payload = data as { choices?: unknown; [key: string]: unknown };
+  const choice = Array.isArray(payload.choices) ? payload.choices[0] : undefined;
+  return {
+    keys: Object.keys(payload),
+    choiceKeys: choice && typeof choice === "object" ? Object.keys(choice) : [],
+  };
 }
 
 function isLocalFallbackEnabled() {
