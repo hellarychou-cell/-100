@@ -70,6 +70,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -188,7 +189,11 @@ export default function AdminPage() {
             </label>
             <p>{filteredUsers.length} / {users.length} 位用户</p>
           </section>
-          <section className="grid gap-3">
+          <section className="admin-user-list thin-panel">
+            <div className="admin-user-table__head">
+              <span>快速概览</span>
+              <span>点开用户即可操作</span>
+            </div>
             {loading ? (
               <div className="thin-panel p-6 text-center text-clay sans text-sm">加载中...</div>
             ) : loadError ? (
@@ -198,54 +203,40 @@ export default function AdminPage() {
             ) : filteredUsers.length === 0 ? (
               <div className="thin-panel p-6 text-center text-clay sans text-sm">没有找到匹配用户</div>
             ) : (
-              <div className="admin-user-rail" aria-label="用户状态横向列表">
+              <div className="admin-user-list__scroll" aria-label="用户状态列表">
                 {filteredUsers.map((user) => {
                   const originalIndex = users.findIndex((item) => item.id === user.id);
+                  const isSelected = selectedUserId === user.id;
                   return (
-                    <article key={user.id} className="admin-user-card thin-panel">
-                      <div className="admin-user-card__header">
-                        <span className="admin-user-card__index">{originalIndex + 1}</span>
-                        <div>
-                          <h2>{user.name}</h2>
-                          <p>{user.phone}</p>
-                        </div>
-                        <span className="pill">{user.assessment}</span>
-                      </div>
-                      <div className="admin-user-card__chips">
-                        <InfoChip label="当前" value={user.day ? `Day ${String(user.day).padStart(2, "0")}` : "未开始"} />
-                        <InfoChip label="会员" value={formatExpires(user.expires)} />
-                        <InfoChip label="AI" value={user.aiPaused ? "已暂停" : "可使用"} />
-                      </div>
-                      {user.assessmentDate && (
-                        <p className="admin-user-card__meta">测评：{new Date(user.assessmentDate).toLocaleDateString("zh-CN")}</p>
+                    <div key={user.id} className="admin-user-list__item">
+                      <button
+                        className={`admin-user-row ${isSelected ? "admin-user-row--active" : ""}`}
+                        type="button"
+                        onClick={() => setSelectedUserId(isSelected ? null : user.id)}
+                      >
+                        <span className="admin-user-row__name">
+                          <b>{originalIndex + 1}</b>
+                          {user.name}
+                        </span>
+                        <span>{user.day ? `Day ${String(user.day).padStart(2, "0")}` : "未开始"}</span>
+                        <span>{user.assessment}</span>
+                      </button>
+                      {isSelected && (
+                        <AdminUserActionCard
+                          user={user}
+                          actionLoading={actionLoading}
+                          formatExpires={formatExpires}
+                          onExtend={handleExtend}
+                          onReduce={handleReduce}
+                          onPause={handlePause}
+                          onDelete={() => setDeleteConfirm(user.id)}
+                        />
                       )}
-                      <div className="admin-user-card__actions">
-                        {user.assessment === "已完成" && (
-                          <Link className="admin-mini-button admin-mini-button--primary" href={`/admin/users/${user.id}`} title="查看测评报告">查看测评报告</Link>
-                        )}
-                        <button className="admin-mini-button" onClick={() => handleExtend(user.id)} disabled={actionLoading === user.id} title="加30天">+30天</button>
-                        <button className="admin-mini-button" onClick={() => handleReduce(user.id)} disabled={actionLoading === user.id} title="减30天">-30天</button>
-                        <button className="admin-mini-button" onClick={() => handlePause(user.id)} disabled={actionLoading === user.id || user.aiPaused}>{user.aiPaused ? "已暂停" : "暂停AI"}</button>
-                        <button className="admin-mini-button admin-mini-button--danger" onClick={() => setDeleteConfirm(user.id)} disabled={actionLoading === user.id}>删除</button>
-                      </div>
-                    </article>
+                    </div>
                   );
                 })}
               </div>
             )}
-          </section>
-          <section className="admin-user-table thin-panel">
-            <div className="admin-user-table__head">
-              <span>快速概览</span>
-              <span>左右滑动上方卡片可操作</span>
-            </div>
-            {filteredUsers.slice(0, 12).map((user) => (
-              <Link key={user.id} href={`/admin/users/${user.id}`} className="admin-user-row">
-                <span>{user.name}</span>
-                <span>{user.day ? `Day ${String(user.day).padStart(2, "0")}` : "未开始"}</span>
-                <span>{user.assessment}</span>
-              </Link>
-            ))}
           </section>
           <section className="grid gap-3">
             <ContentLink title="Day 内容" detail="Day 1-7 已上线，Day 8-100 待补" href="/admin/content" />
@@ -268,6 +259,53 @@ export default function AdminPage() {
         )}
       </section>
     </main>
+  );
+}
+
+function AdminUserActionCard({
+  user,
+  actionLoading,
+  formatExpires,
+  onExtend,
+  onReduce,
+  onPause,
+  onDelete,
+}: {
+  user: AdminUser;
+  actionLoading: string | null;
+  formatExpires: (expires: string | null) => string;
+  onExtend: (userId: string) => void;
+  onReduce: (userId: string) => void;
+  onPause: (userId: string) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <article className="admin-user-card admin-user-card--expanded">
+      <div className="admin-user-card__header">
+        <div>
+          <h2>{user.name}</h2>
+          <p>{user.phone}</p>
+        </div>
+        <span className="pill">{user.assessment}</span>
+      </div>
+      <div className="admin-user-card__chips">
+        <InfoChip label="当前" value={user.day ? `Day ${String(user.day).padStart(2, "0")}` : "未开始"} />
+        <InfoChip label="会员" value={formatExpires(user.expires)} />
+        <InfoChip label="AI" value={user.aiPaused ? "已暂停" : "可使用"} />
+      </div>
+      {user.assessmentDate && (
+        <p className="admin-user-card__meta">测评：{new Date(user.assessmentDate).toLocaleDateString("zh-CN")}</p>
+      )}
+      <div className="admin-user-card__actions">
+        {user.assessment === "已完成" && (
+          <Link className="admin-mini-button admin-mini-button--primary" href={`/admin/users/${user.id}`} title="查看测评报告">查看测评报告</Link>
+        )}
+        <button className="admin-mini-button" onClick={() => onExtend(user.id)} disabled={actionLoading === user.id} title="加30天">+30天</button>
+        <button className="admin-mini-button" onClick={() => onReduce(user.id)} disabled={actionLoading === user.id} title="减30天">-30天</button>
+        <button className="admin-mini-button" onClick={() => onPause(user.id)} disabled={actionLoading === user.id || user.aiPaused}>{user.aiPaused ? "已暂停" : "暂停AI"}</button>
+        <button className="admin-mini-button admin-mini-button--danger" onClick={onDelete} disabled={actionLoading === user.id}>删除</button>
+      </div>
+    </article>
   );
 }
 
