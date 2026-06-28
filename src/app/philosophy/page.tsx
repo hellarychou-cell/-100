@@ -9,12 +9,9 @@ type PhilosophySection = {
 
 export default function PhilosophyPage() {
   const sections = groupSections(readRootMarkdown("成她-理念页.md"));
-  const manifesto = sections.find((section) => section.title.includes("成她宣言"));
   const cards = sections.filter((section) => !section.title.includes("成她宣言"));
-  const manifestoLines = manifesto?.blocks.filter((block) => block.type === "quote").map((block) => block.text) ?? [
-    "不需要变成谁，",
-    "只是慢慢回到自己。",
-  ];
+  const manifestoHeroLines = ["不需要变成谁，", "只是慢慢", "回到自己。"];
+  const manifestoQuoteLines = ["100 天重塑内核", "陪你一点一点长出自由意识"];
 
   return (
     <main className="viewport botanical-page">
@@ -26,10 +23,13 @@ export default function PhilosophyPage() {
 
         <section className="philosophy-page__scroll">
           <div className="philosophy-page__hero">
-            <span className="page-kicker">Chengta Manifesto</span>
-            <h1>不需要变成谁，<br />只是慢慢回到自己。</h1>
+            <h1>
+              {manifestoHeroLines.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </h1>
             <div>
-              {manifestoLines.map((line) => (
+              {manifestoQuoteLines.map((line) => (
                 <p key={line}>{line}</p>
               ))}
             </div>

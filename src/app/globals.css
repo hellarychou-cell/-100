@@ -3936,6 +3936,9 @@ textarea {
   max-width: 7.4em;
   font-size: 30px !important;
 }
+.philosophy-page__hero h1 span {
+  display: block;
+}
 .philosophy-page__sections {
   gap: 8px !important;
 }
