@@ -5371,3 +5371,32 @@ textarea {
   max-width: none !important;
   text-align: right !important;
 }
+
+.admin-mini-button {
+  border: 1px solid rgba(184, 154, 139, .38);
+  border-radius: 999px;
+  background: rgba(247, 243, 238, .72);
+  padding: 7px 11px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+.admin-mini-button:hover {
+  border-color: rgba(217, 160, 127, .72);
+  background: rgba(217, 160, 127, .18);
+}
+.admin-mini-button:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
+.admin-mini-button--primary {
+  border-color: transparent;
+  background: var(--terracotta);
+  color: #fff8ed;
+}
+.admin-mini-button--danger {
+  border-color: rgba(190, 88, 72, .35);
+  color: #b95040;
+}

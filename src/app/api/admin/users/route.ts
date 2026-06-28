@@ -4,6 +4,18 @@ import { NextResponse } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+type ProfileRow = {
+  id: string;
+  display_name: string | null;
+  phone: string | null;
+  created_at?: string | null;
+};
+
+function getMetaValue(metadata: Record<string, unknown> | null | undefined, key: string) {
+  const value = metadata?.[key];
+  return typeof value === "string" ? value : null;
+}
+
 export async function GET() {
   if (!supabaseUrl || !supabaseServiceKey) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
@@ -11,16 +23,51 @@ export async function GET() {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select("id, display_name, phone");
+  const [{ data: profiles, error: profilesError }, { data: authData, error: authError }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name, phone, created_at")
+      .order("created_at", { ascending: false }),
+    supabase.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+  ]);
 
   if (profilesError) {
     return NextResponse.json({ error: profilesError.message }, { status: 500 });
   }
+  if (authError) {
+    return NextResponse.json({ error: authError.message }, { status: 500 });
+  }
+
+  const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile as ProfileRow]));
+  const mergedProfiles = new Map<string, ProfileRow>();
+
+  for (const authUser of authData.users) {
+    const profile = profileMap.get(authUser.id);
+    const metadata = authUser.user_metadata as Record<string, unknown> | null;
+    mergedProfiles.set(authUser.id, {
+      id: authUser.id,
+      display_name:
+        profile?.display_name ??
+        getMetaValue(metadata, "display_name") ??
+        authUser.email?.split("@")[0] ??
+        "她",
+      phone:
+        profile?.phone ??
+        getMetaValue(metadata, "phone") ??
+        authUser.phone ??
+        "",
+      created_at: profile?.created_at ?? authUser.created_at,
+    });
+  }
+
+  for (const profile of profiles ?? []) {
+    if (!mergedProfiles.has(profile.id)) {
+      mergedProfiles.set(profile.id, profile as ProfileRow);
+    }
+  }
 
   const users = await Promise.all(
-    (profiles ?? []).map(async (profile) => {
+    Array.from(mergedProfiles.values()).map(async (profile) => {
       const [{ data: membership }, { data: assessment }, { data: progress }] =
         await Promise.all([
           supabase
@@ -45,8 +92,8 @@ export async function GET() {
 
       return {
         id: profile.id,
-        name: profile.display_name,
-        phone: profile.phone,
+        name: profile.display_name || "她",
+        phone: profile.phone || "未填写",
         day: progress?.current_day ?? null,
         assessment: assessment ? "已完成" : "未测评",
         assessmentDate: assessment?.created_at ?? null,

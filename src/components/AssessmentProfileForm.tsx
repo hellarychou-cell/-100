@@ -26,15 +26,27 @@ export function AssessmentProfileForm() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
         const parsedAge = Number.parseInt(profile.age, 10);
-        await supabase.from("profiles").upsert({
+        const existingPhone = typeof data.user.user_metadata?.phone === "string"
+          ? data.user.user_metadata.phone
+          : null;
+        const payload: {
+          id: string;
+          display_name: string;
+          age: number | null;
+          identity: string;
+          current_issue: string;
+          ideal_state: string;
+          phone?: string;
+        } = {
           id: data.user.id,
-          phone: data.user.phone ?? "",
           display_name: profile.name,
           age: Number.isFinite(parsedAge) ? parsedAge : null,
           identity: profile.identity,
           current_issue: profile.currentIssue,
           ideal_state: profile.idealState,
-        });
+        };
+        if (existingPhone) payload.phone = existingPhone;
+        await supabase.from("profiles").upsert(payload);
       }
     }
 

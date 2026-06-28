@@ -72,20 +72,25 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
 
       if (isSupabaseConfigured && supabase) {
         if (isRegister) {
-          const { data, error } = await supabase.auth.signUp({
+          const res = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              displayName: trimmedName,
+              email: trimmedEmail,
+              phone: storedPhone,
+              password,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.error || "注册失败，请稍后重试。");
+          }
+          const { error } = await supabase.auth.signInWithPassword({
             email: trimmedEmail,
             password,
-            options: { data: { display_name: trimmedName, phone: storedPhone } },
           });
           if (error) throw error;
-          if (data.user) {
-            const { error: profileError } = await supabase.from("profiles").upsert({
-              id: data.user.id,
-              phone: storedPhone,
-              display_name: trimmedName,
-            });
-            if (profileError) throw profileError;
-          }
           setShowSuccess(true);
         } else {
           const { error } = await supabase.auth.signInWithPassword({ email: signInEmail, password });

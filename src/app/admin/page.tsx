@@ -66,17 +66,21 @@ export default function AdminPage() {
   });
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const res = await fetch("/api/admin/users");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "后台用户列表加载失败。");
       if (data.users) setUsers(data.users);
     } catch (e) {
       console.error("Failed to fetch users", e);
+      setLoadError(e instanceof Error ? e.message : "后台用户列表加载失败。");
     } finally {
       setLoading(false);
     }
@@ -143,46 +147,58 @@ export default function AdminPage() {
   if (!isAuthenticated) return <AdminLoginForm onSuccess={() => setIsAuthenticated(true)} />;
 
   return (
-    <main className="viewport">
-      <section className="paper-frame grid grid-rows-[56px_1fr]">
-        <header className="topbar">
+    <main className="viewport botanical-page">
+      <section className="paper-frame mobile-app-shell">
+        <header className="topbar mobile-topbar">
           <div className="brand">成她100 · 后台</div>
-          <span>用户会员 / 内容管理</span>
+          <span>后台管理</span>
           <button className="text-link" onClick={handleLogout} type="button">退出登录</button>
         </header>
-        <section className="grid min-h-0 grid-rows-[auto_1fr_auto] gap-4 p-5">
-          <div className="flex items-end justify-between gap-4 max-sm:grid">
-            <h1 className="m-0 text-4xl font-normal leading-none">用户列表</h1>
-            <div className="w-64 border border-[var(--line)] bg-soft/70 p-2.5 sans text-sm text-[var(--muted)] max-sm:w-full">搜索手机号 / 姓名</div>
+        <section className="grid gap-4 p-5">
+          <div className="treasure-hero">
+            <p className="eyebrow">Admin Console</p>
+            <h1>用户后台</h1>
+            <p>查看测评、开通会员、暂停 AI 与管理用户状态。</p>
           </div>
-          <section className="grid min-h-0 grid-rows-[38px_repeat(5,1fr)] overflow-hidden border border-[var(--line)] bg-paper/50 max-lg:block max-lg:overflow-auto">
-            <TableHeader />
+          <section className="grid gap-3">
             {loading ? (
-              <div className="grid place-items-center text-clay sans text-sm">加载中...</div>
+              <div className="thin-panel p-6 text-center text-clay sans text-sm">加载中...</div>
+            ) : loadError ? (
+              <div className="thin-panel p-6 text-center text-clay sans text-sm">{loadError}</div>
             ) : users.length === 0 ? (
-              <div className="grid place-items-center text-clay sans text-sm">暂无用户</div>
+              <div className="thin-panel p-6 text-center text-clay sans text-sm">暂无用户</div>
             ) : (
-              users.map((user) => (
-                <div key={user.id} className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_280px] items-center border-b border-ink/10 sans text-xs text-[var(--muted)] max-lg:min-w-[1000px] max-lg:min-h-12">
-                  <div className="px-3 font-serif text-lg text-ink">{user.name}</div>
-                  <div className="px-3">{user.phone}</div>
-                  <div className="px-3">{user.day ? `Day ${String(user.day).padStart(2, "0")}` : "未开始"}</div>
-                  <div className="px-3"><span className="pill">{user.assessment}</span></div>
-                  <div className="px-3">{formatExpires(user.expires)}</div>
-                  <div className="flex flex-wrap gap-1.5 px-3">
-                    {user.assessment === "已完成" && (
-                      <a className="border border-clay px-2 py-1.5 text-clay hover:bg-clay hover:text-soft" href={`/admin/users/${user.id}`} title="查看报告">报告</a>
-                    )}
-                    <button className="bg-ink px-2 py-1.5 text-soft disabled:opacity-50" onClick={() => handleExtend(user.id)} disabled={actionLoading === user.id} title="加30天">+30天</button>
-                    <button className="border border-ink px-2 py-1.5 text-ink disabled:opacity-50" onClick={() => handleReduce(user.id)} disabled={actionLoading === user.id} title="减30天">-30天</button>
-                    <button className="border border-ink px-2 py-1.5 text-ink disabled:opacity-50" onClick={() => handlePause(user.id)} disabled={actionLoading === user.id || user.aiPaused}>{user.aiPaused ? "已暂停" : "暂停"}</button>
-                    <button className="border border-red-400 px-2 py-1.5 text-red-400 hover:bg-red-50 disabled:opacity-50" onClick={() => setDeleteConfirm(user.id)} disabled={actionLoading === user.id}>删除</button>
+              users.map((user, index) => (
+                <article key={user.id} className="thin-panel grid gap-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="grid h-7 w-7 place-items-center rounded-lg bg-sage text-sm text-white">{index + 1}</span>
+                        <h2 className="m-0 text-2xl font-normal">{user.name}</h2>
+                      </div>
+                      <p className="m-0 mt-1 sans text-xs text-[var(--muted)]">{user.phone}</p>
+                    </div>
+                    <span className="pill">{user.assessment}</span>
                   </div>
-                </div>
+                  <div className="grid grid-cols-3 gap-2 sans text-xs text-[var(--muted)]">
+                    <InfoChip label="当前" value={user.day ? `Day ${String(user.day).padStart(2, "0")}` : "未开始"} />
+                    <InfoChip label="会员" value={formatExpires(user.expires)} />
+                    <InfoChip label="AI" value={user.aiPaused ? "已暂停" : "可使用"} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {user.assessment === "已完成" && (
+                      <a className="admin-mini-button admin-mini-button--primary" href={`/admin/users/${user.id}`} title="查看报告">报告</a>
+                    )}
+                    <button className="admin-mini-button" onClick={() => handleExtend(user.id)} disabled={actionLoading === user.id} title="加30天">+30天</button>
+                    <button className="admin-mini-button" onClick={() => handleReduce(user.id)} disabled={actionLoading === user.id} title="减30天">-30天</button>
+                    <button className="admin-mini-button" onClick={() => handlePause(user.id)} disabled={actionLoading === user.id || user.aiPaused}>{user.aiPaused ? "已暂停" : "暂停"}</button>
+                    <button className="admin-mini-button admin-mini-button--danger" onClick={() => setDeleteConfirm(user.id)} disabled={actionLoading === user.id}>删除</button>
+                  </div>
+                </article>
               ))
             )}
           </section>
-          <section className="grid grid-cols-3 gap-3 max-md:grid-cols-1">
+          <section className="grid gap-3">
             <ContentLink title="Day 内容" detail="Day 1-7 已上线，Day 8-100 待补" href="/admin/content" />
             <ContentLink title="测评题库" detail="42 题 · 6维度 × 7题" href="/admin/content" />
             <ContentLink title="神秘卡" detail="女性力量卡与今日卡" href="/admin/content" />
@@ -206,12 +222,11 @@ export default function AdminPage() {
   );
 }
 
-function TableHeader() {
+function InfoChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[1.1fr_1fr_.8fr_.8fr_.9fr_280px] items-center bg-ink/5 sans text-xs text-ink max-lg:min-w-[1000px] max-lg:min-h-10">
-      {["用户", "手机号", "当前 Day", "测评", "AI 到期", "操作"].map((item) => (
-        <div key={item} className="px-3">{item}</div>
-      ))}
+    <div className="rounded-xl border border-[var(--line)] bg-soft/60 p-2">
+      <span className="block text-[10px] text-clay">{label}</span>
+      <strong className="mt-1 block truncate font-normal text-ink">{value}</strong>
     </div>
   );
 }
