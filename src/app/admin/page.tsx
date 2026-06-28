@@ -147,8 +147,8 @@ export default function AdminPage() {
   if (!isAuthenticated) return <AdminLoginForm onSuccess={() => setIsAuthenticated(true)} />;
 
   return (
-    <main className="viewport botanical-page">
-      <section className="paper-frame mobile-app-shell">
+    <main className="viewport botanical-page admin-viewport">
+      <section className="paper-frame mobile-app-shell admin-mobile-shell">
         <header className="topbar mobile-topbar">
           <div className="brand">成她100 · 后台</div>
           <span>后台管理</span>

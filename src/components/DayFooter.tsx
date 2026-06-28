@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
-import { dayContents } from "@/lib/content";
+import { getChinaDateString, markDayCompleted } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
 type DayFooterProps = {
@@ -23,13 +23,15 @@ export function DayFooter({ day }: DayFooterProps) {
       const raw = window.localStorage.getItem(LOCAL_PROGRESS_KEY);
       const progress = raw
         ? JSON.parse(raw)
-        : { currentDay: day, completedDays: [] };
+        : { currentDay: day, completedDays: [], journeyStartDay: day, journeyStartDate: getChinaDateString() };
 
-      if (!progress.completedDays.includes(day)) {
-        progress.completedDays = [...progress.completedDays, day];
-        progress.currentDay = Math.max(progress.currentDay, day + 1);
-        window.localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(progress));
-      }
+      const nextProgress = markDayCompleted({
+        completedDays: Array.isArray(progress.completedDays) ? progress.completedDays : [],
+        currentDay: progress.currentDay ?? day,
+        journeyStartDate: progress.journeyStartDate ?? getChinaDateString(),
+        journeyStartDay: progress.journeyStartDay ?? progress.currentDay ?? day,
+      }, day);
+      window.localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(nextProgress));
 
       // 如果有 Supabase，也更新远程
       if (supabase) {
@@ -53,10 +55,27 @@ export function DayFooter({ day }: DayFooterProps) {
             await supabase
               .from("progress")
               .update({
-                current_day: Math.max(existingProgress.current_day ?? day + 1, day + 1),
+                current_day: existingProgress.current_day ?? day,
                 completed_days: newCompletedDays,
               })
               .eq("user_id", user.id);
+          } else {
+            const { error } = await supabase.from("progress").upsert({
+              user_id: user.id,
+              current_day: day,
+              completed_days: [day],
+              cards_collected: 1,
+              journey_start_date: getChinaDateString(),
+              journey_start_day: day,
+            });
+            if (error) {
+              await supabase.from("progress").upsert({
+                user_id: user.id,
+                current_day: day,
+                completed_days: [day],
+                cards_collected: 1,
+              });
+            }
           }
         }
       }
@@ -90,8 +109,8 @@ export function DayFooter({ day }: DayFooterProps) {
       </button>
       <button
         className="day-footer__nav"
-        disabled={day >= dayContents.length}
-        onClick={() => router.push(`/day/${Math.min(dayContents.length, day + 1)}`)}
+        disabled={day >= 100}
+        onClick={() => router.push(`/day/${Math.min(100, day + 1)}`)}
         type="button"
       >
         下一天 ❯

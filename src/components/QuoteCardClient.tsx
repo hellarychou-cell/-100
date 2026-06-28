@@ -2,17 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
 import { dayContents, heroImage } from "@/lib/content";
 import { saveElementAsPng } from "@/lib/export-image";
-import { markDayCompleted } from "@/lib/progress";
 import {
   createTodaySeeingCard,
   LOCAL_TODAY_SEEING_KEY,
   type TodaySeeingCard,
 } from "@/lib/today-seeing-card";
 import { AIConversationEntry, LOCAL_AI_CONVERSATION_KEY } from "@/lib/self-reflection";
-import { supabase } from "@/lib/supabase";
 import { MobileTopBar } from "@/components/MobileTopBar";
 
 export function QuoteCardClient({
@@ -31,42 +28,6 @@ export function QuoteCardClient({
   const [saveMessage, setSaveMessage] = useState("");
   const [saveUrl, setSaveUrl] = useState("");
   const [card, setCard] = useState<TodaySeeingCard | null>(null);
-
-  useEffect(() => {
-    async function saveProgress() {
-      const localProgress = readLocalProgress();
-      const nextProgress = markDayCompleted(localProgress, day.day);
-      window.localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(nextProgress));
-
-      if (!supabase) return;
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
-      if (!user) return;
-
-      const { data: progress } = await supabase
-        .from("progress")
-        .select("current_day,completed_days,cards_collected")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const remoteNext = markDayCompleted(
-        {
-          currentDay: progress?.current_day ?? day.day,
-          completedDays: Array.isArray(progress?.completed_days) ? progress.completed_days : [],
-        },
-        day.day,
-      );
-
-      await supabase.from("progress").upsert({
-        user_id: user.id,
-        current_day: remoteNext.currentDay,
-        completed_days: remoteNext.completedDays,
-        cards_collected: Math.max(progress?.cards_collected ?? 0, remoteNext.completedDays.length),
-      });
-    }
-
-    saveProgress();
-  }, [day.day]);
 
   useEffect(() => {
     const nextCard = createTodaySeeingCard({
@@ -206,21 +167,5 @@ function readJson<T>(key: string): T | null {
   } catch {
     window.localStorage.removeItem(key);
     return null;
-  }
-}
-
-function readLocalProgress() {
-  const raw = window.localStorage.getItem(LOCAL_PROGRESS_KEY);
-  if (!raw) return { currentDay: 1, completedDays: [] };
-
-  try {
-    const parsed = JSON.parse(raw) as { currentDay?: number; completedDays?: number[] };
-    return {
-      currentDay: Number.isInteger(parsed.currentDay) ? Number(parsed.currentDay) : 1,
-      completedDays: Array.isArray(parsed.completedDays) ? parsed.completedDays.filter(Number.isInteger) : [],
-    };
-  } catch {
-    window.localStorage.removeItem(LOCAL_PROGRESS_KEY);
-    return { currentDay: 1, completedDays: [] };
   }
 }

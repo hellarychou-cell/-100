@@ -152,12 +152,23 @@ export function AssessmentResultClient() {
     if (supabase) {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
-        await supabase.from("progress").upsert({
+        const payload = {
           user_id: data.user.id,
           current_day: nextProgress.currentDay,
           completed_days: nextProgress.completedDays,
           cards_collected: 0,
-        });
+          journey_start_day: nextProgress.journeyStartDay,
+          journey_start_date: nextProgress.journeyStartDate,
+        };
+        const { error } = await supabase.from("progress").upsert(payload);
+        if (error) {
+          await supabase.from("progress").upsert({
+            user_id: data.user.id,
+            current_day: nextProgress.currentDay,
+            completed_days: nextProgress.completedDays,
+            cards_collected: 0,
+          });
+        }
       }
     }
 

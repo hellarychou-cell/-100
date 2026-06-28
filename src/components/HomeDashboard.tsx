@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getProgressCardState, ProgressCardState, shouldShowAssessmentPrompt } from "@/lib/home-state";
 import { getLocalUser, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { currentUser, dayContents, phases } from "@/lib/content";
-import { getReadableCurrentDay } from "@/lib/progress";
+import { getCalendarCurrentDay, getCollapsedProgressDays, getReadableCurrentDay } from "@/lib/progress";
 import { getSeedlingState } from "@/lib/seedling-state";
 import { supabase } from "@/lib/supabase";
 import { MobileTopBar } from "@/components/MobileTopBar";
@@ -19,6 +19,14 @@ type ProgressState = {
   isMember: boolean;
   loading: boolean;
   totalScore100: number | null;
+};
+
+type RemoteProgressRow = {
+  cards_collected?: number | null;
+  completed_days?: number[] | null;
+  current_day?: number | null;
+  journey_start_date?: string | null;
+  journey_start_day?: number | null;
 };
 
 const publishedDayLimit = dayContents.length;
@@ -63,11 +71,16 @@ export function HomeDashboard() {
       const localHasAssessment = Boolean(localAssessment);
       const localProgress = readLocalProgress();
       if (localUser && !cancelled) {
+        const localCurrentDay = getCalendarCurrentDay({
+          journeyStartDate: localProgress.journeyStartDate,
+          journeyStartDay: localProgress.journeyStartDay,
+          savedDay: localProgress.currentDay,
+        });
         setState((current) => ({
           ...current,
           displayName: localUser.displayName,
           completedDays: localProgress.completedDays,
-          currentDay: getReadableCurrentDay(localProgress.currentDay),
+          currentDay: localCurrentDay,
           cardsCollected: localProgress.completedDays.length,
           hasAssessment: localHasAssessment,
           isMember: localUser.isMember,
@@ -77,11 +90,16 @@ export function HomeDashboard() {
       }
 
       if (!supabase) {
+        const localCurrentDay = getCalendarCurrentDay({
+          journeyStartDate: localProgress.journeyStartDate,
+          journeyStartDay: localProgress.journeyStartDay,
+          savedDay: localProgress.currentDay,
+        });
         if (!cancelled) {
           setState((current) => ({
             ...current,
             completedDays: localProgress.completedDays,
-            currentDay: getReadableCurrentDay(localProgress.currentDay),
+            currentDay: localCurrentDay,
             cardsCollected: localProgress.completedDays.length,
             hasAssessment: localHasAssessment,
             loading: false,
@@ -98,13 +116,9 @@ export function HomeDashboard() {
         return;
       }
 
-      const [{ data: profile }, { data: progress }, { data: assessment }, { data: membership }] = await Promise.all([
+      const [{ data: profile }, progress, { data: assessment }, { data: membership }] = await Promise.all([
         supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
-        supabase
-          .from("progress")
-          .select("current_day,completed_days,cards_collected")
-          .eq("user_id", user.id)
-          .maybeSingle(),
+        loadRemoteProgress(user.id),
         supabase
           .from("assessments")
           .select("id,total_score_100")
@@ -121,8 +135,14 @@ export function HomeDashboard() {
           .maybeSingle(),
       ]);
 
+      const completedDays = Array.isArray(progress?.completed_days) ? progress.completed_days : [];
+      const currentDay = getCalendarCurrentDay({
+        journeyStartDate: progress?.journey_start_date,
+        journeyStartDay: progress?.journey_start_day,
+        savedDay: progress?.current_day,
+      });
+
       if (!cancelled) {
-        const completedDays = Array.isArray(progress?.completed_days) ? progress.completed_days : [];
         const isMemberActive =
           Boolean(membership?.expires_at) &&
           new Date(membership?.expires_at ?? "").getTime() > Date.now() &&
@@ -131,7 +151,7 @@ export function HomeDashboard() {
         setState({
           cardsCollected: progress?.cards_collected ?? completedDays.length,
           completedDays,
-          currentDay: getReadableCurrentDay(progress?.current_day),
+          currentDay,
           displayName: profile?.display_name ?? String(user.user_metadata?.display_name ?? currentUser.name),
           hasAssessment: Boolean(assessment),
           isMember: isMemberActive,
@@ -142,6 +162,9 @@ export function HomeDashboard() {
               : localAssessment?.totalScore100 ?? null,
         });
 
+      }
+      if (progress?.journey_start_date && progress?.journey_start_day && currentDay !== getReadableCurrentDay(progress.current_day)) {
+        await supabase.from("progress").update({ current_day: currentDay }).eq("user_id", user.id);
       }
     }
 
@@ -155,7 +178,7 @@ export function HomeDashboard() {
     () => allDaysData.find((day) => day.day === state.currentDay) ?? allDaysData[0],
     [state.currentDay],
   );
-  const todayHref = `/day/${Math.min(today.day, publishedDayLimit)}`;
+  const todayHref = `/day/${today.day}`;
   const currentPhase = useMemo(() => {
     const day = state.currentDay;
     if (day <= 25) return phases[0];
@@ -227,7 +250,7 @@ export function HomeDashboard() {
               <h2>{today.title}</h2>
               <i>{today.dimension}</i>
               <p>{today.note}</p>
-              <Link className="action-primary" href={todayHref}>{today.day > publishedDayLimit ? "先读已上线内容" : "开始阅读"}</Link>
+              <Link className="action-primary" href={todayHref}>{today.day > publishedDayLimit ? "查看今日框架" : "开始阅读"}</Link>
             </section>
             <section className="home-status__phase">
               <small>当前阶段</small>
@@ -252,7 +275,7 @@ export function HomeDashboard() {
               <span>●　第一阶段：自我觉醒期 (Day 1 - 25)</span><small>进行中</small>
             </div>
             <div className="home-status__day-grid">
-              {(expanded ? allDaysData.filter((item) => item.day <= 25) : [allDaysData[0], allDaysData[1], allDaysData[6], allDaysData[Math.max(0, state.currentDay - 1)]])
+              {(expanded ? allDaysData.filter((item) => item.day <= 25) : getCollapsedProgressDays(allDaysData, state.currentDay))
                 .filter((item, index, items) => item && items.findIndex((candidate) => candidate.day === item.day) === index)
                 .sort((a, b) => a.day - b.day)
                 .map((item) => (
@@ -303,8 +326,8 @@ function ProgressDayCard({
 }) {
   const [showLockedModal, setShowLockedModal] = useState(false);
   const state = getProgressCardState({ day: item.day, currentDay, completedDays });
-  const isLocked = item.day > currentDay + 1 && item.day > publishedDayLimit;
-  const href = !isLocked && item.day <= currentDay + 1 ? `/day/${Math.min(item.day, publishedDayLimit)}` : "#";
+  const isLocked = item.day > currentDay;
+  const href = !isLocked ? `/day/${item.day}` : "#";
 
   const styles: Record<ProgressCardState, string> = {
     completed: "is-completed",
@@ -361,15 +384,35 @@ function readLocalProgress() {
   if (!raw) return { currentDay: currentUser.currentDay, completedDays: currentUser.completedDays };
 
   try {
-    const parsed = JSON.parse(raw) as { currentDay?: number; completedDays?: number[] };
+    const parsed = JSON.parse(raw) as { currentDay?: number; completedDays?: number[]; journeyStartDate?: string; journeyStartDay?: number };
     return {
       currentDay: Number.isInteger(parsed.currentDay) ? Number(parsed.currentDay) : currentUser.currentDay,
       completedDays: Array.isArray(parsed.completedDays) ? parsed.completedDays.filter(Number.isInteger) : currentUser.completedDays,
+      journeyStartDate: typeof parsed.journeyStartDate === "string" ? parsed.journeyStartDate : null,
+      journeyStartDay: Number.isInteger(parsed.journeyStartDay) ? Number(parsed.journeyStartDay) : null,
     };
   } catch {
     window.localStorage.removeItem(LOCAL_PROGRESS_KEY);
     return { currentDay: currentUser.currentDay, completedDays: currentUser.completedDays };
   }
+}
+
+async function loadRemoteProgress(userId: string) {
+  if (!supabase) return null;
+  const withJourney = await supabase
+    .from("progress")
+    .select("current_day,completed_days,cards_collected,journey_start_day,journey_start_date")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!withJourney.error) return withJourney.data as RemoteProgressRow | null;
+
+  const fallback = await supabase
+    .from("progress")
+    .select("current_day,completed_days,cards_collected")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return fallback.data as RemoteProgressRow | null;
 }
 
 function readLocalAssessment() {

@@ -1,5 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getCalendarCurrentDay } from "@/lib/progress";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -9,6 +10,12 @@ type ProfileRow = {
   display_name: string | null;
   phone: string | null;
   created_at?: string | null;
+};
+
+type ProgressRow = {
+  current_day: number | null;
+  journey_start_date?: string | null;
+  journey_start_day?: number | null;
 };
 
 function getMetaValue(metadata: Record<string, unknown> | null | undefined, key: string) {
@@ -68,7 +75,7 @@ export async function GET() {
 
   const users = await Promise.all(
     Array.from(mergedProfiles.values()).map(async (profile) => {
-      const [{ data: membership }, { data: assessment }, { data: progress }] =
+      const [{ data: membership }, { data: assessment }, progress] =
         await Promise.all([
           supabase
             .from("memberships")
@@ -83,18 +90,20 @@ export async function GET() {
             .eq("user_id", profile.id)
             .limit(1)
             .maybeSingle(),
-          supabase
-            .from("progress")
-            .select("current_day")
-            .eq("user_id", profile.id)
-            .maybeSingle(),
+          loadProgress(supabase, profile.id),
         ]);
 
       return {
         id: profile.id,
         name: profile.display_name || "她",
         phone: profile.phone || "未填写",
-        day: progress?.current_day ?? null,
+        day: progress
+          ? getCalendarCurrentDay({
+              journeyStartDate: progress.journey_start_date,
+              journeyStartDay: progress.journey_start_day,
+              savedDay: progress.current_day,
+            })
+          : null,
         assessment: assessment ? "已完成" : "未测评",
         assessmentDate: assessment?.created_at ?? null,
         expires: membership?.expires_at ?? null,
@@ -104,4 +113,24 @@ export async function GET() {
   );
 
   return NextResponse.json({ users });
+}
+
+async function loadProgress(
+  supabase: SupabaseClient,
+  userId: string,
+) {
+  const withJourney = await supabase
+    .from("progress")
+    .select("current_day, journey_start_day, journey_start_date")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!withJourney.error) return withJourney.data as ProgressRow | null;
+
+  const fallback = await supabase
+    .from("progress")
+    .select("current_day")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return fallback.data as ProgressRow | null;
 }

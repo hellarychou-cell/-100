@@ -127,8 +127,8 @@ export default async function AdminUserReportPage({ params }: PageProps) {
     : [];
 
   return (
-    <main className="viewport">
-      <section className="paper-frame grid grid-rows-[56px_1fr]">
+    <main className="viewport botanical-page admin-viewport">
+      <section className="paper-frame admin-mobile-shell grid grid-rows-[56px_1fr]">
         <header className="topbar">
           <div className="brand">成她100 · 后台</div>
           <span>{user.display_name || "用户"} · 测评报告</span>

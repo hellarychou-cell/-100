@@ -8,10 +8,11 @@ import { CollapsibleStory } from "@/components/CollapsibleStory";
 import { DayFooter } from "@/components/DayFooter";
 import { SelfReflectionBox } from "@/components/SelfReflectionBox";
 import { dayContents, mysteryCards } from "@/lib/content";
-import { getDayDocumentContent } from "@/lib/day-document";
+import { getDayDocumentContent, type DayDocumentContent } from "@/lib/day-document";
 import { getBodyStationEntry } from "@/lib/body-station";
 import { getScheduleDay } from "@/lib/schedule";
 import { MobileTopBar } from "@/components/MobileTopBar";
+import { requiresMembershipForDay } from "@/lib/progress";
 
 type PageProps = {
   params: Promise<{ day: string }>;
@@ -20,12 +21,14 @@ type PageProps = {
 export default async function DayPage({ params }: PageProps) {
   const { day: dayParam } = await params;
   const dayNum = Number(dayParam);
-  const day = dayContents.find((item) => item.day === dayNum);
-  if (!day) notFound();
-  const documentContent = await getDayDocumentContent(day.day);
+  if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 100) notFound();
+  const day = dayContents.find((item) => item.day === dayNum) ?? createPlaceholderDay(dayNum);
+  const documentContent = dayNum <= dayContents.length
+    ? await getDayDocumentContent(day.day)
+    : createPlaceholderDocumentContent(dayNum);
   const bodyStationEntry = getBodyStationEntry(day.day);
   const scheduleDay = getScheduleDay(day.day);
-  const card = mysteryCards[day.day];
+  const card = mysteryCards[day.day] ?? createPlaceholderMysteryCard(day.day);
   const displayTitle = documentContent.title || day.title;
   const displayPhase = documentContent.phaseLine || day.phase;
   const displayDimension = documentContent.dimensionLine || scheduleDay?.dimension || day.dimension;
@@ -40,7 +43,7 @@ export default async function DayPage({ params }: PageProps) {
     : (day.mirror ?? ["内容即将打开。"]);
 
   return (
-    <AuthGate>
+    <AuthGate requireMember={requiresMembershipForDay(day.day)}>
     <main className="viewport botanical-page">
       <section className="paper-frame day-page">
         <MobileTopBar
@@ -83,12 +86,12 @@ export default async function DayPage({ params }: PageProps) {
               <Link className="text-link" href={`/day/${Math.max(1, day.day - 1)}`}>
                 上一天
               </Link>
-              {day.day < dayContents.length ? (
+              {day.day < 100 ? (
                 <Link className="text-link" href={`/day/${day.day + 1}`}>
                   下一天
                 </Link>
               ) : (
-                <span className="sans text-xs text-[var(--muted)]">后续内容筹备中</span>
+                <span className="sans text-xs text-[var(--muted)]">已到第100天</span>
               )}
             </div>
           </div>
@@ -156,6 +159,72 @@ export default async function DayPage({ params }: PageProps) {
     </main>
     </AuthGate>
   );
+}
+
+function createPlaceholderDay(day: number) {
+  const phase = day <= 25 ? "第一阶段觉醒期" : day <= 50 ? "第二阶段理解期" : day <= 80 ? "第三阶段重建期" : "第四阶段创造期";
+  return {
+    aiQuestion: "今天，先写下一个最真实的小感受。内容正文正在筹备中，这里会先为你保留完整的位置。",
+    bodyNote: "今晚先把手放在胸口，慢慢呼吸 9 次。内容上线后，这里会换成当天的身体小语。",
+    cardPoint: "内容筹备中",
+    day,
+    dimension: "成长占位",
+    mirror: ["这一天的内容正在筹备中。", "你可以先把今天的自己放在这里，等内容上线后再回来继续。"],
+    phase,
+    quote: "内容正在长出来。",
+    quoteBy: `成她100 · Day ${String(day).padStart(2, "0")}`,
+    storyPreview: "这一天的故事正在写入。现在先保留一个温柔的位置，等它上线。",
+    subtitle: "内容筹备中",
+    title: `Day ${day}`,
+  };
+}
+
+function createPlaceholderDocumentContent(day: number): DayDocumentContent {
+  const phaseLine = day <= 25 ? "第一阶段觉醒期" : day <= 50 ? "第二阶段理解期" : day <= 80 ? "第三阶段重建期" : "第四阶段创造期";
+  return {
+    aiMethod: {
+      note: "内容上线前，先用一句真实的话和自己保持连接。",
+      title: "温柔自我看见",
+    },
+    aiOpening: "先写一句今天最真实的话。",
+    aiQuestion: "今天你最想被谁听见？你可以只写一句话。",
+    bodyNote: "今晚先把手放在胸口，慢慢呼吸 9 次。内容上线后，这里会换成当天的身体小语。",
+    cardPointLine: "内容筹备中",
+    dimensionLine: "成长占位",
+    extraSections: [
+      {
+        title: "今日练习",
+        content: "给今天的自己留一句话。等正式内容上线后，这里会变成完整练习。",
+      },
+      {
+        title: "心理学小知识",
+        content: "成长不是每天都要用力推进，有时候，先留一个位置也是一种开始。",
+      },
+    ],
+    mirror: "这一天的内容正在筹备中。\n\n你可以先把今天的自己放在这里，等内容上线后再回来继续。",
+    phaseLine,
+    story: "这一天的故事正在写入。现在先保留一个温柔的位置，等它上线。",
+    storyPreview: "这一天的故事正在写入。现在先保留一个温柔的位置，等它上线。",
+    title: `Day ${day}`,
+  };
+}
+
+function createPlaceholderMysteryCard(day: number) {
+  return {
+    front: {
+      age: "内容筹备中",
+      description: "这张卡的位置已经为你留好。",
+      name: "成她100",
+      quote: "内容正在长出来。",
+      symbol: "🌿",
+    },
+    back: {
+      content: "这张卡还在准备中。等当天内容上线后，它会变成真正的工具卡、感恩卡或福利卡。",
+      dayNum: day,
+      title: "筹备卡",
+      type: "blank" as const,
+    },
+  };
 }
 
 function renderParagraphs(content: string) {

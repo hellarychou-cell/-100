@@ -46,11 +46,27 @@ create table if not exists public.assessments (
 create table if not exists public.progress (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   current_day int not null default 1 check (current_day between 1 and 100),
+  journey_start_day int check (journey_start_day between 1 and 100),
+  journey_start_date date,
   completed_days int[] not null default '{}',
   cards_collected int not null default 0,
   ai_conversation_count int not null default 0,
   updated_at timestamptz not null default now()
 );
+
+alter table public.progress
+  add column if not exists journey_start_day int check (journey_start_day between 1 and 100);
+
+alter table public.progress
+  add column if not exists journey_start_date date;
+
+update public.progress
+set journey_start_day = current_day
+where journey_start_day is null;
+
+update public.progress
+set journey_start_date = (now() at time zone 'Asia/Shanghai')::date
+where journey_start_date is null;
 
 create table if not exists public.checkins (
   id uuid primary key default gen_random_uuid(),

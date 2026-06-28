@@ -24,6 +24,7 @@ import {
 } from "@/lib/self-reflection";
 import { buildClientContext } from "@/lib/user-context";
 import { MobileTopBar } from "@/components/MobileTopBar";
+import { requiresMembershipForDay } from "@/lib/progress";
 
 type Message = { role: "user" | "assistant"; content: string; createdAt?: string; kind?: "sister-trigger" };
 
@@ -49,8 +50,18 @@ export function AIDayClient({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const day = dayContents.find((d) => d.day === dayNum);
-  const prompts = dayNum ? dayAIPrompts[dayNum] : null;
+  const day = dayContents.find((d) => d.day === dayNum) ?? {
+    aiQuestion: "今天先写下一句最真实的话，我会陪你慢慢看见。",
+    day: dayNum,
+    title: `Day ${dayNum}`,
+  };
+  const prompts = dayAIPrompts[dayNum] ?? {
+    description: "内容上线前，先用一句真实的话和自己保持连接。",
+    id: "socratic" as const,
+    method: "温柔自我看见",
+    name: "温柔自我看见",
+    systemPrompt: "请用温柔、简短的方式陪伴用户自我看见。每次只问一个问题，不急着给建议。",
+  };
   const companionLabel = companion?.label ?? "🌿 成她";
   const companionName = (companion?.name ?? companionLabel.replace(/^[^\u4e00-\u9fa5A-Za-z]+/, "").trim()) || "成她";
   const companionSymbol = companion?.symbol ?? "🌿";
@@ -144,9 +155,9 @@ export function AIDayClient({
     }
   }
 
-  if (!day || !prompts) {
+  if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 100) {
     return (
-      <AuthGate>
+      <AuthGate requireMember={requiresMembershipForDay(dayNum)}>
         <main className="viewport grid place-items-center">
           <p className="text-clay">加载中……</p>
         </main>
@@ -155,7 +166,7 @@ export function AIDayClient({
   }
 
   return (
-    <AuthGate>
+    <AuthGate requireMember={requiresMembershipForDay(dayNum)}>
       <main className="viewport botanical-page">
         <section className="paper-frame ai-chat">
           <MobileTopBar

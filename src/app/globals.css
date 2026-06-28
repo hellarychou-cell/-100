@@ -2740,6 +2740,32 @@ textarea {
   z-index: 1;
 }
 
+.admin-viewport {
+  display: grid;
+  justify-items: center;
+}
+
+.admin-mobile-shell {
+  width: min(100%, 390px) !important;
+  max-width: 390px !important;
+  min-height: calc(100vh - 28px);
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+}
+
+.admin-mobile-shell .topbar {
+  grid-template-columns: minmax(74px, 1fr) auto minmax(74px, 1fr);
+}
+
+.admin-mobile-shell .topbar > :last-child {
+  justify-self: end;
+}
+
+.admin-mobile-shell .grid-cols-3,
+.admin-mobile-shell .grid-cols-\[minmax\(280px\,\.7fr\)_1fr\] {
+  grid-template-columns: 1fr !important;
+}
+
 .mobile-topbar {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.52), 0 8px 18px rgba(63, 58, 54, 0.035);
 }
