@@ -6,6 +6,8 @@ import { createTodaySeeingCard } from "../src/lib/today-seeing-card.ts";
 import { findTriggeredSister, getSisterProfile, shouldTriggerSister } from "../src/lib/sister-profiles.ts";
 import { buildCollectionState } from "../src/lib/collection.ts";
 import { createLocalAIReply } from "../src/lib/ai-local-fallback.ts";
+import { createAwakeningTheaterChoice } from "../src/lib/awakening-theater.ts";
+import { getDayAIAnchor } from "../src/lib/day-ai-anchors.ts";
 
 test("client context keeps identity, recent writing, conversations, and repeated emotion words", () => {
   const context = buildClientContext({
@@ -103,7 +105,7 @@ test("today seeing card uses AI conversation when available and fallback copy ot
 });
 
 test("sister trigger matches unlocked sisters and prevents same-day duplicates", () => {
-  assert.equal(getSisterProfile("苏敏")?.gift.includes("G4"), true);
+  assert.equal(getSisterProfile("苏敏")?.gift.includes("福利卡"), true);
 
   const triggered = findTriggeredSister({
     message: "妈妈又打电话，我整个人很累。",
@@ -137,6 +139,46 @@ test("collection state dedupes sister cards, keeps tool slots unique, and unlock
   assert.equal(state.selfSlot.unlocked, true);
 });
 
+test("collection pairs a sister day with the matching unlocked tool card", () => {
+  const state = buildCollectionState({
+    completedDays: [2],
+    toolCards: [
+      {
+        file: "心理学工具箱/2-关系边界与自我主权/2.1-课题分离.md",
+        category: "2-关系边界与自我主权",
+        front: { name: "课题分离", description: "", quote: "" },
+        back: { type: "tool", title: "课题分离", content: "" },
+      },
+    ],
+    scheduleWomen: [
+      { day: 2, name: "上野千鹤子", field: "日本当代", cardType: "🎴 2.1课题分离", quoteSource: "《时时刻刻》" },
+    ],
+  });
+
+  assert.equal(state.toolSlots[0].day, 2);
+  assert.equal(state.toolSlots[0].unlocked, true);
+  assert.equal(state.sisterSlots[0].unlocked, true);
+});
+
+test("latest week sister cards have collection voice and gift copy", () => {
+  const expected = [
+    ["杨绛", /我和谁都不争|我们仨/],
+    ["上野千鹤子", /女性主义|弱者/],
+    ["李红", /先爱我自己/],
+    ["贾玲", /我应该/],
+    ["苏敏", /为我自己/],
+    ["林青霞", /后半生[\s\S]*做我自己/],
+  ] as const;
+
+  for (const [name, voice] of expected) {
+    const profile = getSisterProfile(name);
+    assert.ok(profile, `${name} should have a sister profile`);
+    assert.match(profile.dailyVoice, voice);
+    assert.ok(profile.dailyVoice.length > 10, `${name} should have daily voice`);
+    assert.ok(profile.gift.length > 6, `${name} should have a gift`);
+  }
+});
+
 test("local AI fallback keeps chat responsive without MiniMax", () => {
   const reply = createLocalAIReply({
     companionLabel: "🌿 苏敏",
@@ -148,4 +190,41 @@ test("local AI fallback keeps chat responsive without MiniMax", () => {
   assert.match(reply, /林夏/);
   assert.match(reply, /苏敏/);
   assert.match(reply, /一次只看一个地方/);
+});
+
+test("awakening theater choices become AI prompt anchors", () => {
+  const choice = createAwakeningTheaterChoice({
+    day: 1,
+    firstChoice: "A",
+    secondChoice: "Y",
+  });
+  const firstAnchor = getDayAIAnchor(1, "A");
+  const secondAnchor = getDayAIAnchor(1, "Y");
+  const prompt = buildContextPrompt(
+    buildClientContext({
+      currentDay: 1,
+      profile: { name: "林夏" },
+      theaterChoice: choice,
+    }),
+  );
+
+  assert.equal(choice.anchors.first, firstAnchor);
+  assert.equal(choice.anchors.second, secondAnchor);
+  assert.match(prompt, /觉醒剧场/);
+  assert.match(prompt, /大家开心就好/);
+  assert.match(prompt, /从没敢说出来|哪怕只对自己/);
+  assert.match(prompt, /不要复述剧情/);
+});
+
+test("today seeing card can use awakening theater choice when AI conversation is absent", () => {
+  const card = createTodaySeeingCard({
+    bodyNote: "喉为心声出口。",
+    day: 1,
+    mirror: "你自己，想要什么。",
+    theaterChoice: createAwakeningTheaterChoice({ day: 1, firstChoice: "C" }),
+    title: "她不是不会选，是忘了自己有得选",
+  });
+
+  assert.match(card.userExcerpt, /觉醒剧场|你在这一幕/);
+  assert.match(card.userExcerpt, /有消息|话题带走/);
 });

@@ -26,10 +26,20 @@ test("Day 1-7 all have mystery cards with front and back copy", () => {
   }
 });
 
-test("Day 7 mystery card pairs Li Qingzhao with the Satir iceberg tool card", () => {
-  const card = mysteryCards[7];
+test("Day 1-7 mystery cards follow the latest week document", () => {
+  const expected = [
+    [1, /杨绛/, /感恩卡/],
+    [2, /上野千鹤子/, /课题分离/],
+    [3, /李红/, /空白卡/],
+    [4, /贾玲/, /自我同情/],
+    [5, /苏敏/, /福利卡/],
+    [6, /林青霞/, /感恩卡/],
+    [7, /杨绛|钱媛/, /萨提亚|冰山/],
+  ] as const;
 
-  assert.match(card.front.name, /李清照/);
-  assert.match(card.back.title, /萨提亚|冰山/);
-  assert.match(card.back.content, /行为|感受|期待|渴望/);
+  for (const [day, frontName, backTitle] of expected) {
+    const card = mysteryCards[day];
+    assert.match(card.front.name, frontName);
+    assert.match(card.back.title, backTitle);
+  }
 });

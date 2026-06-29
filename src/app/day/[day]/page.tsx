@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { MysteryCard } from "@/components/MysteryCard";
 import { AIHoverTip } from "@/components/AIHoverTip";
-import { CollapsibleStory } from "@/components/CollapsibleStory";
+import { AwakeningTheater } from "@/components/AwakeningTheater";
 import { DayFooter } from "@/components/DayFooter";
+import { DayProgressiveSections } from "@/components/DayProgressiveSections";
 import { SelfReflectionBox } from "@/components/SelfReflectionBox";
 import { dayContents, mysteryCards } from "@/lib/content";
 import { getDayDocumentContent, type DayDocumentContent } from "@/lib/day-document";
@@ -33,7 +34,6 @@ export default async function DayPage({ params }: PageProps) {
   const displayPhase = documentContent.phaseLine || day.phase;
   const displayDimension = documentContent.dimensionLine || scheduleDay?.dimension || day.dimension;
   const displayCardPoint = documentContent.cardPointLine || day.cardPoint;
-  const storyPreview = documentContent.storyPreview || day.storyPreview;
   const aiQuestion = documentContent.aiQuestion || day.aiQuestion;
   const bodyPreview = bodyPreviewText(documentContent.bodyNote || day.bodyNote);
   const bodyAction = pickBodyAction(bodyStationEntry?.sections ?? [], documentContent.bodyNote || day.bodyNote);
@@ -41,6 +41,8 @@ export default async function DayPage({ params }: PageProps) {
   const mirrorLines = documentContent.mirror
     ? documentContent.mirror.split(/\n{2,}/).map((line) => line.trim()).filter(Boolean)
     : (day.mirror ?? ["内容即将打开。"]);
+  const hasFirstTheaterChoices = documentContent.awakeningTheater.firstChoices.length > 0;
+  const hasSecondTheaterChoices = documentContent.awakeningTheater.secondChoices.length > 0;
 
   return (
     <AuthGate requireMember={requiresMembershipForDay(day.day)}>
@@ -104,18 +106,31 @@ export default async function DayPage({ params }: PageProps) {
 
         <section className="day-page__sections">
           <section className="day-page__section">
-            <SectionTitle number="1" title="她的故事 📖" />
-            <CollapsibleStory
-              preview={<p className="whitespace-pre-line leading-[1.82] text-[#563a2e]">{storyPreview}</p>}
-            >
-              <div className="mt-3 grid gap-3 leading-[1.82] text-[#563a2e]">
-                {renderParagraphs(documentContent.story)}
-              </div>
-            </CollapsibleStory>
+            <SectionTitle number="1" title="觉醒剧场 🎬" />
+            <AwakeningTheater
+              day={day.day}
+              theater={documentContent.awakeningTheater}
+            />
           </section>
-          <div className="day-page__section-stack">
-            <section className="day-page__section">
-              <SectionTitle number="2" title="身体小语 🌿" />
+          <DayProgressiveSections
+            day={day.day}
+            hasFirstChoices={hasFirstTheaterChoices}
+            hasSecondChoices={hasSecondTheaterChoices}
+          >
+            <section className="day-page__section day-page__section--reflection relative">
+              <SectionTitle
+                action={<AIHoverTip methodTitle={documentContent.aiMethod.title} methodNote={documentContent.aiMethod.note} />}
+                number="2"
+                title="今日自我看见 ✨"
+              />
+              <p className="day-page__ai-prompt mb-4 leading-[1.8] text-[#4f3429]">
+                {aiQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。
+              </p>
+              <SelfReflectionBox aiHref={`/day/${day.day}/ai`} day={day.day} />
+              <p className="day-page__archive-note">这一段会轻轻留在成长档案里，之后你可以回来看见自己的变化。</p>
+            </section>
+            <section className="day-page__section day-page__section--after-ai day-page__section--body">
+              <SectionTitle number="3" title="身体小语 🌿" />
               <div className="day-page__body-copy soft-panel m-0 grid gap-3 p-4 leading-[1.82] text-[#563a2e]">
                 <div className="day-page__body-head">
                   <p className="m-0 whitespace-pre-line">{bodyPreview}</p>
@@ -132,27 +147,23 @@ export default async function DayPage({ params }: PageProps) {
                 </p>
               </div>
             </section>
-            <section className="day-page__section day-page__section--reflection relative">
-              <SectionTitle
-                action={<AIHoverTip methodTitle={documentContent.aiMethod.title} methodNote={documentContent.aiMethod.note} />}
-                number="3"
-                title="今日自我看见 ✨"
-              />
-              <p className="day-page__ai-prompt mb-4 leading-[1.8] text-[#4f3429]">
-                {aiQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。
-              </p>
-              <SelfReflectionBox aiHref={`/day/${day.day}/ai`} day={day.day} />
-              <p className="day-page__archive-note">这一段会轻轻留在成长档案里，之后你可以回来看见自己的变化。</p>
-            </section>
             {documentContent.extraSections.map((section, index) => (
-              <section key={section.title} className="day-page__section">
+              <section key={section.title} className="day-page__section day-page__section--after-ai">
                 <SectionTitle number={String(index + 4)} title={section.title} />
                 <div className="soft-panel grid gap-3 p-4 text-sm leading-[1.82] text-[#563a2e]">
                   {renderParagraphs(section.content)}
                 </div>
               </section>
             ))}
-          </div>
+            {documentContent.curtainCall ? (
+              <section className="day-page__section day-page__section--after-ai day-page__curtain-call">
+                <SectionTitle number={String(documentContent.extraSections.length + 4)} title="整天散场尾韵 🌙" />
+                <div className="day-page__curtain-copy">
+                  {renderParagraphs(documentContent.curtainCall)}
+                </div>
+              </section>
+            ) : null}
+          </DayProgressiveSections>
         </section>
         <DayFooter day={day.day} />
       </section>
@@ -201,10 +212,21 @@ function createPlaceholderDocumentContent(day: number): DayDocumentContent {
         content: "成长不是每天都要用力推进，有时候，先留一个位置也是一种开始。",
       },
     ],
+    awakeningTheater: {
+      branches: {},
+      common: "",
+      firstChoices: [],
+      fullText: "这一天的觉醒剧场正在写入。现在先保留一个温柔的位置，等它上线。",
+      interlude: "先带着今天的自己，去和 AI 说一句真实的话。→ [开始对话]",
+      intro: "这一天的觉醒剧场正在写入。现在先保留一个温柔的位置，等它上线。",
+      reveal: "",
+      secondChoices: [],
+    },
     mirror: "这一天的内容正在筹备中。\n\n你可以先把今天的自己放在这里，等内容上线后再回来继续。",
     phaseLine,
     story: "这一天的故事正在写入。现在先保留一个温柔的位置，等它上线。",
     storyPreview: "这一天的故事正在写入。现在先保留一个温柔的位置，等它上线。",
+    curtainCall: "",
     title: `Day ${day}`,
   };
 }

@@ -51,12 +51,6 @@ export function CollectionClient({ scheduleWomen, toolCards }: { scheduleWomen: 
   const selectedPairedTool = selectedSister
     ? state.toolSlots.find((slot) => slot.day === selectedSister.firstDay && slot.unlocked) ?? firstUnlockedTool
     : firstUnlockedTool;
-  const previewTitle =
-    selectedTool?.front.name ??
-    selectedSister?.name ??
-    firstUnlockedSister?.name ??
-    firstUnlockedTool?.front.name ??
-    "点一张";
   const previewKind = selectedTool ? "工具卡" : selectedSister ? "姐妹卡" : "已解锁的卡";
 
   useEffect(() => {
@@ -109,7 +103,7 @@ export function CollectionClient({ scheduleWomen, toolCards }: { scheduleWomen: 
               >
                 <span>✦</span>
                 <i>🌙</i>
-                <strong>{previewTitle}<br />{previewKind}<br />查看</strong>
+                <strong>{previewKind}<br />查看</strong>
                 <span>✦</span>
               </button>
             </header>

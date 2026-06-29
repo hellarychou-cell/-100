@@ -16,6 +16,7 @@ import {
   summarizeReflectionEntry,
 } from "@/lib/self-reflection";
 import { buildClientContext } from "@/lib/user-context";
+import { readAwakeningTheaterChoices, summarizeTheaterChoice, type AwakeningTheaterChoice } from "@/lib/awakening-theater";
 import { MobileTopBar } from "@/components/MobileTopBar";
 
 type Tab = "writing" | "ai" | "profile";
@@ -24,12 +25,14 @@ export function GrowthArchiveClient() {
   const [tab, setTab] = useState<Tab>("profile");
   const [entries, setEntries] = useState<SelfReflectionEntry[]>([]);
   const [aiEntries, setAiEntries] = useState<AIConversationEntry[]>([]);
+  const [theaterChoices, setTheaterChoices] = useState<AwakeningTheaterChoice[]>([]);
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [assessment, setAssessment] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     setEntries(readLocalArray<SelfReflectionEntry>(LOCAL_REFLECTION_KEY));
     setAiEntries(readLocalArray<AIConversationEntry>(LOCAL_AI_CONVERSATION_KEY));
+    setTheaterChoices(Object.values(readAwakeningTheaterChoices()));
     setProfile(readJson(LOCAL_PROFILE_KEY));
     setAssessment(readJson(LOCAL_RESULT_KEY));
   }, []);
@@ -53,9 +56,13 @@ export function GrowthArchiveClient() {
       }),
     [aiEntries, assessment, entries, profile, sortedAiEntries, sortedEntries],
   );
+  const sortedTheaterChoices = useMemo(
+    () => [...theaterChoices].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [theaterChoices],
+  );
   const growthProfile = useMemo(() => createGrowthProfile({ context }), [context]);
   const latestEntry = sortedEntries[0];
-  const totalArchiveCount = sortedEntries.length + sortedAiEntries.length;
+  const totalArchiveCount = sortedEntries.length + sortedAiEntries.length + sortedTheaterChoices.length;
 
   return (
     <AuthGate>
@@ -80,7 +87,7 @@ export function GrowthArchiveClient() {
                 </p>
 
                 <div className="growth-archive__summary">
-                  <Metric icon="✍" label="书写" unit="篇记录" value={sortedEntries.length} />
+                  <Metric icon="✍" label="书写" unit="篇记录" value={sortedEntries.length + sortedTheaterChoices.length} />
                   <Metric icon="☵" label="AI 对话" unit="次深度对话" value={sortedAiEntries.length} />
                   <Metric icon="▥" label="已留下" unit="个线索" value={totalArchiveCount} />
                 </div>
@@ -100,7 +107,7 @@ export function GrowthArchiveClient() {
                   <TabButton active={tab === "profile"} onClick={() => setTab("profile")}>成长画像</TabButton>
                 </div>
 
-                {tab === "writing" ? <WritingRecords entries={sortedEntries} /> : null}
+                {tab === "writing" ? <WritingRecords entries={sortedEntries} theaterChoices={sortedTheaterChoices} /> : null}
                 {tab === "ai" ? <AIRecords entries={sortedAiEntries} /> : null}
                 {tab === "profile" ? (
                   <GrowthProfilePanel
@@ -143,8 +150,8 @@ function TabButton({ active, children, onClick }: { active: boolean; children: R
   );
 }
 
-function WritingRecords({ entries }: { entries: SelfReflectionEntry[] }) {
-  if (!entries.length) return <EmptyArchive title="还没有保存书写。" href="/day/1" action="去 Day 01 写下第一条" />;
+function WritingRecords({ entries, theaterChoices }: { entries: SelfReflectionEntry[]; theaterChoices: AwakeningTheaterChoice[] }) {
+  if (!entries.length && !theaterChoices.length) return <EmptyArchive title="还没有保存书写。" href="/day/1" action="去 Day 01 写下第一条" />;
   return (
     <div className="growth-archive-list growth-archive-list--writing">
       <header>
@@ -154,6 +161,22 @@ function WritingRecords({ entries }: { entries: SelfReflectionEntry[] }) {
           <p>每一天被你写下来的感受，都会变成成长画像里的线索。</p>
         </div>
       </header>
+      {theaterChoices.map((choice) => {
+        const day = dayContents.find((item) => item.day === choice.day);
+        return (
+          <article className="growth-archive-list__card" key={`theater-${choice.day}`}>
+            <div className="growth-archive-list__meta">
+              <span>Day {String(choice.day).padStart(2, "0")}</span>
+              <strong>{day?.title ?? "觉醒剧场"}</strong>
+              <time>{formatDate(choice.updatedAt)}</time>
+            </div>
+            <div className="growth-archive-list__body">
+              <RecordLine label="觉醒剧场" value={summarizeTheaterChoice(choice)} />
+              <RecordLine label="选择" value={[choice.firstChoice, choice.secondChoice].filter(Boolean).join(" + ")} />
+            </div>
+          </article>
+        );
+      })}
       {entries.map((entry) => {
         const day = dayContents.find((item) => item.day === entry.day);
         return (

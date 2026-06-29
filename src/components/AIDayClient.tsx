@@ -23,6 +23,7 @@ import {
   SelfReflectionEntry,
 } from "@/lib/self-reflection";
 import { buildClientContext } from "@/lib/user-context";
+import { readAwakeningTheaterChoice } from "@/lib/awakening-theater";
 import { MobileTopBar } from "@/components/MobileTopBar";
 import { requiresMembershipForDay } from "@/lib/progress";
 
@@ -65,6 +66,7 @@ export function AIDayClient({
   const companionLabel = companion?.label ?? "🌿 成她";
   const companionName = (companion?.name ?? companionLabel.replace(/^[^\u4e00-\u9fa5A-Za-z]+/, "").trim()) || "成她";
   const companionSymbol = companion?.symbol ?? "🌿";
+  const promptContextLabel = getPromptContextLabel(prompts.id);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -185,6 +187,9 @@ export function AIDayClient({
           <div className="ai-chat__status">
             <div className="ai-chat__method-row">
               <span className="pill">{prompts.method}</span>
+              <span className="pill ai-chat__method-tip" title={prompts.description}>
+                {promptContextLabel}
+              </span>
               {!summarized && (
                 <span className="ai-chat__input-hint">可以先写一句最真实的话</span>
               )}
@@ -418,7 +423,15 @@ function readClientContext(currentDay: number) {
     profile: readJson(LOCAL_PROFILE_KEY),
     writingEntries: readJson<SelfReflectionEntry[]>(LOCAL_REFLECTION_KEY) ?? [],
     aiEntries: readJson<AIConversationEntry[]>(LOCAL_AI_CONVERSATION_KEY) ?? [],
+    theaterChoice: readAwakeningTheaterChoice(currentDay),
   });
+}
+
+function getPromptContextLabel(id: string) {
+  if (id === "first") return "第一象限";
+  if (id === "third") return "第三象限";
+  if (id === "fourth" || id === "socratic") return "第四象限";
+  return "情绪场景";
 }
 
 function readSisterTrigger(message: string, day: number, forceName?: string) {
@@ -474,11 +487,11 @@ function getUnlockedSisters(completedDays: number[]) {
   const dayToSister: Record<number, string> = {
     1: "杨绛",
     2: "上野千鹤子",
-    3: "苏敏",
-    4: "张爱玲",
-    5: "杨本芬",
-    6: "李娟",
-    7: "李清照",
+    3: "李红",
+    4: "贾玲",
+    5: "苏敏",
+    6: "林青霞",
+    7: "杨绛",
   };
   return completedDays.map((day) => dayToSister[day]).filter(Boolean);
 }

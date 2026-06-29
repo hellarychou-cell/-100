@@ -10,6 +10,7 @@ import {
   type TodaySeeingCard,
 } from "@/lib/today-seeing-card";
 import { AIConversationEntry, LOCAL_AI_CONVERSATION_KEY } from "@/lib/self-reflection";
+import { readAwakeningTheaterChoice } from "@/lib/awakening-theater";
 import { MobileTopBar } from "@/components/MobileTopBar";
 
 export function QuoteCardClient({
@@ -35,6 +36,7 @@ export function QuoteCardClient({
       bodyNote: cardBodyNote,
       day: day.day,
       mirror: cardMirror,
+      theaterChoice: readAwakeningTheaterChoice(day.day),
       title: cardTitle,
     });
     setCard(nextCard);
@@ -47,6 +49,7 @@ export function QuoteCardClient({
       bodyNote: cardBodyNote,
       day: day.day,
       mirror: cardMirror,
+      theaterChoice: readAwakeningTheaterChoice(day.day),
       title: cardTitle,
     });
 

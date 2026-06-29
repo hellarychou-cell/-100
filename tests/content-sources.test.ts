@@ -43,24 +43,52 @@ test("schedule parser deduplicates days by keeping the later row", () => {
 test("latest Day 1-7 document drives full day copy", async () => {
   const dayOne = await getDayDocumentContent(1);
 
-  assert.equal(dayOne.title, `那句"还行吧"`);
-  assert.match(dayOne.phaseLine, /第一阶段/);
+  assert.equal(dayOne.title, "她不是不会选，是忘了自己有得选");
+  assert.match(dayOne.phaseLine, /第一阶段|觉醒期/);
   assert.match(dayOne.dimensionLine, /自我价值/);
-  assert.match(dayOne.cardPointLine, /自我声音失联/);
-  assert.match(dayOne.mirror, /有些选择/);
-  assert.match(dayOne.story, /人生第一个 60 万的项目/);
-  assert.match(dayOne.storyPreview, /还行吧/);
+  assert.match(dayOne.cardPointLine, /自我声音失联|SV-3/);
+  assert.match(dayOne.mirror, /你的目标/);
+  assert.match(dayOne.story, /你叫林夏/);
+  assert.match(dayOne.storyPreview, /你叫林夏/);
   assert.match(dayOne.bodyNote, /喉为心声出口/);
-  assert.match(dayOne.aiQuestion, /真正想说的.*是什么/);
+  assert.match(dayOne.aiQuestion, /你自己想要什么|如果下次再有人问你这个问题/);
   assert.doesNotMatch(dayOne.story, /这里接入当天完整故事|正式上线内容以 Day 文档为准/);
 });
 
-test("latest philosophy document exposes all seven public sections", () => {
+test("latest Day 1-7 document exposes awakening theater choices and interlude", async () => {
+  const dayOne = await getDayDocumentContent(1);
+  const dayTwo = await getDayDocumentContent(2);
+  const dayFive = await getDayDocumentContent(5);
+
+  assert.equal(dayOne.awakeningTheater.firstChoices.length, 3);
+  assert.deepEqual(dayOne.awakeningTheater.firstChoices.map((choice) => choice.key), ["A", "B", "C"]);
+  assert.equal(dayOne.awakeningTheater.secondChoices.length, 2);
+  assert.deepEqual(dayOne.awakeningTheater.secondChoices.map((choice) => choice.key), ["X", "Y"]);
+  assert.match(dayOne.awakeningTheater.branches.A, /大家开心就好/);
+  assert.match(dayOne.awakeningTheater.branches.Y ?? "", /备忘录/);
+  assert.match(dayOne.awakeningTheater.reveal, /你不是不会选/);
+  assert.match(dayOne.awakeningTheater.interlude, /开始对话|你自己想要什么/);
+  assert.ok(dayOne.extraSections.some((section) => section.title.includes("心理学小知识")));
+  assert.ok(dayOne.extraSections.every((section) => !section.content.includes("整天散场尾韵")));
+
+  assert.equal(dayTwo.awakeningTheater.firstChoices.length, 3);
+  assert.deepEqual(dayTwo.awakeningTheater.firstChoices.map((choice) => choice.key), ["A", "B", "C"]);
+  assert.match(dayTwo.awakeningTheater.firstChoices[0].label, /好啊/);
+  assert.doesNotMatch(dayTwo.awakeningTheater.intro, /A ·/);
+  assert.match(dayTwo.awakeningTheater.branches.A, /姐你最好了/);
+
+  assert.equal(dayFive.awakeningTheater.firstChoices.length, 0);
+  assert.equal(dayFive.awakeningTheater.secondChoices.length, 0);
+  assert.match(dayFive.awakeningTheater.intro, /你叫顾棠|老公/);
+  assert.match(dayFive.awakeningTheater.reveal, /你不是/);
+});
+
+test("latest philosophy document exposes the five public sections", () => {
   const blocks = readRootMarkdown("成她-理念页.md");
   const headings = blocks.filter((block) => block.type === "heading").map((block) => block.text);
 
   assert.ok(headings.includes("成她 100 · 品牌宣言（网站理念页）"));
-  for (const title of ["〇 · 成她宣言", "一 · 我们看见的事", "二 · 我们相信的事", "三 · 我们做的事", "四 · 我们相信的女性力量", "五 · 写给她", "六 · 100 天"]) {
+  for (const title of ["〇 · 成她宣言", "一 · 我们看见的事", "二 · 我们相信的事", "三 · 我们做的事", "四 · 我们相信的女性力量", "五 · 100 天——写给她"]) {
     assert.ok(headings.includes(title), `missing philosophy section: ${title}`);
   }
 });

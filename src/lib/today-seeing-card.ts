@@ -1,4 +1,5 @@
 import type { AIConversationEntry } from "./self-reflection.ts";
+import { summarizeTheaterChoice, type AwakeningTheaterChoice } from "./awakening-theater.ts";
 
 export const LOCAL_TODAY_SEEING_KEY = "chengta.todaySeeingCards";
 
@@ -17,15 +18,18 @@ export function createTodaySeeingCard({
   day,
   mirror,
   title,
+  theaterChoice,
 }: {
   aiEntry?: Pick<AIConversationEntry, "messages"> | null;
   bodyNote: string;
   day: number;
   mirror: string;
   title: string;
+  theaterChoice?: AwakeningTheaterChoice | null;
 }): TodaySeeingCard {
   const userMessage = [...(aiEntry?.messages ?? [])].reverse().find((message) => message.role === "user")?.content ?? "";
   const assistantMessage = [...(aiEntry?.messages ?? [])].reverse().find((message) => message.role === "assistant")?.content ?? "";
+  const theaterSummary = summarizeTheaterChoice(theaterChoice);
   const source = assistantMessage || [mirror, bodyNote].filter(Boolean).join("。");
 
   return {
@@ -34,7 +38,7 @@ export function createTodaySeeingCard({
     createdAt: new Date().toISOString(),
     day,
     title,
-    userExcerpt: cleanExcerpt(userMessage || mirror || bodyNote || "今天我愿意先看见自己。"),
+    userExcerpt: cleanExcerpt(userMessage || theaterSummary || mirror || bodyNote || "今天我愿意先看见自己。"),
   };
 }
 

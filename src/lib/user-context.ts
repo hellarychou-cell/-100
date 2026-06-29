@@ -1,4 +1,5 @@
 import type { AIConversationEntry, SelfReflectionEntry } from "./self-reflection.ts";
+import type { AwakeningTheaterChoice } from "./awakening-theater.ts";
 
 export type ClientProfileInput = {
   age?: string;
@@ -29,6 +30,10 @@ export type ClientContext = {
   recentAiThemes: string[];
   recentWriting: string[];
   repeatedScenes: Array<{ count: number; name: string }>;
+  todayAnchor?: string;
+  todayChoice?: string;
+  todaySecondAnchor?: string;
+  todaySecondChoice?: string;
   weakestDimensions: string[];
 };
 
@@ -58,12 +63,14 @@ export function buildClientContext({
   profile,
   writingEntries = [],
   aiEntries = [],
+  theaterChoice,
 }: {
   assessment?: ClientAssessmentInput;
   currentDay?: number;
   profile?: ClientProfileInput | null;
   writingEntries?: ReflectionLike[];
   aiEntries?: AIEntryLike[];
+  theaterChoice?: AwakeningTheaterChoice | null;
 }): ClientContext {
   const recentWritingEntries = [...writingEntries]
     .sort((a, b) => dateValue(b.createdAt) - dateValue(a.createdAt))
@@ -91,6 +98,10 @@ export function buildClientContext({
       [entry.touched, entry.body, entry.sentence].filter(Boolean).join(" · "),
     ),
     repeatedScenes: countScenes(corpus),
+    todayAnchor: theaterChoice?.anchors.first,
+    todayChoice: theaterChoice?.firstChoice,
+    todaySecondAnchor: theaterChoice?.anchors.second,
+    todaySecondChoice: theaterChoice?.secondChoice,
     weakestDimensions: getWeakestDimensions(assessment?.result?.dimensionScores),
   };
 }
@@ -103,6 +114,7 @@ export function buildContextPrompt(context?: ClientContext | null) {
   const highFrequencyEmotions = context.highFrequencyEmotions ?? [];
   const recentWriting = context.recentWriting ?? [];
   const recentAiThemes = context.recentAiThemes ?? [];
+  const hasTheaterAnchor = Boolean(context.todayAnchor || context.todaySecondAnchor);
 
   const lines = [
     "【你认识她的背景】",
@@ -122,6 +134,16 @@ export function buildContextPrompt(context?: ClientContext | null) {
       : "",
     recentWriting.length ? `最近书写：${recentWriting.join(" / ")}` : "",
     recentAiThemes.length ? `最近对话主题：${recentAiThemes.join(" / ")}` : "",
+    hasTheaterAnchor
+      ? [
+          "【觉醒剧场接话锚点】",
+          context.todayChoice ? `用户刚刚在觉醒剧场里的第一选择：${context.todayChoice}` : "",
+          context.todayAnchor ? `第一选择后的状态：${context.todayAnchor}` : "",
+          context.todaySecondChoice ? `用户夜里一个人时的第二选择：${context.todaySecondChoice}` : "",
+          context.todaySecondAnchor ? `第二选择后的状态：${context.todaySecondAnchor}` : "",
+          "你的第一句话要直接接住她此刻的状态，不要复述剧情，不要评价选项对错，直接问出她没说出口的问题。",
+        ].filter(Boolean).join("\n")
+      : "",
     "",
     "【亲密化回应规则】",
     "你要像一个认识她、记得她近况的陪伴者。可以温柔引用她最近反复出现的词，但不要显得像数据报告。",

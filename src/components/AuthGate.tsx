@@ -85,7 +85,7 @@ export function AuthGate({ children, requireMember = true }: { children: ReactNo
     return (
       <GateNotice
         title={`${state.userName}，这里等待开通。`}
-        text="你已经有账号了。完成私下转账后，管理员会按手机号在后台给你加 30 天会员。"
+        text="请添加管理员微信：tianxin0995，联系开通后面的内容。开通后再回来，这里的内容会继续为你保留。"
         action={<Link className="action-primary" href="/">回到主页</Link>}
       />
     );

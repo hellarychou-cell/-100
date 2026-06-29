@@ -112,6 +112,8 @@ test("daily content and AI chat use their approved mobile shells", () => {
   assert.match(ai, /ai-chat__conversation/);
   assert.match(ai, /ai-chat__composer/);
   assert.match(ai, /companionLabel/);
+  assert.match(ai, /ai-chat__method-tip/);
+  assert.match(ai, /title=\{prompts\.description\}/);
 });
 
 test("secondary product pages share the Figma mobile page shells", () => {
@@ -154,7 +156,7 @@ test("feedback pass preserves the detailed Figma information hierarchy", () => {
   const day = read("src/app/day/[day]/page.tsx");
   const reflection = read("src/components/SelfReflectionBox.tsx");
   const growth = read("src/components/GrowthArchiveClient.tsx");
-  const report = read("src/components/AssessmentResultClient.tsx");
+  const report = read("src/components/AssessmentReportView.tsx");
 
   assert.match(profilePage, /assessment-profile-page__notice/);
   assert.match(profileForm, /assessment-profile-form__field/);
@@ -185,8 +187,8 @@ test("second detail pass follows the final Figma page hierarchy", () => {
   assert.match(growth, /growth-profile-panel__signals/);
   assert.match(growth, /growth-profile-panel__quote/);
   assert.match(growth, /growth-archive__record-columns/);
-  assert.match(read("src/components/AssessmentResultClient.tsx"), /assessment-report__score-visual/);
-  assert.match(read("src/components/AssessmentResultClient.tsx"), /assessment-report__object/);
+  assert.match(read("src/components/AssessmentReportView.tsx"), /assessment-report__score-visual/);
+  assert.match(read("src/components/AssessmentReportView.tsx"), /assessment-report__object/);
   assert.match(home, /第一阶段觉醒期/);
   assert.match(home, /home-status__progress-copy/);
   assert.match(treasure, /treasure-page__icon-mark/);
@@ -194,7 +196,7 @@ test("second detail pass follows the final Figma page hierarchy", () => {
 });
 
 test("report polish and weekly knowledge navigation have stable UI hooks", () => {
-  const report = read("src/components/AssessmentResultClient.tsx");
+  const report = read("src/components/AssessmentReportView.tsx");
   const knowledge = read("src/components/KnowledgeDayGrid.tsx");
   const css = read("src/app/globals.css");
 
