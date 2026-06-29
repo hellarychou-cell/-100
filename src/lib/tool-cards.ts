@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { readRootMarkdown } from "./markdown.ts";
 
@@ -24,12 +24,10 @@ export function getToolCards(): ToolCard[] {
   return listToolCardFiles()
     .map((file) => {
       const blocks = readRootMarkdown(file);
+      const raw = readFileSync(path.join(process.cwd(), file), "utf8");
       const heading = blocks.find((block) => block.type === "heading" && block.level === 1);
       const quote = blocks.find((block) => block.type === "quote")?.text ?? "这是一张可以反复使用的工具卡。";
-      const content = blocks
-        .filter((block) => !(block.type === "heading" && block.level === 1))
-        .map((block) => block.text)
-        .join("\n\n");
+      const content = extractToolMarkdownBody(raw);
       const title = normalizeToolName(heading?.text ?? path.basename(file, ".md"));
 
       return {
@@ -71,4 +69,11 @@ function listToolCardFiles() {
 
 function normalizeToolName(value: string) {
   return value.replace(/^#*\s*/g, "").replace(/^[\d.]+\s*·\s*/u, "").trim();
+}
+
+function extractToolMarkdownBody(raw: string) {
+  return raw
+    .replace(/^---[\s\S]*?---\s*/u, "")
+    .replace(/^#\s+.+\n+/u, "")
+    .trim();
 }

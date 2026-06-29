@@ -39,7 +39,7 @@ export function buildCollectionState({
   selfCard?: SelfCard | null;
   toolCards: ToolCard[];
 }) {
-  const toolSlots: ToolCollectionSlot[] = toolCards.slice(0, 24).map((card, index) => ({
+  const toolSlots: ToolCollectionSlot[] = toolCards.map((card, index) => ({
     ...card,
     day: findDayForTool(card, scheduleWomen),
     slot: index + 1,
@@ -83,14 +83,9 @@ export function buildCollectionState({
 function findDayForTool(card: ToolCard, scheduleWomen: ScheduleWoman[]) {
   const code = card.file.match(/\/(\d+\.\d+)/)?.[1];
   const normalizedName = normalizeCardText(card.front.name);
-  const normalizedFile = normalizeCardText(card.file);
   const match = scheduleWomen.find((woman) => {
     const cardType = normalizeCardText(woman.cardType);
-    return (
-      (code && cardType.includes(code)) ||
-      cardType.includes(normalizedName) ||
-      (normalizedName.length > 1 && normalizedFile.includes(normalizedName))
-    );
+    return Boolean((code && cardType.includes(code)) || (normalizedName.length > 1 && cardType.includes(normalizedName)));
   });
   return match?.day ?? null;
 }

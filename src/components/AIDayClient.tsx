@@ -3,15 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
-import { LOCAL_PROFILE_KEY, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
+import { LOCAL_PROFILE_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { dayContents } from "@/lib/content";
 import { dayAIPrompts } from "@/lib/ai-prompts";
 import type { DayCompanion } from "@/lib/day-companion";
 import {
-  findTriggeredSister,
-  getSisterProfile,
+  createSisterTriggerReply,
   LOCAL_SISTER_TRIGGER_LOG_KEY,
-  sisterProfiles,
+  shouldTriggerSister,
   type SisterTriggerLog,
 } from "@/lib/sister-profiles";
 import {
@@ -126,8 +125,12 @@ export function AIDayClient({
       const data = await res.json();
       if (data.reply) {
         const nextUserCount = [...messages, userMsg].filter((message) => message.role === "user").length;
-        const trigger = mode === "chat" && nextUserCount >= 5
-          ? readSisterTrigger(text, dayNum, companion?.name)
+        const recentUserTexts = [...messages, userMsg]
+          .filter((message) => message.role === "user")
+          .slice(-3)
+          .map((message) => message.content);
+        const trigger = mode === "chat" && nextUserCount >= 2
+          ? readSisterTrigger(dayNum, companion?.name, recentUserTexts)
           : null;
         const assistantMsg: Message = { role: "assistant", content: data.reply, createdAt: new Date().toISOString() };
         const triggerMsg: Message | null = trigger
@@ -221,9 +224,6 @@ export function AIDayClient({
 
               {messages.map((msg, i) => (
                 <div key={i} className="mb-4 grid gap-3">
-                  {msg.kind === "sister-trigger" ? (
-                    <SisterTriggerNotice content={msg.content} />
-                  ) : (
                   <div className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                     <div
                       className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${
@@ -242,7 +242,6 @@ export function AIDayClient({
                       </div>
                     </div>
                   </div>
-                  )}
                 </div>
               ))}
 
@@ -326,59 +325,6 @@ function CompanionAvatar({ symbol }: { symbol: string }) {
   );
 }
 
-function SisterTriggerNotice({ content }: { content: string }) {
-  const parsed = parseSisterTrigger(content);
-  return (
-    <div className="ai-chat__sister-trigger">
-      <div className="ai-chat__sister-trigger-title"><i />姐妹触发<i /></div>
-      <p className="ai-chat__sister-trigger-intro">你今天的话，让我想到了——</p>
-      {parsed ? (
-        <>
-          <div className="ai-chat__sister-trigger-voice">
-            <strong>{parsed.symbol} {parsed.name}</strong>
-            <p>{parsed.dailyVoice}</p>
-            {parsed.gift ? <small>礼物：{parsed.gift}</small> : null}
-          </div>
-          <p className="ai-chat__sister-trigger-to">致 {parsed.to}</p>
-        </>
-      ) : (
-        <p className="ai-chat__sister-trigger-voice">{content}</p>
-      )}
-    </div>
-  );
-}
-
-function parseSisterTrigger(content: string) {
-  try {
-    const parsed = JSON.parse(content) as {
-      dailyVoice?: string;
-      gift?: string;
-      name?: string;
-      symbol?: string;
-      to?: string;
-    };
-    if (!parsed.name || !parsed.dailyVoice) return null;
-    return {
-      dailyVoice: parsed.dailyVoice,
-      gift: parsed.gift ?? "",
-      name: parsed.name,
-      symbol: parsed.symbol ?? "🌿",
-      to: parsed.to || "你",
-    };
-  } catch {
-    const profile = sisterProfiles.find((item) => content.includes(item.name));
-    if (!profile) return null;
-    const to = content.match(/致\s*([^\s，。]+)/)?.[1] ?? "你";
-    return {
-      dailyVoice: profile.dailyVoice,
-      gift: profile.gift,
-      name: profile.name,
-      symbol: profile.symbol,
-      to,
-    };
-  }
-}
-
 function saveAIConversation(day: number, messages: Message[], title: string) {
   const raw = window.localStorage.getItem(LOCAL_AI_CONVERSATION_KEY);
   let entries: AIConversationEntry[] = [];
@@ -434,26 +380,18 @@ function getPromptContextLabel(id: string) {
   return "情绪场景";
 }
 
-function readSisterTrigger(message: string, day: number, forceName?: string) {
+function readSisterTrigger(day: number, sisterName: string | undefined, userTexts: string[]) {
+  const currentSister = sisterName?.trim();
+  if (!currentSister) return null;
   const triggerLog = readJson<SisterTriggerLog>(LOCAL_SISTER_TRIGGER_LOG_KEY) ?? {};
-  const progress = readJson<{ completedDays?: number[] }>(LOCAL_PROGRESS_KEY);
-  const completedDays = Array.isArray(progress?.completedDays) ? progress.completedDays : [];
-  const unlockedSisters = getUnlockedSisters(completedDays);
-  const forcedProfile = forceName ? getSisterProfile(forceName) : null;
-  const forcedCanTrigger = forcedProfile && !(triggerLog[String(day)] ?? []).includes(forcedProfile.name);
-  const profile = forcedCanTrigger
-    ? forcedProfile
-    : findTriggeredSister({ day, message, triggerLog, unlockedSisters });
-  if (!profile) return null;
+  if (!shouldTriggerSister({ day, sisterName: currentSister, triggerLog })) return null;
   const context = readClientContext(day);
   return {
-    name: profile.name,
-    text: JSON.stringify({
-      dailyVoice: profile.dailyVoice,
-      gift: profile.gift,
-      name: profile.name,
-      symbol: profile.symbol,
-      to: context.name,
+    name: currentSister,
+    text: createSisterTriggerReply({
+      sisterName: currentSister,
+      userName: context.name,
+      userTexts,
     }),
   };
 }
@@ -481,17 +419,4 @@ function readJson<T>(key: string): T | null {
     window.localStorage.removeItem(key);
     return null;
   }
-}
-
-function getUnlockedSisters(completedDays: number[]) {
-  const dayToSister: Record<number, string> = {
-    1: "杨绛",
-    2: "上野千鹤子",
-    3: "李红",
-    4: "贾玲",
-    5: "苏敏",
-    6: "林青霞",
-    7: "杨绛",
-  };
-  return completedDays.map((day) => dayToSister[day]).filter(Boolean);
 }

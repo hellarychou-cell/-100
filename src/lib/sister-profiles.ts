@@ -124,6 +124,48 @@ export function buildSisterTriggerText(profile: SisterProfile, userName = "你")
   return [`───`, `你今天的话，让我想到了——`, profile.dailyVoice, `礼物：${profile.gift}`, `── 致 ${userName}`].join("\n");
 }
 
+export function createSisterTriggerReply({
+  sisterName,
+  userName = "你",
+  userTexts,
+}: {
+  sisterName: string;
+  userName?: string;
+  userTexts: string[];
+}) {
+  const recentText = userTexts
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(-3)
+    .join(" ");
+  const seenState = inferSeenState(recentText);
+  const gentleAction = inferGentleAction(recentText);
+
+  return [
+    `如果今天是${sisterName}在这里，她可能会轻轻对${userName || "你"}说：`,
+    `“我先看见你刚才那一下${seenState}，那不是小题大做。”`,
+    `“不用马上变得很会表达，先${gentleAction}。”`,
+  ].join("\n");
+}
+
 function normalizeName(value: string) {
   return value.replace(/\s+/g, "").replace("弗吉尼亚·", "").replace("桑塔格", "苏珊·桑塔格");
+}
+
+function inferSeenState(text: string) {
+  if (/累|疲惫|撑不住|没力气|耗/.test(text)) return "很累却还想撑住";
+  if (/妈妈|母亲|电话|家里|父母/.test(text)) return "被家里的声音牵住";
+  if (/怕|担心|不敢|害怕/.test(text)) return "想说又怕伤到别人";
+  if (/拒绝|不|边界|答应/.test(text)) return "在边界前停了一秒";
+  if (/委屈|难过|生气|愤怒/.test(text)) return "委屈终于冒出来";
+  if (/都行|随便|还行|无所谓/.test(text)) return "把自己先放到后面";
+  return "想被好好听见";
+}
+
+function inferGentleAction(text: string) {
+  if (/妈妈|母亲|电话|家里|父母/.test(text)) return "把电话那头的声音放远一点，先听听自己";
+  if (/拒绝|不|边界|答应/.test(text)) return "把那句没说出口的话放在手心里";
+  if (/累|疲惫|撑不住|没力气|耗/.test(text)) return "允许身体先歇一口气";
+  if (/委屈|难过|生气|愤怒/.test(text)) return "承认那一点委屈是真的";
+  return "把这句话留在自己这边";
 }

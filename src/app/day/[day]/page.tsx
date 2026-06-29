@@ -156,10 +156,17 @@ export default async function DayPage({ params }: PageProps) {
               </section>
             ))}
             {documentContent.curtainCall ? (
-              <section className="day-page__section day-page__section--after-ai day-page__curtain-call">
-                <SectionTitle number={String(documentContent.extraSections.length + 4)} title="整天散场尾韵 🌙" />
-                <div className="day-page__curtain-copy">
-                  {renderParagraphs(documentContent.curtainCall)}
+              <section className="day-page__section--after-ai day-page__curtain-stage" aria-label="整天散场尾韵">
+                <div className="day-page__curtain-peek">
+                  <span>✦</span>
+                  <small>轻轻上拉，今晚的尾韵在这里</small>
+                  <span>✦</span>
+                </div>
+                <div className="day-page__curtain-call">
+                  <p className="day-page__curtain-kicker">整天散场尾韵</p>
+                  <div className="day-page__curtain-copy">
+                    {renderParagraphs(documentContent.curtainCall)}
+                  </div>
                 </div>
               </section>
             ) : null}

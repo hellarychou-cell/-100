@@ -116,6 +116,25 @@ test("daily content and AI chat use their approved mobile shells", () => {
   assert.match(ai, /title=\{prompts\.description\}/);
 });
 
+test("collection keeps sister cards as front-only and tool cards as full reading sheets", () => {
+  const collection = read("src/components/CollectionClient.tsx");
+
+  assert.doesNotMatch(collection, /翻到工具卡/);
+  assert.doesNotMatch(collection, /翻回姐妹卡/);
+  assert.match(collection, /对应姐妹/);
+  assert.match(collection, /collection-modal__scroll-copy/);
+});
+
+test("curtain call is rendered as a hidden pull-up stage instead of a numbered section card", () => {
+  const day = read("src/app/day/[day]/page.tsx");
+  const css = read("src/app/globals.css");
+
+  assert.match(day, /day-page__curtain-stage/);
+  assert.doesNotMatch(day, /title="整天散场尾韵 🌙"/);
+  assert.match(css, /day-page__curtain-stage/);
+  assert.match(css, /min-height:\s*86vh/);
+});
+
 test("secondary product pages share the Figma mobile page shells", () => {
   const files = {
     "knowledge-page": "src/app/knowledge/page.tsx",

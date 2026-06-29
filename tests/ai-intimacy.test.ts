@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildClientContext, buildContextPrompt } from "../src/lib/user-context.ts";
 import { createGrowthProfile } from "../src/lib/growth-archive.ts";
 import { createTodaySeeingCard } from "../src/lib/today-seeing-card.ts";
-import { findTriggeredSister, getSisterProfile, shouldTriggerSister } from "../src/lib/sister-profiles.ts";
+import { createSisterTriggerReply, findTriggeredSister, getSisterProfile, shouldTriggerSister } from "../src/lib/sister-profiles.ts";
 import { buildCollectionState } from "../src/lib/collection.ts";
 import { createLocalAIReply } from "../src/lib/ai-local-fallback.ts";
 import { createAwakeningTheaterChoice } from "../src/lib/awakening-theater.ts";
@@ -118,6 +118,20 @@ test("sister trigger matches unlocked sisters and prevents same-day duplicates",
   assert.equal(shouldTriggerSister({ day: 7, sisterName: "苏敏", triggerLog: { "7": ["苏敏"] } }), false);
 });
 
+test("sister trigger reply borrows today's sister without exposing card gifts or long voice", () => {
+  const reply = createSisterTriggerReply({
+    sisterName: "杨绛",
+    userName: "林夏",
+    userTexts: ["我刚刚又说都行，其实心里有点空。", "我怕说出来别人不高兴。"],
+  });
+
+  assert.match(reply, /如果今天是杨绛在这里/);
+  assert.match(reply, /林夏/);
+  assert.doesNotMatch(reply, /礼物|感恩卡|工具卡|空白卡|福利卡/);
+  assert.doesNotMatch(reply, /我和谁都不争|骨头最硬/);
+  assert.ok(reply.split(/\n+/).filter(Boolean).length <= 3);
+});
+
 test("collection state dedupes sister cards, keeps tool slots unique, and unlocks self card at day 100", () => {
   const state = buildCollectionState({
     completedDays: [1, 2, 7, 100],
@@ -158,6 +172,39 @@ test("collection pairs a sister day with the matching unlocked tool card", () =>
   assert.equal(state.toolSlots[0].day, 2);
   assert.equal(state.toolSlots[0].unlocked, true);
   assert.equal(state.sisterSlots[0].unlocked, true);
+});
+
+test("collection only unlocks tool cards whose matched day is completed", () => {
+  const state = buildCollectionState({
+    completedDays: [1, 2, 3],
+    toolCards: [
+      {
+        file: "心理学工具箱/2-关系边界与自我主权/2.1-课题分离.md",
+        category: "2-关系边界与自我主权",
+        front: { name: "课题分离", description: "", quote: "" },
+        back: { type: "tool", title: "课题分离", content: "" },
+      },
+      {
+        file: "心理学工具箱/1-自我价值与配得感/1.4-自我同情三步.md",
+        category: "1-自我价值与配得感",
+        front: { name: "自我同情三步", description: "", quote: "" },
+        back: { type: "tool", title: "自我同情三步", content: "" },
+      },
+      {
+        file: "心理学工具箱/1-自我价值与配得感/1.1-萨提亚冰山模型.md",
+        category: "1-自我价值与配得感",
+        front: { name: "萨提亚冰山模型", description: "", quote: "" },
+        back: { type: "tool", title: "萨提亚冰山模型", content: "" },
+      },
+    ],
+    scheduleWomen: [
+      { day: 2, name: "上野千鹤子", field: "日本当代", cardType: "🎴 2.1课题分离", quoteSource: "《时时刻刻》" },
+      { day: 4, name: "贾玲", field: "电影", cardType: "🎴 1.4自我同情", quoteSource: "《热辣滚烫》" },
+      { day: 7, name: "杨绛", field: "现代", cardType: "🎴 1.1萨提亚冰山", quoteSource: "鲁米" },
+    ],
+  });
+
+  assert.deepEqual(state.toolSlots.filter((slot) => slot.unlocked).map((slot) => slot.front.name), ["课题分离"]);
 });
 
 test("latest week sister cards have collection voice and gift copy", () => {

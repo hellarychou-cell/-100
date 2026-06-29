@@ -113,4 +113,5 @@ test("toolbox parser exposes twenty five non-index tool cards", () => {
   assert.ok(cards.some((card) => card.front.name.includes("萨提亚冰山")));
   assert.ok(cards.some((card) => card.front.name.includes("金钱家族脚本")));
   assert.ok(cards.every((card) => card.back.content.length > 120));
+  assert.match(cards.find((card) => card.front.name.includes("课题分离"))?.back.content ?? "", /##\s+这张卡解决什么|###\s+/);
 });
