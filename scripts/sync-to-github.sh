@@ -20,9 +20,10 @@ rsync -av --delete \
 cd "$TARGET_DIR"
 
 REMOTE_URL="$(git remote get-url origin)"
-if [[ "$REMOTE_URL" != "https://github.com/hellarychou-cell/-100.git" ]]; then
+EXPECTED_REMOTE_URL="git@github.com-chengta100:hellarychou-cell/-100.git"
+if [[ "$REMOTE_URL" != "$EXPECTED_REMOTE_URL" ]]; then
   echo "Unexpected origin remote: $REMOTE_URL"
-  echo "Expected: https://github.com/hellarychou-cell/-100.git"
+  echo "Expected: $EXPECTED_REMOTE_URL"
   exit 1
 fi
 
