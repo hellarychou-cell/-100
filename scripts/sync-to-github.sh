@@ -19,6 +19,19 @@ rsync -av --delete \
 
 cd "$TARGET_DIR"
 
+REMOTE_URL="$(git remote get-url origin)"
+if [[ "$REMOTE_URL" != "https://github.com/hellarychou-cell/-100.git" ]]; then
+  echo "Unexpected origin remote: $REMOTE_URL"
+  echo "Expected: https://github.com/hellarychou-cell/-100.git"
+  exit 1
+fi
+
+WRONG_GITHUB_USER="$(git config --get credential.https://github.com.username || true)"
+if [[ "$WRONG_GITHUB_USER" == "262933974" ]]; then
+  echo "Removing stale GitHub credential username: $WRONG_GITHUB_USER"
+  git config --unset credential.https://github.com.username
+fi
+
 git add .
 
 if git diff --cached --quiet; then

@@ -58,6 +58,36 @@ npm run build
 ./scripts/sync-to-github.sh "更新说明"
 ```
 
+上线前先做部署预检，避免重复踩凭据和目录问题：
+
+```bash
+cd /Users/macbook/Documents/GitHub/-100
+git status --short --branch
+git remote -v
+git config --show-origin --get-regexp 'remote.origin.url|credential|insteadOf|url\..*\.insteadOf'
+```
+
+预期状态：
+
+- `/Users/macbook/Documents/GitHub/-100` 应该是干净的 `main...origin/main`，没有未提交改动。
+- `origin` 应该是 `https://github.com/hellarychou-cell/-100.git`。
+- 不应该存在错误账号的本地凭据配置，例如 `credential.https://github.com.username 262933974`。
+
+如果发现错误账号凭据配置，先在同步目标仓库移除：
+
+```bash
+cd /Users/macbook/Documents/GitHub/-100
+git config --unset credential.https://github.com.username
+```
+
+本项目曾经在部署时失败过一次，报错是：
+
+```text
+fatal: could not read Password for 'https://262933974@github.com': Device not configured
+```
+
+根因不是代码构建失败，而是同步目标仓库残留了错误 GitHub 用户名配置，导致 `git push` 读取错误钥匙串凭据。处理方式是移除这条本地 Git config 后重新 `git push origin main`。下次遇到类似 GitHub 密码/凭据错误，先查上面的 `git config --show-origin --get-regexp ...`，不要反复重跑同步脚本。
+
 同步脚本成功后，继续确认 Vercel 部署状态。正式地址是：
 
 ```text
@@ -69,6 +99,17 @@ https://chengta-100.vercel.app
 ```text
 http://124.222.242.203
 ```
+
+推荐的稳定部署顺序：
+
+1. 在 `/Volumes/PS2000/成她` 完成修改。
+2. 跑 `npm test`、`npm run lint`、`npm run build`。
+3. 在 `/Users/macbook/Documents/GitHub/-100` 做上面的 Git 凭据预检。
+4. 回到 `/Volumes/PS2000/成她` 执行 `./scripts/sync-to-github.sh "更新说明"`。
+5. 如果脚本已经 commit 但 push 失败，不要重新提交；进入 `/Users/macbook/Documents/GitHub/-100` 修凭据后直接 `git push origin main`。
+6. 用 `vercel ls chengta-100 --scope hellary` 和 `vercel inspect chengta-100.vercel.app --scope hellary --timeout 180s` 等到最新 Production Ready。
+7. 验证 `https://chengta-100.vercel.app/day/1`、`/collection`、`/day/1/ai` 等关键页面返回 200。
+8. 如需国内访问，从 `/Users/macbook/Documents/GitHub/-100` rsync 到腾讯云，远端 `npm ci && npm run build && sudo systemctl restart chengta100`，再验证 `http://124.222.242.203` 关键页面和 `chengta100/nginx` 状态。
 
 ## 完成标准
 
