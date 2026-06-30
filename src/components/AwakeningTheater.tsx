@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AwakeningTheaterContent, TheaterChoiceKey, TheaterChoiceOption } from "@/lib/day-document";
 import {
+  AWAKENING_THEATER_CHOICE_EVENT,
   createAwakeningTheaterChoice,
   getAwakeningTheaterProgress,
   LOCAL_DAY_READING_STAGE_KEY,
@@ -10,8 +11,7 @@ import {
   saveAwakeningTheaterChoice,
   summarizeTheaterChoice,
 } from "@/lib/awakening-theater";
-
-export const AWAKENING_THEATER_CHOICE_EVENT = "chengta:awakening-theater-choice";
+import { saveTheaterChoiceRecord } from "@/lib/growth-records";
 
 export function AwakeningTheater({
   day,
@@ -82,6 +82,9 @@ export function AwakeningTheater({
 
   function persistChoice(choice: ReturnType<typeof createAwakeningTheaterChoice>) {
     saveAwakeningTheaterChoice(choice);
+    saveTheaterChoiceRecord(choice).catch((error) => {
+      console.warn("Failed to sync awakening theater choice:", error);
+    });
     window.dispatchEvent(new CustomEvent(AWAKENING_THEATER_CHOICE_EVENT, { detail: { day } }));
   }
 

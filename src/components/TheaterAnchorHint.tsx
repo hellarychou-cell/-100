@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AWAKENING_THEATER_CHOICE_EVENT } from "@/components/AwakeningTheater";
-import { getAwakeningTheaterProgress, readAwakeningTheaterChoice } from "@/lib/awakening-theater";
+import {
+  AWAKENING_THEATER_CHOICE_EVENT,
+  getAwakeningTheaterProgress,
+  readAwakeningTheaterChoice,
+} from "@/lib/awakening-theater";
 
 export function TheaterAnchorHint({
   day,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { buildCollectionState, LOCAL_COLLECTION_CELEBRATED_KEY, LOCAL_SELF_CARD_KEY, type SelfCard } from "@/lib/collection";
+import { createSisterGiftDisplay, splitInlineStrong } from "@/lib/collection-copy";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
 import { getSisterProfile } from "@/lib/sister-profiles";
 import { supabase } from "@/lib/supabase";
@@ -49,7 +50,7 @@ export function CollectionClient({ scheduleWomen, toolCards }: { scheduleWomen: 
   const firstUnlockedTool = state.toolSlots.find((slot) => slot.unlocked);
   const firstUnlockedSister = state.sisterSlots.find((slot) => slot.unlocked);
   const selectedPairedSister = selectedTool
-    ? state.sisterSlots.find((slot) => slot.firstDay === selectedTool.day && slot.unlocked)
+    ? state.sisterSlots.find((slot) => slot.firstDay === selectedTool.day)
     : null;
   const previewKind = selectedTool ? "工具卡" : selectedSister ? "姐妹卡" : "已解锁的卡";
 
@@ -208,45 +209,32 @@ function SelectedCardModal({
       <div className="collection-modal" role="dialog" aria-modal="true">
         <article className="collection-modal__sheet collection-modal__sheet--tool">
           <button className="collection-modal__sheet-close" onClick={onClose} type="button">×</button>
-          <div className="collection-modal__top-symbol">☾</div>
-          <p className="collection-modal__day">工具卡 · Day {toolCard.day ?? "??"}</p>
-          <h2>{toolCard.front.name}</h2>
-          <p className="collection-modal__origin">{toolCard.front.description}</p>
-          <div className="collection-modal__divider" />
-          <div className="collection-modal__quote">
-            <span>“</span>
-            <strong>{toolCard.front.quote || "先把注意力带回自己。"}</strong>
-            <span>”</span>
+          <header className="collection-modal__header">
+            <div className="collection-modal__top-symbol">☾</div>
+            <p className="collection-modal__day">工具卡 · Day {toolCard.day ?? "??"}</p>
+            <h2>{toolCard.front.name}</h2>
+            <div className="collection-modal__divider" />
+          </header>
+          <div className="collection-modal__body">
+            <section className="collection-modal__voice">
+              <h3>这张工具卡想提醒你</h3>
+              <div className="collection-modal__scroll-copy">
+                {renderToolMarkdown(toolCard.back.content)}
+              </div>
+            </section>
           </div>
-          <section className="collection-modal__voice">
-            <h3>这张工具卡想提醒你</h3>
-            <div className="collection-modal__scroll-copy">
-              {renderToolMarkdown(toolCard.back.content)}
-            </div>
-          </section>
-          <section className="collection-modal__gift">
-            <h3>适用时刻</h3>
-            <div><span>◇</span><p>{toolCard.category}</p><i>✦</i></div>
-          </section>
-          <section className="collection-modal__gift">
-            <h3>对应姐妹</h3>
-            <div>
-              <span>✿</span>
-              <p>{pairedSister?.unlocked ? `Day ${String(pairedSister.firstDay).padStart(2, "0")} · ${pairedSister.name}` : "完成对应 Day 后点亮"}</p>
-              <i>✦</i>
-            </div>
-          </section>
-          <section className="collection-modal__keywords">
-            <h3>关键词</h3>
-            <div>{toolKeywords(toolCard).map((item) => <span key={item}>{item}</span>)}</div>
-          </section>
-          <div className="collection-modal__ornament"><i /><span>✿</span><i /></div>
-          <button className="collection-modal__primary" onClick={onClose} type="button">♡ 收下工具卡</button>
-          {pairedSister?.unlocked ? (
-            <button className="collection-modal__secondary" onClick={() => setShowPairedSister(true)} type="button">
-              查看对应姐妹
+          <div className="collection-modal__actions">
+            <button className="collection-modal__primary" onClick={onClose} type="button">返回集卡</button>
+            <button
+              className="collection-modal__secondary"
+              disabled={!pairedSister?.unlocked}
+              onClick={() => pairedSister?.unlocked && setShowPairedSister(true)}
+              title={pairedSister?.unlocked ? "" : "完成对应 Day 后解锁这张姐妹卡"}
+              type="button"
+            >
+              {pairedSister?.unlocked ? "翻到姐妹卡" : "姐妹卡未解锁"}
             </button>
-          ) : <button className="collection-modal__secondary" onClick={onClose} type="button">回到集卡</button>}
+          </div>
         </article>
       </div>
     );
@@ -279,76 +267,68 @@ function SisterSheet({
     <div className="collection-modal" role="dialog" aria-modal="true">
       <article className="collection-modal__sheet collection-modal__sheet--sister">
         <button className="collection-modal__sheet-close" onClick={onClose} type="button">×</button>
-        <div className="collection-modal__top-symbol">{profile?.symbol ?? "🌿"}</div>
-        <p className="collection-modal__day">Day {String(sister.firstDay).padStart(2, "0")} · 我的姐妹</p>
-        <h2>{spacedName(sister.name)}</h2>
-        <p className="collection-modal__origin">第一次出现于 Day {String(sister.firstDay).padStart(2, "0")} · {sister.quoteSource || sister.field}</p>
-        <div className="collection-modal__divider" />
-        <div className="collection-modal__quote">
-          <span>“</span>
-          <strong>{voiceLines[0] || "她在这里。"}</strong>
-          <span>”</span>
-        </div>
-        <section className="collection-modal__voice">
-          <h3>她今天对你说</h3>
-          <div>
-            {voiceLines.map((line) => <p key={line}>{line}</p>)}
-            <small>—— 致 你</small>
+        <header className="collection-modal__header">
+          <div className="collection-modal__top-symbol">{profile?.symbol ?? "🌿"}</div>
+          <p className="collection-modal__day">Day {String(sister.firstDay).padStart(2, "0")} · 我的姐妹</p>
+          <h2>{spacedName(sister.name)}</h2>
+          <div className="collection-modal__tags">
+            <span>{sister.field || "女性力量"}</span>
+            <span>{profile?.triggerKeywords.slice(0, 2).join(" · ") || "陪你看见"}</span>
           </div>
-        </section>
-        {profile?.gift ? (
-          <section className="collection-modal__gift">
-            <h3>她留给你的小礼物</h3>
-            <div><span>◇</span><p>{profile.gift.replace(/^[^\p{L}\p{N}]+/u, "")}</p><i>✦</i></div>
+          <div className="collection-modal__divider" />
+        </header>
+        <div className="collection-modal__body">
+          <section className="collection-modal__voice">
+            <h3>她今天对你说</h3>
+            <div>
+              {voiceLines.map((line) => <p key={line}>{line}</p>)}
+              <small>—— 致 你</small>
+            </div>
           </section>
-        ) : null}
-        <div className="collection-modal__ornament"><i /><span>✿</span><i /></div>
-        <button className="collection-modal__primary" onClick={onClose} type="button">♡ 收下这张卡</button>
-        {secondaryAction ? (
-          <button className="collection-modal__secondary" onClick={secondaryAction.onClick} type="button">
-            {secondaryAction.label}
-          </button>
-        ) : <button className="collection-modal__secondary" onClick={onClose} type="button">回到集卡</button>}
+          {profile?.gift ? (
+            <section className="collection-modal__gift">
+              <h3>她留给你的小礼物</h3>
+              <div><span>◇</span><p>{createSisterGiftDisplay(profile.gift, sister.name)}</p><i>✦</i></div>
+            </section>
+          ) : null}
+        </div>
+        <div className="collection-modal__actions">
+          <button className="collection-modal__primary" onClick={onClose} type="button">♡ 收下这张卡</button>
+          {secondaryAction ? (
+            <button className="collection-modal__secondary" onClick={secondaryAction.onClick} type="button">
+              {secondaryAction.label}
+            </button>
+          ) : <button className="collection-modal__secondary" onClick={onClose} type="button">回到集卡</button>}
+        </div>
       </article>
     </div>
   );
 }
 
 function splitVoice(value: string) {
-  return value.split(/\n+/).map((line) => line.trim().replace(/^[-—]+$/u, "——")).filter(Boolean).slice(0, 6);
+  return value.split(/\n+/).map((line) => line.trim().replace(/^[-—]+$/u, "——")).filter(Boolean);
 }
 
 function renderToolMarkdown(value: string) {
   return value
     .split(/\n+/)
     .map((line) => line.trim())
-    .filter((line) => line && !/^[-\s]+$/u.test(line))
+    .filter((line) => line && !/^[-\s]+$/u.test(line) && !/^\s*(最后|最近)更新\s*[：:].*$/u.test(line))
     .map((line, index) => {
       const key = `${index}-${line}`;
-      if (/^#{2,3}\s+/.test(line)) return <h4 key={key}>{line.replace(/^#{2,3}\s+/u, "")}</h4>;
-      if (/^#{4,6}\s+/.test(line)) return <h5 key={key}>{line.replace(/^#{4,6}\s+/u, "")}</h5>;
-      if (/^>/.test(line)) return <blockquote key={key}>{line.replace(/^>\s?/u, "")}</blockquote>;
-      if (/^\|/.test(line)) return <p className="is-table-row" key={key}>{line.replace(/\|/g, " ").replace(/\s+/g, " ").trim()}</p>;
-      if (/^[-*]\s+/.test(line)) return <p className="is-list-row" key={key}>{line.replace(/^[-*]\s+/u, "• ")}</p>;
-      return <p key={key}>{line}</p>;
+      if (/^#{2,3}\s+/.test(line)) return <h4 key={key}>{renderInlineMarkdown(line.replace(/^#{2,3}\s+/u, ""))}</h4>;
+      if (/^#{4,6}\s+/.test(line)) return <h5 key={key}>{renderInlineMarkdown(line.replace(/^#{4,6}\s+/u, ""))}</h5>;
+      if (/^>/.test(line)) return <blockquote key={key}>{renderInlineMarkdown(line.replace(/^>\s?/u, ""))}</blockquote>;
+      if (/^\|/.test(line)) return <p className="is-table-row" key={key}>{renderInlineMarkdown(line.replace(/\|/g, " ").replace(/\s+/g, " ").trim())}</p>;
+      if (/^[-*]\s+/.test(line)) return <p className="is-list-row" key={key}>{renderInlineMarkdown(line.replace(/^[-*]\s+/u, "• "))}</p>;
+      return <p key={key}>{renderInlineMarkdown(line)}</p>;
     });
 }
 
-function toolKeywords(toolCard: ReturnType<typeof buildCollectionState>["toolSlots"][number]) {
-  const words = [toolCard.front.name, toolCard.category, "练习", "看见"];
-  return Array.from(new Set(words
-    .map(cleanKeyword)
-    .filter(Boolean))).slice(0, 5);
-}
-
-function cleanKeyword(value: string) {
-  return value
-    .replace(/^\d+(\.\d+)?\s*·?\s*/u, "")
-    .replace(/三步$/u, "")
-    .replace(/^[-—]+/u, "")
-    .replace(/[-—]+$/u, "")
-    .replace(/\s+/g, "")
-    .slice(0, 6);
+function renderInlineMarkdown(value: string) {
+  return splitInlineStrong(value).map((part, index) => (
+    part.strong ? <strong key={`${index}-${part.text}`}>{part.text}</strong> : part.text
+  ));
 }
 
 function spacedName(name: string) {
@@ -373,7 +353,7 @@ function CollectionSection({
   tone: "tool" | "sister";
 }) {
   return (
-    <section className={`collection-page__section collection-page__section--${tone} ${expanded ? "is-expanded" : ""}`}>
+    <section className={`collection-page__section collection-page__section--${tone} ${expanded ? "is-expanded" : "is-collapsed-card-peek"}`}>
       <div className="collection-page__section-head">
         <div>
           <h2>{tone === "tool" ? "✓" : "✿"} {title}</h2>

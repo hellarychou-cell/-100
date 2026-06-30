@@ -7,6 +7,7 @@ import {
   LOCAL_REFLECTION_KEY,
   SelfReflectionEntry,
 } from "@/lib/self-reflection";
+import { saveReflectionRecord } from "@/lib/growth-records";
 
 export function SelfReflectionBox({
   aiHref,
@@ -28,6 +29,9 @@ export function SelfReflectionBox({
     const entries = readEntries();
     const nextEntries = [entry, ...entries.filter((item) => item.day !== day)];
     window.localStorage.setItem(LOCAL_REFLECTION_KEY, JSON.stringify(nextEntries));
+    saveReflectionRecord(entry).catch((error) => {
+      console.warn("Failed to sync reflection record:", error);
+    });
     return entry;
   }
 

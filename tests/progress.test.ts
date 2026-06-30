@@ -75,10 +75,10 @@ test("falls back to saved day when journey start data is missing", () => {
   assert.equal(getCalendarCurrentDay({ savedDay: 8, todayDate: "2026-06-29" }), 8);
 });
 
-test("uses a continuous folded progress range around the current week", () => {
+test("uses the first seven days for the folded progress range", () => {
   const days = Array.from({ length: 100 }, (_, index) => ({ day: index + 1 }));
-  assert.deepEqual(getCollapsedProgressDays(days, 8).map((item) => item.day), [1, 2, 3, 4, 5, 6, 7, 8]);
-  assert.deepEqual(getCollapsedProgressDays(days, 14).map((item) => item.day), [8, 9, 10, 11, 12, 13, 14]);
+  assert.deepEqual(getCollapsedProgressDays(days, 8).map((item) => item.day), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(getCollapsedProgressDays(days, 14).map((item) => item.day), [1, 2, 3, 4, 5, 6, 7]);
 });
 
 test("keeps day one free and requires membership from day two", () => {

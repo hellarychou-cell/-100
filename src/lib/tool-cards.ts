@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { stripEditorialNotes } from "./content-cleaning.ts";
 import { readRootMarkdown } from "./markdown.ts";
 
 export type ToolCard = {
@@ -72,8 +73,12 @@ function normalizeToolName(value: string) {
 }
 
 function extractToolMarkdownBody(raw: string) {
-  return raw
+  return cleanToolMarkdownContent(raw)
     .replace(/^---[\s\S]*?---\s*/u, "")
     .replace(/^#\s+.+\n+/u, "")
     .trim();
+}
+
+export function cleanToolMarkdownContent(raw: string) {
+  return stripEditorialNotes(raw).trim();
 }

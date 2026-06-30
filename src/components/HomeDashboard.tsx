@@ -267,12 +267,14 @@ export function HomeDashboard() {
           <section className="home-status__days">
             <header>
               <strong>100天状态 🍃</strong>
-              <button onClick={() => setExpanded((current) => !current)} type="button">
-                {expanded ? "收起" : "展开全部"} ›
-              </button>
             </header>
             <div className="home-status__phase-row is-open">
-              <span>●　第一阶段：自我觉醒期 (Day 1 - 25)</span><small>进行中</small>
+              <span>●　第一阶段：自我觉醒期 (Day 1 - 25) <em>进行中</em></span>
+              <small>
+                <button onClick={() => setExpanded((current) => !current)} type="button">
+                  {expanded ? "收起" : "展开全部"} ›
+                </button>
+              </small>
             </div>
             <div className="home-status__day-grid">
               {(expanded ? allDaysData.filter((item) => item.day <= 25) : getCollapsedProgressDays(allDaysData, state.currentDay))
@@ -282,10 +284,10 @@ export function HomeDashboard() {
                 <ProgressDayCard key={item.day} currentDay={state.currentDay} completedDays={state.completedDays} item={item} />
               ))}
             </div>
-            {phases.slice(1).map((phase, index) => (
+            {phases.slice(1).map((phase) => (
               <div className="home-status__phase-row" key={phase.id}>
-                <span>{index > 0 ? "🔒" : "○"}　{phase.name} ({phase.range})</span>
-                <small>{index > 0 ? "未解锁" : "展开 ›"}</small>
+                <span>🔒　{phase.name} ({phase.range})</span>
+                <small>未解锁</small>
               </div>
             ))}
           </section>

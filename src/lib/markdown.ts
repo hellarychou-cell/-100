@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { isEditorialNoteLine } from "./content-cleaning.ts";
 
 export type MarkdownBlock =
   | { type: "heading"; level: number; text: string }
@@ -12,7 +13,7 @@ export function readRootMarkdown(fileName: string): MarkdownBlock[] {
     .replace(/^---[\s\S]*?---\s*/u, "")
     .split("\n")
     .map((line) => line.trim())
-    .filter((line) => line && line !== "---");
+    .filter((line) => line && line !== "---" && !isEditorialNoteLine(line));
 
   return raw
     .filter((line) => !line.startsWith("related:") && !line.startsWith("tags:"))

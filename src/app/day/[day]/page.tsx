@@ -7,7 +7,9 @@ import { AIHoverTip } from "@/components/AIHoverTip";
 import { AwakeningTheater } from "@/components/AwakeningTheater";
 import { DayFooter } from "@/components/DayFooter";
 import { DayProgressiveSections } from "@/components/DayProgressiveSections";
+import { CurtainCallStage } from "@/components/CurtainCallStage";
 import { SelfReflectionBox } from "@/components/SelfReflectionBox";
+import { SelfSeeingPrompt } from "@/components/SelfSeeingPrompt";
 import { dayContents, mysteryCards } from "@/lib/content";
 import { getDayDocumentContent, type DayDocumentContent } from "@/lib/day-document";
 import { getBodyStationEntry } from "@/lib/body-station";
@@ -123,9 +125,7 @@ export default async function DayPage({ params }: PageProps) {
                 number="2"
                 title="今日自我看见 ✨"
               />
-              <p className="day-page__ai-prompt mb-4 leading-[1.8] text-[#4f3429]">
-                {aiQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。
-              </p>
+              <SelfSeeingPrompt day={day.day} fallbackQuestion={aiQuestion} />
               <SelfReflectionBox aiHref={`/day/${day.day}/ai`} day={day.day} />
               <p className="day-page__archive-note">这一段会轻轻留在成长档案里，之后你可以回来看见自己的变化。</p>
             </section>
@@ -156,19 +156,7 @@ export default async function DayPage({ params }: PageProps) {
               </section>
             ))}
             {documentContent.curtainCall ? (
-              <section className="day-page__section--after-ai day-page__curtain-stage" aria-label="整天散场尾韵">
-                <div className="day-page__curtain-peek">
-                  <span>✦</span>
-                  <small>轻轻上拉，今晚的尾韵在这里</small>
-                  <span>✦</span>
-                </div>
-                <div className="day-page__curtain-call">
-                  <p className="day-page__curtain-kicker">整天散场尾韵</p>
-                  <div className="day-page__curtain-copy">
-                    {renderParagraphs(documentContent.curtainCall)}
-                  </div>
-                </div>
-              </section>
+              <CurtainCallStage content={documentContent.curtainCall} />
             ) : null}
           </DayProgressiveSections>
         </section>

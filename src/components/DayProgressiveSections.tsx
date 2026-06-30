@@ -1,8 +1,8 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { AWAKENING_THEATER_CHOICE_EVENT } from "@/components/AwakeningTheater";
 import {
+  AWAKENING_THEATER_CHOICE_EVENT,
   getAwakeningTheaterProgress,
   getDayPageReadingStage,
   LOCAL_DAY_READING_STAGE_KEY,

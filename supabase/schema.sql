@@ -275,3 +275,126 @@ create policy "Users can update own ai conversations"
   on public.ai_conversations for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+create table if not exists public.self_reflections (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  client_id text not null,
+  day int not null check (day between 1 and 100),
+  touched text not null default '',
+  body text not null default '',
+  sentence text not null default '',
+  created_at timestamptz not null default now(),
+  unique (user_id, client_id)
+);
+
+create table if not exists public.ai_conversation_entries (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  client_id text not null,
+  day int not null check (day between 1 and 100),
+  title text not null,
+  messages jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, client_id)
+);
+
+create table if not exists public.theater_choices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  day int not null check (day between 1 and 100),
+  first_choice text not null,
+  second_choice text,
+  anchors jsonb not null default '{}'::jsonb,
+  selected_labels jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, day)
+);
+
+create table if not exists public.growth_profile_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  summary jsonb not null default '{}'::jsonb,
+  ai_summary text,
+  created_at timestamptz not null default now()
+);
+
+drop trigger if exists ai_conversation_entries_set_updated_at on public.ai_conversation_entries;
+create trigger ai_conversation_entries_set_updated_at
+  before update on public.ai_conversation_entries
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists theater_choices_set_updated_at on public.theater_choices;
+create trigger theater_choices_set_updated_at
+  before update on public.theater_choices
+  for each row execute function public.set_updated_at();
+
+alter table public.self_reflections enable row level security;
+alter table public.ai_conversation_entries enable row level security;
+alter table public.theater_choices enable row level security;
+alter table public.growth_profile_snapshots enable row level security;
+
+grant select, insert, update on public.self_reflections to authenticated;
+grant select, insert, update on public.ai_conversation_entries to authenticated;
+grant select, insert, update on public.theater_choices to authenticated;
+grant select, insert on public.growth_profile_snapshots to authenticated;
+
+drop policy if exists "Users can read own self reflections" on public.self_reflections;
+create policy "Users can read own self reflections"
+  on public.self_reflections for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own self reflections" on public.self_reflections;
+create policy "Users can insert own self reflections"
+  on public.self_reflections for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own self reflections" on public.self_reflections;
+create policy "Users can update own self reflections"
+  on public.self_reflections for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can read own ai conversation entries" on public.ai_conversation_entries;
+create policy "Users can read own ai conversation entries"
+  on public.ai_conversation_entries for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own ai conversation entries" on public.ai_conversation_entries;
+create policy "Users can insert own ai conversation entries"
+  on public.ai_conversation_entries for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own ai conversation entries" on public.ai_conversation_entries;
+create policy "Users can update own ai conversation entries"
+  on public.ai_conversation_entries for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can read own theater choices" on public.theater_choices;
+create policy "Users can read own theater choices"
+  on public.theater_choices for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own theater choices" on public.theater_choices;
+create policy "Users can insert own theater choices"
+  on public.theater_choices for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own theater choices" on public.theater_choices;
+create policy "Users can update own theater choices"
+  on public.theater_choices for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can read own growth snapshots" on public.growth_profile_snapshots;
+create policy "Users can read own growth snapshots"
+  on public.growth_profile_snapshots for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own growth snapshots" on public.growth_profile_snapshots;
+create policy "Users can insert own growth snapshots"
+  on public.growth_profile_snapshots for insert
+  with check (auth.uid() = user_id);

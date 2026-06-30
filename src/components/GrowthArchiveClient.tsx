@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AuthGate } from "@/components/AuthGate";
 import { LOCAL_PROFILE_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { dayContents } from "@/lib/content";
-import { createGrowthProfile } from "@/lib/growth-archive";
+import { createGrowthDimensionInsight, createGrowthProfile } from "@/lib/growth-archive";
 import {
   AIConversationEntry,
   LOCAL_AI_CONVERSATION_KEY,
@@ -18,6 +18,7 @@ import {
 import { buildClientContext } from "@/lib/user-context";
 import { readAwakeningTheaterChoices, summarizeTheaterChoice, type AwakeningTheaterChoice } from "@/lib/awakening-theater";
 import { MobileTopBar } from "@/components/MobileTopBar";
+import { loadGrowthRecords } from "@/lib/growth-records";
 
 type Tab = "writing" | "ai" | "profile";
 
@@ -30,11 +31,23 @@ export function GrowthArchiveClient() {
   const [assessment, setAssessment] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
-    setEntries(readLocalArray<SelfReflectionEntry>(LOCAL_REFLECTION_KEY));
-    setAiEntries(readLocalArray<AIConversationEntry>(LOCAL_AI_CONVERSATION_KEY));
-    setTheaterChoices(Object.values(readAwakeningTheaterChoices()));
+    let cancelled = false;
+    loadGrowthRecords().then((records) => {
+      if (cancelled) return;
+      setEntries(records.reflections);
+      setAiEntries(records.aiEntries);
+      setTheaterChoices(records.theaterChoices);
+    }).catch(() => {
+      if (cancelled) return;
+      setEntries(readLocalArray<SelfReflectionEntry>(LOCAL_REFLECTION_KEY));
+      setAiEntries(readLocalArray<AIConversationEntry>(LOCAL_AI_CONVERSATION_KEY));
+      setTheaterChoices(Object.values(readAwakeningTheaterChoices()));
+    });
     setProfile(readJson(LOCAL_PROFILE_KEY));
     setAssessment(readJson(LOCAL_RESULT_KEY));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const sortedEntries = useMemo(
@@ -82,7 +95,7 @@ export function GrowthArchiveClient() {
                     成长档案。
                   </h1>
                 </div>
-                <p className="max-w-sm leading-[1.9] text-[var(--muted)]">
+                <p className="growth-archive__hero-copy max-w-sm leading-[1.9] text-[var(--muted)]">
                   这里不做流水账。它只帮你把反复出现的场景、身体信号和 AI 陪你看见的线索，慢慢收起来。
                 </p>
 
@@ -115,6 +128,7 @@ export function GrowthArchiveClient() {
                     assessment={assessment}
                     entries={sortedEntries}
                     profile={growthProfile}
+                    setTab={setTab}
                   />
                 ) : null}
               </div>
@@ -234,12 +248,15 @@ function GrowthProfilePanel({
   assessment,
   entries,
   profile,
+  setTab,
 }: {
   aiEntries: AIConversationEntry[];
   assessment: Record<string, unknown> | null;
   entries: SelfReflectionEntry[];
   profile: ReturnType<typeof createGrowthProfile>;
+  setTab: (tab: Tab) => void;
 }) {
+  const [openDimension, setOpenDimension] = useState<string | null>(null);
   const dimensions = getGrowthDimensions(assessment);
   const sceneItems = profile.repeatedScenes.length
     ? profile.repeatedScenes.slice(0, 3).map((item) => `${item.name}　${item.count}次`)
@@ -266,24 +283,45 @@ function GrowthProfilePanel({
           <em>{profile.repeatedScenes[0]?.name ?? "正在形成"}</em>
         </div>
         <div className="growth-profile-panel__dimension-list">
-          {dimensions.map((item) => (
-            <div className={`growth-profile-panel__dimension growth-profile-panel__dimension--${item.tone}`} key={item.name}>
-              <span aria-hidden>{item.icon}</span>
-              <p><strong>{item.name}</strong> {item.range}</p>
-              <i
-                aria-label={`${item.name} 从 ${item.initialScore} 到 ${item.score}`}
-                style={{
-                  "--current-score": `${item.score}%`,
-                  "--future-score": `${item.futureScore}%`,
-                  "--initial-score": `${item.initialScore}%`,
-                } as CSSProperties}
-              >
-                <b />
-                <span />
-              </i>
-              <em>›</em>
-            </div>
-          ))}
+          {dimensions.map((item) => {
+            const isOpen = openDimension === item.name;
+            return (
+              <div className="growth-profile-panel__dimension-wrap" key={item.name}>
+                <button
+                  className={`growth-profile-panel__dimension growth-profile-panel__dimension--${item.tone}`}
+                  onClick={() => setOpenDimension(isOpen ? null : item.name)}
+                  type="button"
+                >
+                  <span aria-hidden>{item.icon}</span>
+                  <p><strong>{item.name}</strong> {item.range}</p>
+                  <i
+                    aria-label={`${item.name} 从 ${item.initialScore} 到 ${item.score}`}
+                    style={{
+                      "--current-score": `${item.score}%`,
+                      "--future-score": `${item.futureScore}%`,
+                      "--initial-score": `${item.initialScore}%`,
+                    } as CSSProperties}
+                  >
+                    <b />
+                    <span />
+                  </i>
+                  <em>{isOpen ? "⌄" : "›"}</em>
+                </button>
+                {isOpen ? (
+                  <p className="growth-profile-panel__dimension-insight">
+                    {createGrowthDimensionInsight({
+                      aiCount: aiEntries.length,
+                      currentScore: item.score,
+                      initialScore: item.initialScore,
+                      name: item.name,
+                      walkedDays: profile.walkedDays,
+                      writingCount: entries.length,
+                    })}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
         <div className="growth-profile-panel__journey">
           <span>起点</span>
@@ -305,6 +343,7 @@ function GrowthProfilePanel({
 
       <section className="growth-archive__record-columns">
         <RecordColumn
+          allAction={() => setTab("writing")}
           empty="还没有书写记录"
           href="/day/1"
           items={entries.slice(0, 3).map((entry) => ({
@@ -315,8 +354,10 @@ function GrowthProfilePanel({
           title="我的书写记录"
         />
         <RecordColumn
+          allAction={() => setTab("ai")}
           empty="还没有 AI 对话记录"
           href="/day/1/ai"
+          linkKind="ai"
           items={aiEntries.slice(0, 3).map((entry) => ({
             day: entry.day,
             date: formatShortDate(entry.updatedAt),
@@ -341,21 +382,28 @@ function SignalCard({ className, icon, items, title }: { className: string; icon
 }
 
 function RecordColumn({
+  allAction,
   empty,
   href,
   items,
+  linkKind = "day",
   title,
 }: {
+  allAction?: () => void;
   empty: string;
   href: string;
   items: Array<{ date: string; day: number; title: string }>;
+  linkKind?: "ai" | "day";
   title: string;
 }) {
   return (
     <article>
-      <header><h3>{title}</h3><Link href={href}>查看全部 ›</Link></header>
+      <header>
+        <h3>{title}</h3>
+        {allAction ? <button type="button" onClick={allAction}>查看全部 ›</button> : <Link href={href}>查看全部 ›</Link>}
+      </header>
       {items.length ? items.map((item) => (
-        <Link href={`/day/${item.day}`} key={`${title}-${item.day}-${item.date}`}>
+        <Link href={linkKind === "ai" ? `/day/${item.day}/ai` : `/day/${item.day}`} key={`${title}-${item.day}-${item.date}`}>
           <span>Day {String(item.day).padStart(2, "0")}</span><strong>{item.title}</strong><time>{item.date}</time>
         </Link>
       )) : <p>{empty}</p>}

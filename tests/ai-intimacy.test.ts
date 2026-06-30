@@ -8,6 +8,7 @@ import { buildCollectionState } from "../src/lib/collection.ts";
 import { createLocalAIReply } from "../src/lib/ai-local-fallback.ts";
 import { createAwakeningTheaterChoice } from "../src/lib/awakening-theater.ts";
 import { getDayAIAnchor } from "../src/lib/day-ai-anchors.ts";
+import { getAIQuadrantTooltip } from "../src/lib/ai-quadrants.ts";
 
 test("client context keeps identity, recent writing, conversations, and repeated emotion words", () => {
   const context = buildClientContext({
@@ -261,6 +262,15 @@ test("awakening theater choices become AI prompt anchors", () => {
   assert.match(prompt, /大家开心就好/);
   assert.match(prompt, /从没敢说出来|哪怕只对自己/);
   assert.match(prompt, /不要复述剧情/);
+});
+
+test("fourth quadrant tooltip explains the method without exposing backend prompt", () => {
+  const tooltip = getAIQuadrantTooltip("fourth", "第四象限追溯模式根源");
+
+  assert.match(tooltip, /你不知道，AI也不知道/);
+  assert.match(tooltip, /感受|身体/);
+  assert.match(tooltip, /根源|模式/);
+  assert.doesNotMatch(tooltip, /system prompt|完整指令|后台 prompt/);
 });
 
 test("today seeing card can use awakening theater choice when AI conversation is absent", () => {

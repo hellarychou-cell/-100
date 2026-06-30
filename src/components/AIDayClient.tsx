@@ -6,6 +6,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { LOCAL_PROFILE_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { dayContents } from "@/lib/content";
 import { dayAIPrompts } from "@/lib/ai-prompts";
+import { getAIQuadrantTooltip } from "@/lib/ai-quadrants";
 import type { DayCompanion } from "@/lib/day-companion";
 import {
   createSisterTriggerReply,
@@ -25,6 +26,7 @@ import { buildClientContext } from "@/lib/user-context";
 import { readAwakeningTheaterChoice } from "@/lib/awakening-theater";
 import { MobileTopBar } from "@/components/MobileTopBar";
 import { requiresMembershipForDay } from "@/lib/progress";
+import { saveAIConversationRecord } from "@/lib/growth-records";
 
 type Message = { role: "user" | "assistant"; content: string; createdAt?: string; kind?: "sister-trigger" };
 
@@ -190,7 +192,7 @@ export function AIDayClient({
           <div className="ai-chat__status">
             <div className="ai-chat__method-row">
               <span className="pill">{prompts.method}</span>
-              <span className="pill ai-chat__method-tip" title={prompts.description}>
+              <span className="pill ai-chat__method-tip" title={getAIQuadrantTooltip(prompts.id, prompts.description)}>
                 {promptContextLabel}
               </span>
               {!summarized && (
@@ -223,26 +225,35 @@ export function AIDayClient({
               </div>
 
               {messages.map((msg, i) => (
-                <div key={i} className="mb-4 grid gap-3">
-                  <div className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                    <div
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${
-                        msg.role === "user" ? "ai-chat__user-avatar border-clay" : "border-clay text-clay"
-                      } sans text-xs`}
-                    >
-                      {msg.role === "user" ? "✿" : companionSymbol}
-                    </div>
-                    <div className={`ai-chat__bubble flex-1 p-4 leading-[1.85] shadow-[0_10px_24px_rgba(91,56,44,.06)] ${
-                      msg.role === "user" ? "border border-clay/10 bg-[#fff8ed]/76 text-right text-[#4f3429]" : "soft-panel text-[#4f3429]"
-                    }`}>
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                      <div className={`ai-chat__message-meta ${msg.role === "user" ? "is-user" : ""}`}>
-                        <span>{formatChatTime(msg.createdAt)}</span>
-                        {msg.role === "user" ? <span>✓ 已读</span> : null}
+                msg.kind === "sister-trigger" ? (
+                  <SisterTriggerNotice
+                    content={msg.content}
+                    key={i}
+                    symbol={companionSymbol}
+                    time={formatChatTime(msg.createdAt)}
+                  />
+                ) : (
+                  <div key={i} className="mb-4 grid gap-3">
+                    <div className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                      <div
+                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border ${
+                          msg.role === "user" ? "ai-chat__user-avatar border-clay" : "border-clay text-clay"
+                        } sans text-xs`}
+                      >
+                        {msg.role === "user" ? "✿" : companionSymbol}
+                      </div>
+                      <div className={`ai-chat__bubble flex-1 p-4 leading-[1.85] shadow-[0_10px_24px_rgba(91,56,44,.06)] ${
+                        msg.role === "user" ? "border border-clay/10 bg-[#fff8ed]/76 text-right text-[#4f3429]" : "soft-panel text-[#4f3429]"
+                      }`}>
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <div className={`ai-chat__message-meta ${msg.role === "user" ? "is-user" : ""}`}>
+                          <span>{formatChatTime(msg.createdAt)}</span>
+                          {msg.role === "user" ? <span>✓ 已读</span> : null}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )
               ))}
 
               {loading && (
@@ -325,6 +336,22 @@ function CompanionAvatar({ symbol }: { symbol: string }) {
   );
 }
 
+function SisterTriggerNotice({ content, symbol, time }: { content: string; symbol: string; time: string }) {
+  return (
+    <div className="ai-chat__sister-trigger">
+      <div className="ai-chat__sister-trigger-title">
+        <i aria-hidden>✿</i>
+        <span>姐妹触发</span>
+        <i aria-hidden>{symbol}</i>
+      </div>
+      <div className="ai-chat__sister-trigger-voice">
+        <p>{content}</p>
+      </div>
+      <small>{time}</small>
+    </div>
+  );
+}
+
 function saveAIConversation(day: number, messages: Message[], title: string) {
   const raw = window.localStorage.getItem(LOCAL_AI_CONVERSATION_KEY);
   let entries: AIConversationEntry[] = [];
@@ -347,6 +374,9 @@ function saveAIConversation(day: number, messages: Message[], title: string) {
     LOCAL_AI_CONVERSATION_KEY,
     JSON.stringify([nextEntry, ...entries.filter((entry) => entry.day !== day)]),
   );
+  saveAIConversationRecord(nextEntry).catch((error) => {
+    console.warn("Failed to sync AI conversation:", error);
+  });
 }
 
 function readLatestReflection(day: number) {

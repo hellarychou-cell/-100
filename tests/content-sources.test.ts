@@ -10,7 +10,7 @@ import {
   getBodyStationIndex,
 } from "../src/lib/body-station.ts";
 import { getDayDocumentContent } from "../src/lib/day-document.ts";
-import { getToolCards } from "../src/lib/tool-cards.ts";
+import { cleanToolMarkdownContent, getToolCards } from "../src/lib/tool-cards.ts";
 import { readRootMarkdown } from "../src/lib/markdown.ts";
 
 test("schedule parser returns 100 unique days from the latest root schedule", () => {
@@ -83,14 +83,36 @@ test("latest Day 1-7 document exposes awakening theater choices and interlude", 
   assert.match(dayFive.awakeningTheater.reveal, /你不是/);
 });
 
+test("day document cleaning removes internal display notes from public copy", async () => {
+  const publicText = [1, 5, 6, 7]
+    .map((day) => getDayDocumentContent(day))
+    .map(async (content) => {
+      const resolved = await content;
+      return [
+        resolved.mirror,
+        resolved.story,
+        resolved.aiQuestion,
+        resolved.bodyNote,
+        resolved.curtainCall,
+        ...resolved.extraSections.map((section) => `${section.title}\n${section.content}`),
+      ].join("\n");
+    });
+  const combined = (await Promise.all(publicText)).join("\n");
+
+  assert.doesNotMatch(combined, /里程碑预告型|散场静态型|静态展示|无按钮/);
+  assert.doesNotMatch(combined, /最后更新|最近更新/);
+});
+
 test("latest philosophy document exposes the five public sections", () => {
   const blocks = readRootMarkdown("成她-理念页.md");
   const headings = blocks.filter((block) => block.type === "heading").map((block) => block.text);
+  const text = blocks.map((block) => block.text).join("\n");
 
   assert.ok(headings.includes("成她 100 · 品牌宣言（网站理念页）"));
   for (const title of ["〇 · 成她宣言", "一 · 我们看见的事", "二 · 我们相信的事", "三 · 我们做的事", "四 · 我们相信的女性力量", "五 · 100 天——写给她"]) {
     assert.ok(headings.includes(title), `missing philosophy section: ${title}`);
   }
+  assert.doesNotMatch(text, /最后更新|最近更新/);
 });
 
 test("body station exposes seven full entries and locked placeholders through day 100", () => {
@@ -114,4 +136,20 @@ test("toolbox parser exposes twenty five non-index tool cards", () => {
   assert.ok(cards.some((card) => card.front.name.includes("金钱家族脚本")));
   assert.ok(cards.every((card) => card.back.content.length > 120));
   assert.match(cards.find((card) => card.front.name.includes("课题分离"))?.back.content ?? "", /##\s+这张卡解决什么|###\s+/);
+});
+
+test("toolbox markdown cleaning removes editorial update notes and keeps formatting markers", () => {
+  const cleaned = cleanToolMarkdownContent(`# 工具卡
+
+## 这张卡解决什么
+
+这里有 **重要提醒**。
+
+最后更新：2026年6月29日
+最近更新：内部备注
+`);
+
+  assert.doesNotMatch(cleaned, /最后更新|最近更新/);
+  assert.match(cleaned, /## 这张卡解决什么/);
+  assert.match(cleaned, /\*\*重要提醒\*\*/);
 });

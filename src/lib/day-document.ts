@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { stripEditorialNotes } from "./content-cleaning.ts";
 
 export type DayExtraSection = {
   title: string;
@@ -271,7 +272,7 @@ function extractFromHeading(source: string, heading: string, endPattern: RegExp)
 }
 
 function cleanupMarkdown(value: string) {
-  return value
+  return stripEditorialNotes(value)
     .replace(/```[\s\S]*?```/g, "")
     .replace(/<details>|<\/details>/g, "")
     .replace(/<summary>.*?<\/summary>/g, "")

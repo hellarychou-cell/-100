@@ -50,6 +50,42 @@ npm run build
 
 如果用户明确说“只改本地，不验证”，可以不跑完整验证，但需要在回复里说明未验证。
 
+## 本地预览
+
+固定使用下面命令启动本地预览：
+
+```bash
+npm run preview:local
+```
+
+预览地址：
+
+```text
+http://localhost:3001
+```
+
+不要使用 `npm run dev -p 3001`。这个写法会被 npm/Next 解析成 `next dev 3001`，Next 会把 `3001` 当成项目目录，报错：
+
+```text
+Invalid project directory provided, no such directory: /Volumes/PS2000/成她/3001
+```
+
+如果预览打不开，先验证服务是否监听：
+
+```bash
+curl -I http://localhost:3001/
+```
+
+如果没有返回 `200 OK`，先重新执行 `npm run preview:local`，不要直接判断为页面代码坏了。
+
+如果在本地预览服务运行期间执行过 `npm run build`，预览可能出现 React Client Manifest 变脏，常见报错：
+
+```text
+Could not find the module ".../next-devtools/.../segment-explorer-node.js#SegmentViewNode" in the React Client Manifest
+```
+
+这不是页面业务代码错误，而是 dev server 和生产构建共用 `.next` 目录导致的缓存/manifest 冲突。处理方式是停止当前 dev server，重新执行 `npm run preview:local`。
+
 ## 同步与上线
 
 只有用户明确要求上线、同步、提交或部署时，才执行：

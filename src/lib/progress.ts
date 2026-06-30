@@ -64,12 +64,8 @@ export function startProgressFromDay(day: number, startDate = getChinaDateString
 }
 
 export function getCollapsedProgressDays<T extends { day: number }>(days: T[], currentDay: number) {
-  const readableDay = getReadableCurrentDay(currentDay);
-  if (readableDay <= 8) return days.filter((item) => item.day >= 1 && item.day <= 8);
-
-  const weekStart = Math.floor((readableDay - 1) / 7) * 7 + 1;
-  const weekEnd = Math.min(weekStart + 6, 100);
-  return days.filter((item) => item.day >= weekStart && item.day <= weekEnd);
+  void currentDay;
+  return days.filter((item) => item.day >= 1 && item.day <= 7);
 }
 
 export function requiresMembershipForDay(day: number) {

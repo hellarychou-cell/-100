@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildSelfSeeingPreview,
   createAwakeningTheaterChoice,
   getAwakeningTheaterProgress,
   getDayPageReadingStage,
@@ -44,6 +45,20 @@ test("single-line theater days can complete without second choices", () => {
   assert.equal(completed.mode, "completed");
   assert.equal(completed.reflectionExpanded, true);
   assert.match(completed.anchorPreview, /今天 AI 会从你刚才的选择接住你/);
+});
+
+test("self seeing preview changes with awakening theater choices", () => {
+  const fallback = "今天妈妈说了什么？";
+  const choiceA = createAwakeningTheaterChoice({ day: 1, firstChoice: "A", secondChoice: "X" });
+  const choiceC = createAwakeningTheaterChoice({ day: 1, firstChoice: "C", secondChoice: "Y" });
+
+  const promptA = buildSelfSeeingPreview({ choice: choiceA, fallbackQuestion: fallback });
+  const promptC = buildSelfSeeingPreview({ choice: choiceC, fallbackQuestion: fallback });
+
+  assert.notEqual(promptA, promptC);
+  assert.match(promptA, /大家开心就好/);
+  assert.match(promptC, /消息|带走/);
+  assert.match(buildSelfSeeingPreview({ choice: null, fallbackQuestion: fallback }), /今天妈妈说了什么/);
 });
 
 test("day page reading stage locks later sections until theater and AI are complete", () => {

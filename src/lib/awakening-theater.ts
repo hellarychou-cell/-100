@@ -2,6 +2,7 @@ import { getDayAIAnchor, type TheaterChoiceKey } from "./day-ai-anchors.ts";
 
 export const LOCAL_THEATER_CHOICE_KEY = "chengta.awakeningTheaterChoices";
 export const LOCAL_DAY_READING_STAGE_KEY = "chengta.dayReadingStage";
+export const AWAKENING_THEATER_CHOICE_EVENT = "chengta:awakening-theater-choice";
 
 export type AwakeningTheaterChoice = {
   anchors: {
@@ -88,6 +89,25 @@ export function getAwakeningTheaterProgress({
     mode: completed ? "completed" : "reading",
     reflectionExpanded: completed,
   };
+}
+
+export function buildSelfSeeingPreview({
+  choice,
+  fallbackQuestion,
+}: {
+  choice?: AwakeningTheaterChoice | null;
+  fallbackQuestion: string;
+}) {
+  const anchors = [choice?.anchors.first, choice?.anchors.second].filter(Boolean);
+  if (!anchors.length) {
+    return `${fallbackQuestion} 你可以先自己写下来；想继续深入时，再让 AI 接住这段文字，一层一层陪你看见。`;
+  }
+
+  const firstLine = choice?.firstChoice
+    ? `你刚刚在觉醒剧场里选了 ${choice.firstChoice}${choice.secondChoice ? ` + ${choice.secondChoice}` : ""}。`
+    : "你刚刚在觉醒剧场里停了一下。";
+
+  return `${firstLine}如果把这不是当成剧情，而是当成你身体里的一点线索：${anchors.join("；")}。这一刻最先冒出来的念头是什么？你可以先写下来；真正的动态回应，会在跨时空对话里由 AI 接住你。`;
 }
 
 export function getDayPageReadingStage({

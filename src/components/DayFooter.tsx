@@ -5,6 +5,7 @@ import { useState } from "react";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
 import { getChinaDateString, markDayCompleted } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
+import { LOCAL_MILESTONE_VIEWED_KEY } from "@/lib/milestone-types";
 
 type DayFooterProps = {
   day: number;
@@ -80,8 +81,12 @@ export function DayFooter({ day }: DayFooterProps) {
         }
       }
 
-      // 跳转到今日看见卡页面
-      router.push(`/quote-card?day=${day}`);
+      // Day 7 首次收下后，先进入第一周里程碑，再生成今日看见卡。
+      if (day === 7 && !hasViewedMilestone(day)) {
+        router.push(`/milestone/${day}`);
+      } else {
+        router.push(`/quote-card?day=${day}`);
+      }
     } catch (error) {
       console.error("Failed to collect today:", error);
     } finally {
@@ -117,4 +122,16 @@ export function DayFooter({ day }: DayFooterProps) {
       </button>
     </footer>
   );
+}
+
+function hasViewedMilestone(day: number) {
+  const raw = window.localStorage.getItem(LOCAL_MILESTONE_VIEWED_KEY);
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    return Boolean(parsed?.[String(day)]);
+  } catch {
+    window.localStorage.removeItem(LOCAL_MILESTONE_VIEWED_KEY);
+    return false;
+  }
 }

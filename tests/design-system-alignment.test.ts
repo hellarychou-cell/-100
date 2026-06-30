@@ -113,26 +113,34 @@ test("daily content and AI chat use their approved mobile shells", () => {
   assert.match(ai, /ai-chat__composer/);
   assert.match(ai, /companionLabel/);
   assert.match(ai, /ai-chat__method-tip/);
-  assert.match(ai, /title=\{prompts\.description\}/);
+  assert.match(ai, /getAIQuadrantTooltip/);
+  assert.match(read("src/app/globals.css"), /\.ai-chat__input-hint\s*\{[\s\S]*text-align:\s*right/);
 });
 
 test("collection keeps sister cards as front-only and tool cards as full reading sheets", () => {
   const collection = read("src/components/CollectionClient.tsx");
+  const css = read("src/app/globals.css");
 
   assert.doesNotMatch(collection, /翻到工具卡/);
   assert.doesNotMatch(collection, /翻回姐妹卡/);
-  assert.match(collection, /对应姐妹/);
+  assert.match(collection, /翻到姐妹卡/);
+  assert.match(collection, /姐妹卡未解锁/);
   assert.match(collection, /collection-modal__scroll-copy/);
+  assert.match(css, /\.collection-modal__sheet\s*\{[\s\S]*overflow:\s*hidden/);
+  assert.match(css, /\.collection-modal__sheet--tool \.collection-modal__origin\s*\{[\s\S]*display:\s*none/);
+  assert.match(collection, /is-collapsed-card-peek/);
+  assert.match(css, /\.collection-page__section\.is-collapsed-card-peek \.collection-page__grid\s*\{[\s\S]*max-height:\s*106px/);
+  assert.match(css, /\.collection-page__section--sister\.is-collapsed-card-peek \.collection-page__grid\s*\{[\s\S]*max-height:\s*116px/);
 });
 
 test("curtain call is rendered as a hidden pull-up stage instead of a numbered section card", () => {
   const day = read("src/app/day/[day]/page.tsx");
   const css = read("src/app/globals.css");
 
-  assert.match(day, /day-page__curtain-stage/);
+  assert.match(day, /CurtainCallStage/);
   assert.doesNotMatch(day, /title="整天散场尾韵 🌙"/);
-  assert.match(css, /day-page__curtain-stage/);
-  assert.match(css, /min-height:\s*86vh/);
+  assert.match(css, /day-page__curtain-gate/);
+  assert.match(css, /day-page__curtain-overlay/);
 });
 
 test("secondary product pages share the Figma mobile page shells", () => {
@@ -185,10 +193,24 @@ test("feedback pass preserves the detailed Figma information hierarchy", () => {
   assert.match(knowledge, /knowledge-page__progress/);
   assert.match(knowledgeGrid, /knowledge-day-card/);
   assert.match(day, /day-page__mirror-details/);
+  assert.match(day, /SelfSeeingPrompt/);
   assert.match(reflection, /self-reflection--compact/);
   assert.match(growth, /growth-archive__summary/);
   assert.match(report, /assessment-report__paper/);
   assert.match(report, /assessment-report__meta/);
+});
+
+test("latest polish adds active knowledge links and expandable growth dimensions", () => {
+  const knowledge = read("src/components/KnowledgeDayGrid.tsx");
+  const growth = read("src/components/GrowthArchiveClient.tsx");
+  const css = read("src/app/globals.css");
+
+  assert.match(knowledge, /href=\{`\/day\/\$\{item\.day\}`\}/);
+  assert.match(knowledge, /knowledge-theme-map-toggle/);
+  assert.match(growth, /openDimension/);
+  assert.match(growth, /createGrowthDimensionInsight/);
+  assert.match(css, /\.day-page__mirror-details summary\s*\{[\s\S]*text-align:\s*right/);
+  assert.match(css, /\.growth-archive__hero-copy\s*\{[\s\S]*max-width:\s*60%/);
 });
 
 test("second detail pass follows the final Figma page hierarchy", () => {

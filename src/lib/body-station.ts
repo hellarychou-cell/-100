@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { stripEditorialNotes } from "./content-cleaning.ts";
 import { getPhaseForDay, getScheduleDays } from "./schedule.ts";
 
 export type BodyStationSection = {
@@ -92,7 +93,7 @@ function parseSections(block: string): BodyStationSection[] {
 }
 
 function cleanup(value: string) {
-  return value
+  return stripEditorialNotes(value)
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/^>\s?/gm, "")
     .replace(/\n{3,}/g, "\n\n")

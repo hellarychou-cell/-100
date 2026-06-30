@@ -9,6 +9,33 @@ export type GrowthProfile = {
   walkedDays: number;
 };
 
+export function createGrowthDimensionInsight({
+  aiCount,
+  currentScore,
+  initialScore,
+  name,
+  walkedDays,
+  writingCount,
+}: {
+  aiCount: number;
+  currentScore: number;
+  initialScore: number;
+  name: string;
+  walkedDays: number;
+  writingCount: number;
+}) {
+  const delta = Math.max(0, currentScore - initialScore);
+  const evidence = writingCount + aiCount;
+  const base = delta > 8
+    ? `${name}已经出现一点松动：你开始把感受留下来，而不是马上把它盖过去。`
+    : `${name}还在慢慢打开：现在先看见它，不急着证明自己已经改变。`;
+  const trace = evidence > 0
+    ? `这段解读来自你走过的 ${walkedDays} 天、${writingCount} 条书写和 ${aiCount} 次 AI 对话。`
+    : `等你留下更多书写和对话后，这里会变得更具体。`;
+
+  return `${base}${trace}`;
+}
+
 export function createGrowthProfile({ context }: { context: ClientContext }): GrowthProfile {
   return {
     emotionWords: context.highFrequencyEmotions,

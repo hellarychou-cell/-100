@@ -27,14 +27,12 @@ export default function KnowledgePage() {
             <section className="knowledge-page__progress">
               <span aria-hidden>▣</span>
               <div><p>已解锁 <strong>8</strong> / 100</p><i><b style={{ width: "8%" }} /></i><small>每天一点，每天靠近自己一点</small></div>
-              <button type="button">▽<small>筛选</small></button>
             </section>
           </header>
 
           <section className="knowledge-page__directory">
             <div className="knowledge-page__section-title">
               <strong>△ 16 个主题周 · Day 01–100</strong>
-              <button type="button">ⓘ 主题地图</button>
             </div>
             <KnowledgeDayGrid days={previewDays} />
           </section>
