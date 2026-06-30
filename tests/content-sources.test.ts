@@ -12,6 +12,7 @@ import {
 import { getDayDocumentContent } from "../src/lib/day-document.ts";
 import { cleanToolMarkdownContent, getToolCards } from "../src/lib/tool-cards.ts";
 import { readRootMarkdown } from "../src/lib/markdown.ts";
+import { getMilestoneContent } from "../src/lib/milestones.ts";
 
 test("schedule parser returns 100 unique days from the latest root schedule", () => {
   const days = getScheduleDays();
@@ -108,6 +109,27 @@ test("curtain call stops before milestone and other document-level sections", as
 
   assert.match(daySeven.curtainCall, /第一周，结束了/);
   assert.doesNotMatch(daySeven.curtainCall, /第一周里程碑|Week 1|AI 对话精华/);
+});
+
+test("week one milestone exposes only the compact Figma card content", () => {
+  const milestone = getMilestoneContent(7);
+
+  assert.ok(milestone);
+  assert.equal(milestone.weekNumber, 1);
+  assert.equal(milestone.day, 7);
+  assert.equal(milestone.eyebrow, "第 1 周里程碑");
+  assert.equal(milestone.title, "第一次，听见自己");
+  assert.equal(milestone.completedRange, "Day 01-07");
+  assert.equal(milestone.summary, "这一周，你不是变得更好，而是开始更诚实地看见自己。");
+  assert.deepEqual(milestone.collectedItems.map((item) => item.label), ["镜子", "故事", "身体小语", "神秘卡"]);
+  assert.deepEqual(
+    milestone.stats.map((stat) => stat.label),
+    ["天已点亮", "张神秘卡", "次 AI 对话"],
+  );
+
+  const publicText = JSON.stringify(milestone);
+  assert.doesNotMatch(publicText, /这一周的 AI 对话精华|第一周的 7 个镜子|你的工具卡库|这一周想送给你的话/);
+  assert.doesNotMatch(publicText, /┌|└|\|/);
 });
 
 test("latest philosophy document exposes the five public sections", () => {

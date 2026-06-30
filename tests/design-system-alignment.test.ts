@@ -260,3 +260,20 @@ test("report polish and weekly knowledge navigation have stable UI hooks", () =>
   assert.match(css, /\.assessment-report__insight-card\.is-drain/);
   assert.match(css, /\.assessment-report__insight-card\.is-strength/);
 });
+
+test("week one milestone follows the Figma modal card instead of markdown reading layout", () => {
+  const component = read("src/components/MilestoneClient.tsx");
+  const css = read("src/app/globals.css");
+
+  assert.match(component, /milestone-modal__card/);
+  assert.match(component, /收下这一周/);
+  assert.match(component, /查看本周总结/);
+  assert.match(component, /router\.push\("\/growth-archive"\)/);
+  assert.doesNotMatch(component, /renderMilestoneMarkdown|<pre/);
+
+  assert.match(css, /\.milestone-page\s*\{[\s\S]*place-items:\s*center/);
+  assert.match(css, /\.milestone-modal__card\s*\{[\s\S]*border-radius:\s*28px/);
+  assert.match(css, /\.milestone-modal__badge\s*\{/);
+  assert.match(css, /\.milestone-modal__stats\s*\{/);
+  assert.match(css, /\.milestone-modal__collected\s*\{/);
+});
