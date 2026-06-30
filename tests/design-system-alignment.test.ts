@@ -86,11 +86,18 @@ test("the home dashboard keeps the approved Figma card hierarchy", () => {
 
 test("public and auth shells adapt cleanly to tall phone screens", () => {
   const css = read("src/app/globals.css");
+  const authPage = read("src/app/auth/page.tsx");
 
   assert.match(css, /\.public-home__canvas\s*\{[\s\S]*min-height:\s*100svh/);
+  assert.doesNotMatch(css, /\.public-home\s*\{[\s\S]*background:\s*#21150f/);
   assert.match(css, /@media \(min-height: 760px\) and \(max-width: 640px\)/);
+  assert.match(authPage, /auth-shell--register/);
+  assert.match(authPage, /auth-shell--login/);
+  assert.match(css, /\.auth-shell\s*\{[\s\S]*min-height:\s*960px/);
   assert.match(css, /\.auth-shell__hero\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) 154px/);
   assert.match(css, /\.auth-shell__portrait\s*\{[\s\S]*width:\s*154px[\s\S]*height:\s*154px/);
+  assert.match(css, /\.auth-shell__form \.field-shell\s*\{[\s\S]*min-height:\s*48px/);
+  assert.doesNotMatch(css, /@media \(max-height:\s*720px\)[\s\S]*\.auth-shell__form \.field-shell/);
 });
 
 test("treasure page follows the five-entry Figma archive layout", () => {
@@ -109,6 +116,7 @@ test("daily content and AI chat use their approved mobile shells", () => {
   assert.match(day, /day-page__hero/);
   assert.match(day, /day-page__section/);
   assert.match(day, /day-page__mystery/);
+  assert.match(day, /DayAccessGuard/);
   assert.match(ai, /ai-chat__conversation/);
   assert.match(ai, /ai-chat__composer/);
   assert.match(ai, /companionLabel/);

@@ -67,6 +67,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,42 +100,54 @@ export default function AdminPage() {
 
   async function handleExtend(userId: string) {
     setActionLoading(userId);
+    setActionError("");
     try {
-      const res = await fetch(`/api/admin/users/${userId}/extend`, { method: "POST" });
-      const data = await res.json();
-      if (data.success) setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, expires: data.expires_at } : u));
-    } catch (e) { console.error("Failed to extend", e); }
+      const data = await postAdminAction(`/api/admin/users/${userId}/extend`);
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, expires: data.expires_at } : u));
+    } catch (e) {
+      console.error("Failed to extend", e);
+      setActionError(e instanceof Error ? e.message : "操作失败，请稍后再试。");
+    }
     finally { setActionLoading(null); }
   }
 
   async function handleReduce(userId: string) {
     setActionLoading(userId);
+    setActionError("");
     try {
-      const res = await fetch(`/api/admin/users/${userId}/reduce`, { method: "POST" });
-      const data = await res.json();
-      if (data.success) setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, expires: data.expires_at } : u));
-    } catch (e) { console.error("Failed to reduce", e); }
+      const data = await postAdminAction(`/api/admin/users/${userId}/reduce`);
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, expires: data.expires_at } : u));
+    } catch (e) {
+      console.error("Failed to reduce", e);
+      setActionError(e instanceof Error ? e.message : "操作失败，请稍后再试。");
+    }
     finally { setActionLoading(null); }
   }
 
   async function handlePause(userId: string) {
     setActionLoading(userId);
+    setActionError("");
     try {
-      const res = await fetch(`/api/admin/users/${userId}/pause`, { method: "POST" });
-      const data = await res.json();
-      if (data.success) setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, aiPaused: true } : u));
-    } catch (e) { console.error("Failed to pause", e); }
+      await postAdminAction(`/api/admin/users/${userId}/pause`);
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, aiPaused: true } : u));
+    } catch (e) {
+      console.error("Failed to pause", e);
+      setActionError(e instanceof Error ? e.message : "操作失败，请稍后再试。");
+    }
     finally { setActionLoading(null); }
   }
 
   async function handleDelete(userId: string) {
-    if (!confirm("确定要删除该用户吗？此操作不可撤销。")) return;
     setActionLoading(userId);
+    setActionError("");
     try {
-      const res = await fetch(`/api/admin/users/${userId}/delete`, { method: "POST" });
-      const data = await res.json();
-      if (data.success) setUsers((prev) => prev.filter((u) => u.id !== userId));
-    } catch (e) { console.error("Failed to delete", e); }
+      await postAdminAction(`/api/admin/users/${userId}/delete`);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      if (selectedUserId === userId) setSelectedUserId(null);
+    } catch (e) {
+      console.error("Failed to delete", e);
+      setActionError(e instanceof Error ? e.message : "操作失败，请稍后再试。");
+    }
     finally { setActionLoading(null); setDeleteConfirm(null); }
   }
 
@@ -189,6 +202,7 @@ export default function AdminPage() {
             </label>
             <p>{filteredUsers.length} / {users.length} 位用户</p>
           </section>
+          {actionError ? <p className="admin-action-error">{actionError}</p> : null}
           <section className="admin-user-list thin-panel">
             <div className="admin-user-table__head">
               <span>快速概览</span>
@@ -238,11 +252,6 @@ export default function AdminPage() {
               </div>
             )}
           </section>
-          <section className="grid gap-3">
-            <ContentLink title="Day 内容" detail="Day 1-7 已上线，Day 8-100 待补" href="/admin/content" />
-            <ContentLink title="测评题库" detail="42 题 · 6维度 × 7题" href="/admin/content" />
-            <ContentLink title="神秘卡" detail="女性力量卡与今日卡" href="/admin/content" />
-          </section>
         </section>
 
         {deleteConfirm && (
@@ -260,6 +269,15 @@ export default function AdminPage() {
       </section>
     </main>
   );
+}
+
+async function postAdminAction(url: string) {
+  const res = await fetch(url, { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || "后台操作失败。");
+  }
+  return data;
 }
 
 function AdminUserActionCard({
@@ -315,17 +333,5 @@ function InfoChip({ label, value }: { label: string; value: string }) {
       <span className="block text-[10px] text-clay">{label}</span>
       <strong className="mt-1 block truncate font-normal text-ink">{value}</strong>
     </div>
-  );
-}
-
-function ContentLink({ title, detail, href }: { title: string; detail: string; href: string }) {
-  return (
-    <Link href={href} className="thin-panel grid grid-cols-[1fr_auto] items-center gap-3 p-4">
-      <div>
-        <strong className="block text-xl font-normal">{title}</strong>
-        <span className="mt-1 block sans text-xs text-[var(--muted)]">{detail}</span>
-      </div>
-      <span className="pill">管理</span>
-    </Link>
   );
 }

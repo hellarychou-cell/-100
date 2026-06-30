@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     return jsonError(message, raw.includes("already") ? 409 : 500);
   }
 
-  const [{ error: profileError }, { error: progressError }] = await Promise.all([
+  const [{ error: profileError }, progressResult] = await Promise.all([
     supabase.from("profiles").upsert({
       id: data.user.id,
       phone: storedPhone,
@@ -86,8 +86,15 @@ export async function POST(req: NextRequest) {
     supabase.from("progress").upsert({
       user_id: data.user.id,
       current_day: 1,
+      next_unlock_date: null,
     }),
   ]);
+  const progressError = progressResult.error
+    ? (await supabase.from("progress").upsert({
+        user_id: data.user.id,
+        current_day: 1,
+      })).error
+    : null;
 
   if (profileError || progressError) {
     return jsonError(`账号已创建，但资料初始化失败：${profileError?.message ?? progressError?.message}`, 500);

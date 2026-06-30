@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AuthGate } from "@/components/AuthGate";
+import { DayAccessGuard } from "@/components/DayAccessGuard";
 import { MysteryCard } from "@/components/MysteryCard";
 import { AIHoverTip } from "@/components/AIHoverTip";
 import { AwakeningTheater } from "@/components/AwakeningTheater";
@@ -48,6 +49,7 @@ export default async function DayPage({ params }: PageProps) {
 
   return (
     <AuthGate requireMember={requiresMembershipForDay(day.day)}>
+    <DayAccessGuard day={day.day}>
     <main className="viewport botanical-page">
       <section className="paper-frame day-page">
         <MobileTopBar
@@ -163,6 +165,7 @@ export default async function DayPage({ params }: PageProps) {
         <DayFooter day={day.day} />
       </section>
     </main>
+    </DayAccessGuard>
     </AuthGate>
   );
 }

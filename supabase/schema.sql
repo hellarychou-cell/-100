@@ -48,6 +48,7 @@ create table if not exists public.progress (
   current_day int not null default 1 check (current_day between 1 and 100),
   journey_start_day int check (journey_start_day between 1 and 100),
   journey_start_date date,
+  next_unlock_date date,
   completed_days int[] not null default '{}',
   cards_collected int not null default 0,
   ai_conversation_count int not null default 0,
@@ -59,6 +60,9 @@ alter table public.progress
 
 alter table public.progress
   add column if not exists journey_start_date date;
+
+alter table public.progress
+  add column if not exists next_unlock_date date;
 
 update public.progress
 set journey_start_day = current_day

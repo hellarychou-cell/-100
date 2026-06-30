@@ -21,3 +21,17 @@ test("admin report action links to the selected user's assessment report", () =>
   assert.match(adminPageSource, /href=\{`\/admin\/users\/\$\{user\.id\}`\}/);
   assert.match(adminPageSource, /查看测评报告/);
 });
+
+test("admin actions surface failed API messages", () => {
+  assert.match(adminPageSource, /actionError/);
+  assert.match(adminPageSource, /throw new Error\(data\.error/);
+  assert.match(adminPageSource, /admin-action-error/);
+});
+
+test("admin page removes fake content management shortcuts", () => {
+  assert.doesNotMatch(adminPageSource, /<ContentLink/);
+  assert.doesNotMatch(adminPageSource, /function ContentLink/);
+  assert.doesNotMatch(adminPageSource, /Day 内容/);
+  assert.doesNotMatch(adminPageSource, /测评题库/);
+  assert.doesNotMatch(adminPageSource, /神秘卡/);
+});

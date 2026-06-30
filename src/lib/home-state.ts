@@ -1,5 +1,7 @@
 export type HomeUserState = "needs-assessment" | "waiting-membership" | "active-member";
 
+import { isDayUnlocked } from "./progress.ts";
+
 export type ProgressCardState = "completed" | "today" | "available" | "future";
 
 export function getHomeUserState({
@@ -25,7 +27,7 @@ export function getProgressCardState({
 }): ProgressCardState {
   if (completedDays.includes(day)) return "completed";
   if (day === currentDay) return "today";
-  if (day < currentDay || day === currentDay + 1) return "available";
+  if (isDayUnlocked({ day, currentDay, completedDays })) return "available";
   return "future";
 }
 

@@ -11,7 +11,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
 
   return (
     <main className="auth-page">
-      <section className="auth-shell">
+      <section className={`auth-shell ${isRegister ? "auth-shell--register" : "auth-shell--login"}`}>
         <header className="auth-shell__header">
           <span>成她100</span>
           <Link aria-label="返回首页" href="/">×</Link>

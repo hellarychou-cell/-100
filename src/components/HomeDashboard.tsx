@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getProgressCardState, ProgressCardState, shouldShowAssessmentPrompt } from "@/lib/home-state";
 import { getLocalUser, LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { currentUser, dayContents, phases } from "@/lib/content";
-import { getCalendarCurrentDay, getCollapsedProgressDays, getReadableCurrentDay } from "@/lib/progress";
+import { getClickDrivenCurrentDay, getCollapsedProgressDays, isDayUnlocked } from "@/lib/progress";
 import { getSeedlingState } from "@/lib/seedling-state";
 import { supabase } from "@/lib/supabase";
 import { MobileTopBar } from "@/components/MobileTopBar";
@@ -27,6 +27,7 @@ type RemoteProgressRow = {
   current_day?: number | null;
   journey_start_date?: string | null;
   journey_start_day?: number | null;
+  next_unlock_date?: string | null;
 };
 
 const publishedDayLimit = dayContents.length;
@@ -71,9 +72,11 @@ export function HomeDashboard() {
       const localHasAssessment = Boolean(localAssessment);
       const localProgress = readLocalProgress();
       if (localUser && !cancelled) {
-        const localCurrentDay = getCalendarCurrentDay({
+        const localCurrentDay = getClickDrivenCurrentDay({
+          completedDays: localProgress.completedDays,
           journeyStartDate: localProgress.journeyStartDate,
           journeyStartDay: localProgress.journeyStartDay,
+          nextUnlockDate: localProgress.nextUnlockDate,
           savedDay: localProgress.currentDay,
         });
         setState((current) => ({
@@ -90,9 +93,11 @@ export function HomeDashboard() {
       }
 
       if (!supabase) {
-        const localCurrentDay = getCalendarCurrentDay({
+        const localCurrentDay = getClickDrivenCurrentDay({
+          completedDays: localProgress.completedDays,
           journeyStartDate: localProgress.journeyStartDate,
           journeyStartDay: localProgress.journeyStartDay,
+          nextUnlockDate: localProgress.nextUnlockDate,
           savedDay: localProgress.currentDay,
         });
         if (!cancelled) {
@@ -136,9 +141,11 @@ export function HomeDashboard() {
       ]);
 
       const completedDays = Array.isArray(progress?.completed_days) ? progress.completed_days : [];
-      const currentDay = getCalendarCurrentDay({
+      const currentDay = getClickDrivenCurrentDay({
+        completedDays,
         journeyStartDate: progress?.journey_start_date,
         journeyStartDay: progress?.journey_start_day,
+        nextUnlockDate: progress?.next_unlock_date,
         savedDay: progress?.current_day,
       });
 
@@ -163,7 +170,7 @@ export function HomeDashboard() {
         });
 
       }
-      if (progress?.journey_start_date && progress?.journey_start_day && currentDay !== getReadableCurrentDay(progress.current_day)) {
+      if (progress && currentDay !== progress.current_day) {
         await supabase.from("progress").update({ current_day: currentDay }).eq("user_id", user.id);
       }
     }
@@ -328,7 +335,7 @@ function ProgressDayCard({
 }) {
   const [showLockedModal, setShowLockedModal] = useState(false);
   const state = getProgressCardState({ day: item.day, currentDay, completedDays });
-  const isLocked = item.day > currentDay;
+  const isLocked = !isDayUnlocked({ day: item.day, currentDay, completedDays });
   const href = !isLocked ? `/day/${item.day}` : "#";
 
   const styles: Record<ProgressCardState, string> = {
@@ -386,12 +393,13 @@ function readLocalProgress() {
   if (!raw) return { currentDay: currentUser.currentDay, completedDays: currentUser.completedDays };
 
   try {
-    const parsed = JSON.parse(raw) as { currentDay?: number; completedDays?: number[]; journeyStartDate?: string; journeyStartDay?: number };
+    const parsed = JSON.parse(raw) as { currentDay?: number; completedDays?: number[]; journeyStartDate?: string; journeyStartDay?: number; nextUnlockDate?: string | null };
     return {
       currentDay: Number.isInteger(parsed.currentDay) ? Number(parsed.currentDay) : currentUser.currentDay,
       completedDays: Array.isArray(parsed.completedDays) ? parsed.completedDays.filter(Number.isInteger) : currentUser.completedDays,
       journeyStartDate: typeof parsed.journeyStartDate === "string" ? parsed.journeyStartDate : null,
       journeyStartDay: Number.isInteger(parsed.journeyStartDay) ? Number(parsed.journeyStartDay) : null,
+      nextUnlockDate: typeof parsed.nextUnlockDate === "string" ? parsed.nextUnlockDate : null,
     };
   } catch {
     window.localStorage.removeItem(LOCAL_PROGRESS_KEY);
@@ -403,7 +411,7 @@ async function loadRemoteProgress(userId: string) {
   if (!supabase) return null;
   const withJourney = await supabase
     .from("progress")
-    .select("current_day,completed_days,cards_collected,journey_start_day,journey_start_date")
+    .select("current_day,completed_days,cards_collected,journey_start_day,journey_start_date,next_unlock_date")
     .eq("user_id", userId)
     .maybeSingle();
 

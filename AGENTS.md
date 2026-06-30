@@ -86,6 +86,8 @@ Could not find the module ".../next-devtools/.../segment-explorer-node.js#Segmen
 
 这不是页面业务代码错误，而是 dev server 和生产构建共用 `.next` 目录导致的缓存/manifest 冲突。处理方式是停止当前 dev server，重新执行 `npm run preview:local`。
 
+当前稳定方案：`npm run preview:local` 会通过 `NEXT_DIST_DIR=.next-dev` 使用独立 dev 缓存目录，`npm run build` 继续使用生产 `.next`。如果后续又看到页面变成纯文字、空白或 manifest 报错，先确认 `package.json` 的 `preview:local` 是否仍带 `NEXT_DIST_DIR=.next-dev`，不要把 dev server 和 build 改回共用 `.next`。
+
 ## 同步与上线
 
 只有用户明确要求上线、同步、提交或部署时，才执行：

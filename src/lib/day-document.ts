@@ -143,7 +143,7 @@ function extractSectionByAliases(source: string, startTitles: string[]) {
   if (start < 0) return "";
 
   const contentStart = source.indexOf("\n", start);
-  const endMatch = source.slice(contentStart + 1).match(/^## .+$/m);
+  const endMatch = source.slice(contentStart + 1).match(/^#{1,2} .+$/m);
   const end = endMatch?.index === undefined ? -1 : contentStart + 1 + endMatch.index;
   return source.slice(contentStart + 1, end >= 0 ? end : undefined).trim();
 }

@@ -9,3 +9,9 @@ test("login forgot password link stays in the password field action row", () => 
   assert.match(authFormSource, /auth-forgot-link/);
   assert.doesNotMatch(authFormSource, /<div className="flex justify-end">\s*<Link className="text-link text-xs" href="\/auth\/forgot-password">/);
 });
+
+test("login uses email only and does not present old phone login", () => {
+  assert.match(authFormSource, /label=\{isRegister \? "邮箱" : "邮箱"\}/);
+  assert.doesNotMatch(authFormSource, /邮箱 \/ 老用户手机号/);
+  assert.doesNotMatch(authFormSource, /buildPhoneAuthIdentity\(trimmedEmail\)\.authEmail/);
+});

@@ -103,6 +103,13 @@ test("day document cleaning removes internal display notes from public copy", as
   assert.doesNotMatch(combined, /最后更新|最近更新/);
 });
 
+test("curtain call stops before milestone and other document-level sections", async () => {
+  const daySeven = await getDayDocumentContent(7);
+
+  assert.match(daySeven.curtainCall, /第一周，结束了/);
+  assert.doesNotMatch(daySeven.curtainCall, /第一周里程碑|Week 1|AI 对话精华/);
+});
+
 test("latest philosophy document exposes the five public sections", () => {
   const blocks = readRootMarkdown("成她-理念页.md");
   const headings = blocks.filter((block) => block.type === "heading").map((block) => block.text);

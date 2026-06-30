@@ -16,7 +16,24 @@ export async function POST(_req: NextRequest, context: RouteContext) {
   const { error } = await supabase.auth.admin.deleteUser(userId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const normalized = error.message.toLowerCase();
+    const canDeleteProfileOnly =
+      normalized.includes("not found") ||
+      normalized.includes("does not exist") ||
+      normalized.includes("user not");
+
+    if (!canDeleteProfileOnly) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", userId);
+
+    if (profileError) {
+      return NextResponse.json({ error: profileError.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ success: true });

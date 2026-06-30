@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
-import { getChinaDateString, markDayCompleted } from "@/lib/progress";
+import { getChinaDateString, getClickDrivenCurrentDay, isDayUnlocked, markDayCompleted } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 import { LOCAL_MILESTONE_VIEWED_KEY } from "@/lib/milestone-types";
 
@@ -14,6 +14,11 @@ type DayFooterProps = {
 export function DayFooter({ day }: DayFooterProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [nextUnlocked, setNextUnlocked] = useState(day < 100);
+
+  useEffect(() => {
+    setNextUnlocked(isNextDayUnlocked(day));
+  }, [day]);
 
   const handleCollectToday = async () => {
     if (loading) return;
@@ -31,6 +36,7 @@ export function DayFooter({ day }: DayFooterProps) {
         currentDay: progress.currentDay ?? day,
         journeyStartDate: progress.journeyStartDate ?? getChinaDateString(),
         journeyStartDay: progress.journeyStartDay ?? progress.currentDay ?? day,
+        nextUnlockDate: progress.nextUnlockDate ?? null,
       }, day);
       window.localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(nextProgress));
 
@@ -39,11 +45,19 @@ export function DayFooter({ day }: DayFooterProps) {
         const { data: userData } = await supabase.auth.getUser();
         const user = userData.user;
         if (user) {
-          const { data: existingProgress } = await supabase
+          const { data: progressWithUnlock, error: progressWithUnlockError } = await supabase
             .from("progress")
-            .select("current_day, completed_days, cards_collected")
+            .select("current_day, completed_days, cards_collected, journey_start_day, journey_start_date, next_unlock_date")
             .eq("user_id", user.id)
             .maybeSingle();
+          const { data: fallbackProgress } = progressWithUnlockError
+            ? await supabase
+                .from("progress")
+                .select("current_day, completed_days, cards_collected")
+                .eq("user_id", user.id)
+                .maybeSingle()
+            : { data: null };
+          const existingProgress = progressWithUnlock ?? fallbackProgress;
 
           if (existingProgress) {
             const currentCompletedDays = Array.isArray(existingProgress.completed_days)
@@ -53,13 +67,25 @@ export function DayFooter({ day }: DayFooterProps) {
               ? currentCompletedDays
               : [...currentCompletedDays, day];
 
-            await supabase
+            const { error: updateError } = await supabase
               .from("progress")
               .update({
-                current_day: existingProgress.current_day ?? day,
+                current_day: nextProgress.currentDay,
                 completed_days: newCompletedDays,
+                cards_collected: newCompletedDays.length,
+                next_unlock_date: nextProgress.nextUnlockDate,
               })
               .eq("user_id", user.id);
+            if (updateError) {
+              await supabase
+                .from("progress")
+                .update({
+                  current_day: nextProgress.currentDay,
+                  completed_days: newCompletedDays,
+                  cards_collected: newCompletedDays.length,
+                })
+                .eq("user_id", user.id);
+            }
           } else {
             const { error } = await supabase.from("progress").upsert({
               user_id: user.id,
@@ -68,6 +94,7 @@ export function DayFooter({ day }: DayFooterProps) {
               cards_collected: 1,
               journey_start_date: getChinaDateString(),
               journey_start_day: day,
+              next_unlock_date: nextProgress.nextUnlockDate,
             });
             if (error) {
               await supabase.from("progress").upsert({
@@ -114,11 +141,14 @@ export function DayFooter({ day }: DayFooterProps) {
       </button>
       <button
         className="day-footer__nav"
-        disabled={day >= 100}
-        onClick={() => router.push(`/day/${Math.min(100, day + 1)}`)}
+        disabled={day >= 100 || !nextUnlocked}
+        onClick={() => {
+          if (!nextUnlocked) return;
+          router.push(`/day/${Math.min(100, day + 1)}`);
+        }}
         type="button"
       >
-        下一天 ❯
+        {nextUnlocked ? "下一天 ❯" : "明天解锁"}
       </button>
     </footer>
   );
@@ -132,6 +162,32 @@ function hasViewedMilestone(day: number) {
     return Boolean(parsed?.[String(day)]);
   } catch {
     window.localStorage.removeItem(LOCAL_MILESTONE_VIEWED_KEY);
+    return false;
+  }
+}
+
+function isNextDayUnlocked(day: number) {
+  if (typeof window === "undefined" || day >= 100) return false;
+  const raw = window.localStorage.getItem(LOCAL_PROGRESS_KEY);
+  if (!raw) return day + 1 <= 1;
+  try {
+    const progress = JSON.parse(raw) as {
+      completedDays?: number[];
+      currentDay?: number;
+      journeyStartDate?: string | null;
+      journeyStartDay?: number | null;
+      nextUnlockDate?: string | null;
+    };
+    const completedDays = Array.isArray(progress.completedDays) ? progress.completedDays.filter(Number.isInteger) : [];
+    const currentDay = getClickDrivenCurrentDay({
+      completedDays,
+      journeyStartDate: progress.journeyStartDate,
+      journeyStartDay: progress.journeyStartDay,
+      nextUnlockDate: progress.nextUnlockDate,
+      savedDay: progress.currentDay ?? day,
+    });
+    return isDayUnlocked({ day: day + 1, currentDay, completedDays });
+  } catch {
     return false;
   }
 }

@@ -19,7 +19,7 @@ test("progress card states distinguish completed, today, available, and future d
   assert.equal(getProgressCardState({ day: 6, currentDay: 7, completedDays: [1, 2, 6] }), "completed");
   assert.equal(getProgressCardState({ day: 5, currentDay: 7, completedDays: [1, 2, 6] }), "available");
   assert.equal(getProgressCardState({ day: 7, currentDay: 7, completedDays: [1, 2, 6] }), "today");
-  assert.equal(getProgressCardState({ day: 8, currentDay: 7, completedDays: [1, 2, 6] }), "available");
+  assert.equal(getProgressCardState({ day: 8, currentDay: 7, completedDays: [1, 2, 6] }), "future");
   assert.equal(getProgressCardState({ day: 9, currentDay: 7, completedDays: [1, 2, 6] }), "future");
 });
 

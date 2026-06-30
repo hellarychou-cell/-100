@@ -7,6 +7,7 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const ignoreGlobs = [
   ".next/**",
+  ".next-dev/**",
   "node_modules/**",
   ".superpowers/**",
   "next-env.d.ts",

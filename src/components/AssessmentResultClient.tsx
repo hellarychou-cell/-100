@@ -125,6 +125,7 @@ export function AssessmentResultClient() {
           cards_collected: 0,
           journey_start_day: nextProgress.journeyStartDay,
           journey_start_date: nextProgress.journeyStartDate,
+          next_unlock_date: nextProgress.nextUnlockDate,
         };
         const { error } = await supabase.from("progress").upsert(payload);
         if (error) {

@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { getCalendarCurrentDay } from "@/lib/progress";
+import { getClickDrivenCurrentDay } from "@/lib/progress";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -14,8 +14,10 @@ type ProfileRow = {
 
 type ProgressRow = {
   current_day: number | null;
+  completed_days?: number[] | null;
   journey_start_date?: string | null;
   journey_start_day?: number | null;
+  next_unlock_date?: string | null;
 };
 
 function getMetaValue(metadata: Record<string, unknown> | null | undefined, key: string) {
@@ -98,9 +100,11 @@ export async function GET() {
         name: profile.display_name || "她",
         phone: profile.phone || "未填写",
         day: progress
-          ? getCalendarCurrentDay({
+          ? getClickDrivenCurrentDay({
+              completedDays: Array.isArray(progress.completed_days) ? progress.completed_days : [],
               journeyStartDate: progress.journey_start_date,
               journeyStartDay: progress.journey_start_day,
+              nextUnlockDate: progress.next_unlock_date,
               savedDay: progress.current_day,
             })
           : null,
@@ -121,7 +125,7 @@ async function loadProgress(
 ) {
   const withJourney = await supabase
     .from("progress")
-    .select("current_day, journey_start_day, journey_start_date")
+    .select("current_day, completed_days, journey_start_day, journey_start_date, next_unlock_date")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -129,7 +133,7 @@ async function loadProgress(
 
   const fallback = await supabase
     .from("progress")
-    .select("current_day")
+    .select("current_day, completed_days")
     .eq("user_id", userId)
     .maybeSingle();
   return fallback.data as ProgressRow | null;

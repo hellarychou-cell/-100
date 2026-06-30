@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  getCalendarCurrentDay,
+  getClickDrivenCurrentDay,
   getCollapsedProgressDays,
+  getNextUnlockDate,
+  isDayUnlocked,
   getReadableCurrentDay,
   markDayCompleted,
   requiresMembershipForDay,
@@ -23,12 +25,14 @@ test("starts the journey from the selected day without completing earlier days",
     currentDay: 1,
     journeyStartDate: "2026-06-28",
     journeyStartDay: 1,
+    nextUnlockDate: null,
   });
   assert.deepEqual(startProgressFromDay(7, "2026-06-28"), {
     completedDays: [],
     currentDay: 7,
     journeyStartDate: "2026-06-28",
     journeyStartDay: 7,
+    nextUnlockDate: null,
   });
 });
 
@@ -36,34 +40,40 @@ test("falls back to day one when saved progress is missing", () => {
   assert.equal(getReadableCurrentDay(null), 1);
 });
 
-test("marks a day completed once without advancing the natural-day journey", () => {
-  assert.deepEqual(markDayCompleted({ currentDay: 7, completedDays: [1, 2, 6] }, 7), {
+test("marks a day completed once and waits until the next China date to unlock the following day", () => {
+  assert.deepEqual(markDayCompleted({ currentDay: 7, completedDays: [1, 2, 6] }, 7, "2026-06-28"), {
     currentDay: 7,
     completedDays: [1, 2, 6, 7],
+    nextUnlockDate: "2026-06-29",
   });
 });
 
 test("marking an already completed day keeps completedDays unique", () => {
-  assert.deepEqual(markDayCompleted({ currentDay: 7, completedDays: [1, 2, 7] }, 7), {
+  assert.deepEqual(markDayCompleted({ currentDay: 7, completedDays: [1, 2, 7] }, 7, "2026-06-28"), {
     currentDay: 7,
     completedDays: [1, 2, 7],
+    nextUnlockDate: "2026-06-29",
   });
 });
 
-test("derives the current day from the journey start date in China time", () => {
+test("click-driven progress stays on a collected day until the next China date", () => {
   assert.equal(
-    getCalendarCurrentDay({
+    getClickDrivenCurrentDay({
+      completedDays: [1, 2, 6, 7],
       journeyStartDate: "2026-06-28",
       journeyStartDay: 7,
+      nextUnlockDate: "2026-06-29",
       savedDay: 7,
       todayDate: "2026-06-28",
     }),
     7,
   );
   assert.equal(
-    getCalendarCurrentDay({
+    getClickDrivenCurrentDay({
+      completedDays: [1, 2, 6, 7],
       journeyStartDate: "2026-06-28",
       journeyStartDay: 7,
+      nextUnlockDate: "2026-06-29",
       savedDay: 7,
       todayDate: "2026-06-29",
     }),
@@ -71,8 +81,39 @@ test("derives the current day from the journey start date in China time", () => 
   );
 });
 
-test("falls back to saved day when journey start data is missing", () => {
-  assert.equal(getCalendarCurrentDay({ savedDay: 8, todayDate: "2026-06-29" }), 8);
+test("does not skip unfinished days when the user is away for multiple calendar days", () => {
+  assert.equal(
+    getClickDrivenCurrentDay({
+      completedDays: [1, 2, 3, 4, 5, 6, 7],
+      journeyStartDay: 7,
+      nextUnlockDate: "2026-06-29",
+      savedDay: 8,
+      todayDate: "2026-07-03",
+    }),
+    8,
+  );
+});
+
+test("repairs legacy natural-day jumps back to the first unfinished day", () => {
+  assert.equal(
+    getClickDrivenCurrentDay({
+      completedDays: [1, 2, 3, 4, 5, 6, 7],
+      journeyStartDay: 7,
+      savedDay: 9,
+      todayDate: "2026-06-30",
+    }),
+    8,
+  );
+});
+
+test("day access unlocks only the effective current day and completed days", () => {
+  assert.equal(isDayUnlocked({ day: 7, currentDay: 7, completedDays: [1, 2, 6, 7] }), true);
+  assert.equal(isDayUnlocked({ day: 8, currentDay: 7, completedDays: [1, 2, 6, 7] }), false);
+  assert.equal(isDayUnlocked({ day: 8, currentDay: 8, completedDays: [1, 2, 6, 7] }), true);
+});
+
+test("calculates the next unlock date in China time", () => {
+  assert.equal(getNextUnlockDate("2026-06-28"), "2026-06-29");
 });
 
 test("uses the first seven days for the folded progress range", () => {

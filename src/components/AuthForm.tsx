@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { getLocalUser, setLocalUser } from "@/lib/auth";
 import { normalizeEmail } from "@/lib/password-reset";
-import { buildPhoneAuthIdentity } from "@/lib/phone-auth";
+import { buildPhoneAuthIdentity, validateLocalRegistrationIdentity } from "@/lib/phone-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type FormMode = "login" | "register";
@@ -64,11 +64,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     try {
       const phoneIdentity = isRegister ? buildPhoneAuthIdentity(trimmedPhone) : null;
       const storedPhone = phoneIdentity?.storedPhone ?? "";
-      const signInEmail = isRegister
-        ? trimmedEmail
-        : trimmedEmail.includes("@")
-          ? trimmedEmail
-          : buildPhoneAuthIdentity(trimmedEmail).authEmail;
+      const signInEmail = trimmedEmail;
 
       if (isSupabaseConfigured && supabase) {
         if (isRegister) {
@@ -103,6 +99,15 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
         }
       } else {
         if (isRegister) {
+          const identityCheck = validateLocalRegistrationIdentity(getLocalUser(), {
+            phone: storedPhone,
+            email: trimmedEmail,
+          });
+          if (!identityCheck.ok) {
+            setMessage(identityCheck.message);
+            setLoading(false);
+            return;
+          }
           setLocalUser({
             id: `local-${storedPhone}`,
             phone: storedPhone,
@@ -116,12 +121,11 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
           setShowSuccess(true);
         } else {
           const localUser = getLocalUser();
-          if (!localUser || (localUser.email ?? localUser.phone) !== trimmedEmail || localUser.displayName !== trimmedName) {
+          if (!localUser || normalizeEmail(localUser.email ?? "") !== trimmedEmail) {
             setMessage("用户名或者密码不对。");
             setLoading(false);
             return;
           }
-          setLocalUser({ ...localUser, displayName: trimmedName });
           router.push("/home");
         }
       }
@@ -222,7 +226,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             />
           )}
           <Field
-            label={isRegister ? "邮箱" : "邮箱 / 老用户手机号"}
+            label={isRegister ? "邮箱" : "邮箱"}
             name="email"
             placeholder={isRegister ? "用于找回密码" : "请输入注册邮箱"}
             value={email}
