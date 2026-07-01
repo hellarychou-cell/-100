@@ -1,9 +1,7 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/admin-supabase";
 import { getClickDrivenCurrentDay } from "@/lib/progress";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 type ProfileRow = {
   id: string;
@@ -26,11 +24,10 @@ function getMetaValue(metadata: Record<string, unknown> | null | undefined, key:
 }
 
 export async function GET() {
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  const { error: configError, supabase } = createAdminSupabaseClient();
+  if (configError || !supabase) {
+    return NextResponse.json({ error: configError }, { status: 500 });
   }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const [{ data: profiles, error: profilesError }, { data: authData, error: authError }] = await Promise.all([
     supabase

@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const adminPageSource = readFileSync(new URL("../src/app/admin/page.tsx", import.meta.url), "utf8");
+const adminDeleteRouteSource = readFileSync(new URL("../src/app/api/admin/users/[userId]/delete/route.ts", import.meta.url), "utf8");
+const adminUsersRouteSource = readFileSync(new URL("../src/app/api/admin/users/route.ts", import.meta.url), "utf8");
+const adminSupabaseSource = readFileSync(new URL("../src/lib/admin-supabase.ts", import.meta.url), "utf8");
 
 test("admin user list has search and a scrollable overview", () => {
   assert.match(adminPageSource, /placeholder="搜索姓名、手机号、测评状态或 Day"/);
@@ -34,4 +37,14 @@ test("admin page removes fake content management shortcuts", () => {
   assert.doesNotMatch(adminPageSource, /Day 内容/);
   assert.doesNotMatch(adminPageSource, /测评题库/);
   assert.doesNotMatch(adminPageSource, /神秘卡/);
+});
+
+test("admin APIs explain missing local Supabase service configuration", () => {
+  const combined = `${adminUsersRouteSource}\n${adminDeleteRouteSource}`;
+
+  assert.match(combined, /createAdminSupabaseClient/);
+  assert.match(adminSupabaseSource, /ADMIN_SUPABASE_CONFIG_ERROR/);
+  assert.match(adminSupabaseSource, /本地预览/);
+  assert.match(adminSupabaseSource, /\.env\.local/);
+  assert.doesNotMatch(combined, /Server misconfigured/);
 });

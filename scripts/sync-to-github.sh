@@ -9,6 +9,12 @@ rsync -av --delete \
   --exclude ".git/" \
   --exclude ".git.bak/" \
   --exclude ".next/" \
+  --exclude ".next-dev/" \
+  --exclude ".next-dev*/" \
+  --exclude ".env" \
+  --exclude ".env.*" \
+  --exclude ".env.local" \
+  --exclude ".env.production" \
   --exclude "node_modules/" \
   --exclude ".vercel/" \
   --exclude ".superpowers/" \
