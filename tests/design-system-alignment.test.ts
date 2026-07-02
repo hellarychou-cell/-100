@@ -122,6 +122,8 @@ test("daily content and AI chat use their approved mobile shells", () => {
   assert.match(ai, /companionLabel/);
   assert.match(ai, /ai-chat__method-tip/);
   assert.match(ai, /getAIQuadrantTooltip/);
+  assert.match(ai, /ai-chat__privacy-note/);
+  assert.match(ai, /聊天内容只留在你的设备和成长档案里/);
   assert.match(read("src/app/globals.css"), /\.ai-chat__input-hint\s*\{[\s\S]*text-align:\s*right/);
 });
 

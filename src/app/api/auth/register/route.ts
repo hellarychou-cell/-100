@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const displayName = String(body?.displayName ?? "").trim() || "她";
+  const displayName = "她";
   const email = normalizeEmail(String(body?.email ?? ""));
   const phone = String(body?.phone ?? "").trim();
   const password = String(body?.password ?? "");

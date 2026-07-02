@@ -25,10 +25,41 @@ test("admin report action links to the selected user's assessment report", () =>
   assert.match(adminPageSource, /查看测评报告/);
 });
 
+test("admin can open the user's pre-assessment profile details", () => {
+  assert.match(adminUsersRouteSource, /age, identity, current_issue, ideal_state/);
+  assert.match(adminPageSource, /profileDetails/);
+  assert.match(adminPageSource, /查看测评前页/);
+  assert.match(adminPageSource, /测评前页内容/);
+  for (const label of ["年龄", "身份/行业", "当下最想解决的问题", "理想状态"]) {
+    assert.match(adminPageSource, new RegExp(label));
+  }
+});
+
 test("admin actions surface failed API messages", () => {
   assert.match(adminPageSource, /actionError/);
   assert.match(adminPageSource, /throw new Error\(data\.error/);
   assert.match(adminPageSource, /admin-action-error/);
+});
+
+test("admin delete opens local confirmation before any API request", () => {
+  const requestDeleteIndex = adminPageSource.indexOf("function requestDelete");
+  const handleDeleteIndex = adminPageSource.indexOf("async function handleDelete");
+
+  assert.ok(requestDeleteIndex > -1, "delete confirmation should have a local requestDelete handler");
+  assert.ok(handleDeleteIndex > -1, "admin page should keep the actual async delete handler");
+  assert.ok(requestDeleteIndex < handleDeleteIndex, "confirmation should be opened before the async delete path");
+  assert.match(adminPageSource, /setDeleteConfirm\(userId\)/);
+  assert.match(adminPageSource, /event\.stopPropagation\(\)/);
+  assert.match(adminPageSource, /admin-delete-confirm/);
+  const requestDeleteSource = adminPageSource.slice(
+    requestDeleteIndex,
+    adminPageSource.indexOf("async function handleExtend", requestDeleteIndex),
+  );
+  assert.doesNotMatch(
+    requestDeleteSource,
+    /postAdminAction|fetch\(/,
+    "opening the confirmation must not wait for Supabase or any network request",
+  );
 });
 
 test("admin page removes fake content management shortcuts", () => {

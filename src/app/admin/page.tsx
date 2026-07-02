@@ -9,6 +9,13 @@ type AdminUser = {
   id: string;
   name: string;
   phone: string;
+  profileDetails?: {
+    age?: string | null;
+    currentIssue?: string | null;
+    identity?: string | null;
+    idealState?: string | null;
+    name?: string | null;
+  };
   day: number | null;
   assessment: string;
   assessmentDate: string | null;
@@ -72,6 +79,7 @@ export default function AdminPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [profileViewUser, setProfileViewUser] = useState<AdminUser | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -96,6 +104,11 @@ export default function AdminPage() {
   function handleLogout() {
     window.localStorage.removeItem(ADMIN_SESSION_KEY);
     setIsAuthenticated(false);
+  }
+
+  function requestDelete(userId: string) {
+    setActionError("");
+    setDeleteConfirm(userId);
   }
 
   async function handleExtend(userId: string) {
@@ -243,7 +256,8 @@ export default function AdminPage() {
                           onExtend={handleExtend}
                           onReduce={handleReduce}
                           onPause={handlePause}
-                          onDelete={() => setDeleteConfirm(user.id)}
+                          onViewProfile={() => setProfileViewUser(user)}
+                          onDelete={() => requestDelete(user.id)}
                         />
                       )}
                     </div>
@@ -254,19 +268,42 @@ export default function AdminPage() {
           </section>
         </section>
 
-        {deleteConfirm && (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 backdrop-blur-sm">
-            <div className="thin-panel w-full max-w-sm p-8 text-center">
-              <h2 className="mb-3 text-2xl font-normal">确认删除</h2>
-              <p className="mb-6 text-[#563a2e]">删除后无法恢复，确定吗？</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button className="border border-ink px-4 py-2" onClick={() => setDeleteConfirm(null)}>取消</button>
-                <button className="bg-red-500 px-4 py-2 text-white hover:bg-red-600" onClick={() => handleDelete(deleteConfirm)}>确认删除</button>
-              </div>
+      </section>
+
+      {deleteConfirm && (
+        <div className="admin-delete-confirm fixed inset-0 z-50 grid place-items-center bg-ink/40 p-5 backdrop-blur-sm">
+          <div className="thin-panel w-full max-w-sm p-8 text-center">
+            <h2 className="mb-3 text-2xl font-normal">确认删除</h2>
+            <p className="mb-6 text-[#563a2e]">删除后无法恢复，确定吗？</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button className="border border-ink px-4 py-2" onClick={() => setDeleteConfirm(null)} type="button">取消</button>
+              <button className="bg-red-500 px-4 py-2 text-white hover:bg-red-600" onClick={() => handleDelete(deleteConfirm)} type="button">确认删除</button>
             </div>
           </div>
-        )}
-      </section>
+        </div>
+      )}
+
+      {profileViewUser && (
+        <div className="admin-profile-modal fixed inset-0 z-50 grid place-items-center bg-ink/40 p-5 backdrop-blur-sm">
+          <div className="thin-panel w-full max-w-sm p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow mb-1">Pre assessment</p>
+                <h2 className="text-2xl font-normal">测评前页内容</h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">{profileViewUser.name} · {profileViewUser.phone}</p>
+              </div>
+              <button className="text-link bg-transparent" onClick={() => setProfileViewUser(null)} type="button">关闭</button>
+            </div>
+            <dl className="grid gap-3">
+              <ProfileDetailItem label="姓名/昵称" value={profileViewUser.profileDetails?.name || profileViewUser.name} />
+              <ProfileDetailItem label="年龄" value={profileViewUser.profileDetails?.age} />
+              <ProfileDetailItem label="身份/行业" value={profileViewUser.profileDetails?.identity} />
+              <ProfileDetailItem label="当下最想解决的问题" value={profileViewUser.profileDetails?.currentIssue} />
+              <ProfileDetailItem label="理想状态" value={profileViewUser.profileDetails?.idealState} />
+            </dl>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -287,6 +324,7 @@ function AdminUserActionCard({
   onExtend,
   onReduce,
   onPause,
+  onViewProfile,
   onDelete,
 }: {
   user: AdminUser;
@@ -295,6 +333,7 @@ function AdminUserActionCard({
   onExtend: (userId: string) => void;
   onReduce: (userId: string) => void;
   onPause: (userId: string) => void;
+  onViewProfile: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -315,13 +354,24 @@ function AdminUserActionCard({
         <p className="admin-user-card__meta">测评：{new Date(user.assessmentDate).toLocaleDateString("zh-CN")}</p>
       )}
       <div className="admin-user-card__actions">
+        <button className="admin-mini-button admin-mini-button--primary" onClick={onViewProfile} type="button">查看测评前页</button>
         {user.assessment === "已完成" && (
           <Link className="admin-mini-button admin-mini-button--primary" href={`/admin/users/${user.id}`} title="查看测评报告">查看测评报告</Link>
         )}
         <button className="admin-mini-button" onClick={() => onExtend(user.id)} disabled={actionLoading === user.id} title="加30天">+30天</button>
         <button className="admin-mini-button" onClick={() => onReduce(user.id)} disabled={actionLoading === user.id} title="减30天">-30天</button>
         <button className="admin-mini-button" onClick={() => onPause(user.id)} disabled={actionLoading === user.id || user.aiPaused}>{user.aiPaused ? "已暂停" : "暂停AI"}</button>
-        <button className="admin-mini-button admin-mini-button--danger" onClick={onDelete} disabled={actionLoading === user.id}>删除</button>
+        <button
+          className="admin-mini-button admin-mini-button--danger"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete();
+          }}
+          disabled={actionLoading === user.id}
+          type="button"
+        >
+          删除
+        </button>
       </div>
     </article>
   );
@@ -332,6 +382,15 @@ function InfoChip({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-[var(--line)] bg-soft/60 p-2">
       <span className="block text-[10px] text-clay">{label}</span>
       <strong className="mt-1 block truncate font-normal text-ink">{value}</strong>
+    </div>
+  );
+}
+
+function ProfileDetailItem({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div className="rounded-xl border border-[var(--line)] bg-soft/70 p-3">
+      <dt className="text-[11px] text-clay">{label}</dt>
+      <dd className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink">{String(value ?? "").trim() || "未填写"}</dd>
     </div>
   );
 }

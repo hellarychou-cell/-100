@@ -15,7 +15,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
   const [mode, setMode] = useState<FormMode>(initialMode);
   const isRegister = mode === "register";
 
-  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +33,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     setMessage("");
 
     const trimmedPhone = phone.trim();
-    const trimmedName = displayName.trim() || "她";
     const trimmedEmail = normalizeEmail(email);
 
     if (!password || (isRegister && (!trimmedPhone || !trimmedEmail)) || (!isRegister && !trimmedEmail)) {
@@ -44,11 +42,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     }
 
     if (isRegister) {
-      if (!trimmedName) {
-        setMessage("请填写姓名/昵称。");
-        setLoading(false);
-        return;
-      }
       if (password !== confirmPassword) {
         setMessage("两次密码不一致，请重新输入。");
         setLoading(false);
@@ -72,7 +65,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              displayName: trimmedName,
               email: trimmedEmail,
               phone: storedPhone,
               password,
@@ -112,7 +104,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
             id: `local-${storedPhone}`,
             phone: storedPhone,
             email: trimmedEmail,
-            displayName: trimmedName,
+            displayName: "她",
             isMember: storedPhone.endsWith("9999"),
             membershipExpiresAt: storedPhone.endsWith("9999")
               ? new Date(Date.now() + 30 * 86400000).toISOString()
@@ -172,7 +164,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
   function handleSwitchMode(newMode: FormMode) {
     setMode(newMode);
     setMessage("");
-    setDisplayName("");
     setEmail("");
     setPhone("");
     setPassword("");
@@ -216,15 +207,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
         </div>
 
         <div className="grid gap-3">
-          {isRegister && (
-            <Field
-              label="姓名 / 昵称"
-              name="name"
-              placeholder="写一个你喜欢的称呼"
-              value={displayName}
-              onChange={setDisplayName}
-            />
-          )}
           <Field
             label={isRegister ? "邮箱" : "邮箱"}
             name="email"

@@ -199,6 +199,9 @@ export function AIDayClient({
                 <span className="ai-chat__input-hint">可以先写一句最真实的话</span>
               )}
             </div>
+            <p className="ai-chat__privacy-note">
+              聊天内容只留在你的设备和成长档案里，不会被公开展示；这里可以放心说真实的话。
+            </p>
           </div>
 
           <section className="ai-chat__conversation">

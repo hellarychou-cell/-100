@@ -4,8 +4,12 @@ import { createAdminSupabaseClient } from "@/lib/admin-supabase";
 import { getClickDrivenCurrentDay } from "@/lib/progress";
 
 type ProfileRow = {
+  age: string | null;
   id: string;
   display_name: string | null;
+  identity: string | null;
+  current_issue: string | null;
+  ideal_state: string | null;
   phone: string | null;
   created_at?: string | null;
 };
@@ -32,7 +36,7 @@ export async function GET() {
   const [{ data: profiles, error: profilesError }, { data: authData, error: authError }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, phone, created_at")
+      .select("id, display_name, phone, age, identity, current_issue, ideal_state, created_at")
       .order("created_at", { ascending: false }),
     supabase.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ]);
@@ -52,11 +56,15 @@ export async function GET() {
     const metadata = authUser.user_metadata as Record<string, unknown> | null;
     mergedProfiles.set(authUser.id, {
       id: authUser.id,
+      age: profile?.age ?? null,
+      current_issue: profile?.current_issue ?? null,
       display_name:
         profile?.display_name ??
         getMetaValue(metadata, "display_name") ??
         authUser.email?.split("@")[0] ??
         "她",
+      identity: profile?.identity ?? null,
+      ideal_state: profile?.ideal_state ?? null,
       phone:
         profile?.phone ??
         getMetaValue(metadata, "phone") ??
@@ -96,6 +104,13 @@ export async function GET() {
         id: profile.id,
         name: profile.display_name || "她",
         phone: profile.phone || "未填写",
+        profileDetails: {
+          age: profile.age,
+          currentIssue: profile.current_issue,
+          identity: profile.identity,
+          idealState: profile.ideal_state,
+          name: profile.display_name,
+        },
         day: progress
           ? getClickDrivenCurrentDay({
               completedDays: Array.isArray(progress.completed_days) ? progress.completed_days : [],

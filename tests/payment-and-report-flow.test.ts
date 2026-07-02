@@ -28,6 +28,24 @@ test("admin user reports render the same report view as the frontend result page
   assert.doesNotMatch(adminReport, /getOverallInfo/);
 });
 
+test("assessment result save button uses the PNG export helper", () => {
+  const frontend = read("src/components/AssessmentResultClient.tsx");
+  const exporter = read("src/lib/export-image.ts");
+
+  assert.match(frontend, /onClick=\{\(\) => void saveReportImage\(reportRef\.current, setSaving, setSaveMessage\)\}/);
+  assert.match(frontend, /fileName: `成她100-底层代码诊断报告-\$\{Date\.now\(\)\}\.png`/);
+  assert.match(exporter, /html-to-image/);
+  assert.match(exporter, /link\.download = fileName/);
+  assert.match(exporter, /link\.click\(\)/);
+});
+
+test("assessment report hides action buttons from saved image", () => {
+  const frontend = read("src/components/AssessmentResultClient.tsx");
+
+  assert.match(frontend, /className="flex flex-wrap gap-3 no-print"/);
+  assert.match(frontend, /filter: \(node\) => !node\.classList\.contains\("no-print"\)/);
+});
+
 test("wechat booking QR asset is committed for production", () => {
   assert.equal(existsSync(new URL("../public/images/wechat-admin-qr.jpg", import.meta.url)), true);
 });
