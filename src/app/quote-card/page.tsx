@@ -13,7 +13,7 @@ export default async function QuoteCardPage({ searchParams }: QuoteCardPageProps
   const safeDay = Number.isInteger(dayNum) ? dayNum : 1;
   const documentContent = safeDay >= 1 && safeDay <= 7 ? await getDayDocumentContent(safeDay) : null;
   return (
-    <AuthGate requireMember={requiresMembershipForDay(safeDay)}>
+    <AuthGate day={safeDay} requireMember={requiresMembershipForDay(safeDay)}>
       <QuoteCardClient
         dayNum={safeDay}
         documentContent={

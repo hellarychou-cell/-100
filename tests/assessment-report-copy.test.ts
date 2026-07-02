@@ -8,11 +8,12 @@ import {
   getTopAndLowDimensions,
 } from "../src/lib/assessment-report-copy.ts";
 
-test("report summary uses the original total-score tiers", () => {
-  assert.equal(getReportSummary(150).title, "深度隐形内耗");
-  assert.equal(getReportSummary(120).seedling, "刚刚破土");
-  assert.equal(getReportSummary(90).title, "中度隐形内耗");
-  assert.equal(getReportSummary(60).title, "轻度隐形内耗");
+test("report summary uses the improvement proposal growth-oriented score tiers", () => {
+  assert.equal(getReportSummary(10).title, "自主创造期");
+  assert.equal(getReportSummary(35).seedling, "正在扎根生长");
+  assert.equal(getReportSummary(55).title, "深度看见期");
+  assert.equal(getReportSummary(75).title, "系统觉醒期");
+  assert.equal(getReportSummary(90).title, "深层释放期");
 });
 
 test("dimension interpretations use high, middle, and low copy", () => {

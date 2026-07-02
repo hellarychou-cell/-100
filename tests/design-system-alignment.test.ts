@@ -234,6 +234,8 @@ test("second detail pass follows the final Figma page hierarchy", () => {
   assert.match(flow, /assessment-flow__header/);
   assert.match(flow, /assessment-flow__question-number/);
   assert.match(flow, /assessment-flow__scale-guide/);
+  assert.match(flow, /questionsRef/);
+  assert.match(flow, /scrollTo\(\{ top: 0, behavior: "smooth" \}\)/);
   assert.match(growth, /growth-profile-panel__dimensions/);
   assert.match(growth, /growth-profile-panel__signals/);
   assert.match(growth, /growth-profile-panel__quote/);

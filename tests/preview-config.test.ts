@@ -29,3 +29,9 @@ test("local preview uses an isolated Next cache instead of the production build 
   assert.match(syncScript, /--exclude "\.env\.local"/);
   assert.match(syncScript, /--exclude "\.env\.production"/);
 });
+
+test("wechat verification file is served from the public root", () => {
+  const file = "public/6693ea9e54b24c8e0740725fee817709.txt";
+  assert.equal(fs.existsSync(path.join(root, file)), true);
+  assert.equal(read(file).trim(), "29c3f055846cd4699bc61c0a1d324831372ef88f");
+});

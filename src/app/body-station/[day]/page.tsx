@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AuthGate } from "@/components/AuthGate";
 import { MobileTopBar } from "@/components/MobileTopBar";
 import { getBodyStationEntry, getBodyStationIndex } from "@/lib/body-station";
+import { requiresMembershipForDay } from "@/lib/progress";
 
 type PageProps = {
   params: Promise<{ day: string }>;
@@ -22,7 +23,7 @@ export default async function BodyStationDetailPage({ params, searchParams }: Pa
   const backHref = query.from === "day" ? `/day/${day}` : "/body-station";
 
   return (
-    <AuthGate>
+    <AuthGate day={day} requireMember={requiresMembershipForDay(day)}>
       <main className="viewport">
         <section className="paper-frame body-station-detail grid min-h-[calc(100vh-28px)] grid-rows-[56px_1fr] overflow-auto">
           <MobileTopBar

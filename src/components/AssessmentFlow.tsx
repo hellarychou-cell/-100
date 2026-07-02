@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ASSESSMENT_DIMENSIONS,
   AssessmentAnswers,
@@ -13,6 +13,8 @@ import { supabase } from "@/lib/supabase";
 
 export function AssessmentFlow() {
   const router = useRouter();
+  const flowRef = useRef<HTMLElement | null>(null);
+  const questionsRef = useRef<HTMLElement | null>(null);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<AssessmentAnswers>({});
   const [message, setMessage] = useState("");
@@ -22,6 +24,11 @@ export function AssessmentFlow() {
   const stepComplete = dimension.questions.every((question) => answers[question.id]);
 
   const progress = useMemo(() => Math.round((answeredCount / 42) * 100), [answeredCount]);
+
+  useEffect(() => {
+    questionsRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    flowRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [step]);
 
   function setAnswer(questionId: string, value: number) {
     setAnswers((current) => ({ ...current, [questionId]: value }));
@@ -66,7 +73,7 @@ export function AssessmentFlow() {
   }
 
   return (
-    <section className="assessment-flow">
+    <section className="assessment-flow" ref={flowRef}>
       <header className="assessment-flow__header">
         <div className="assessment-flow__eyebrow">Assessment · Step {step + 1} / 6</div>
         <h1>{dimension.name}</h1>
@@ -91,7 +98,7 @@ export function AssessmentFlow() {
         <span>← 左：完全不符</span><i>·</i><span>右：完全符合 →</span>
       </div>
 
-      <section className="assessment-flow__questions">
+      <section className="assessment-flow__questions" ref={questionsRef}>
           {dimension.questions.map((question, index) => (
             <article key={question.id} className="assessment-flow__question">
               <div className="assessment-flow__question-copy">

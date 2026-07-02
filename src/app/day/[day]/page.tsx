@@ -48,7 +48,7 @@ export default async function DayPage({ params }: PageProps) {
   const hasSecondTheaterChoices = documentContent.awakeningTheater.secondChoices.length > 0;
 
   return (
-    <AuthGate requireMember={requiresMembershipForDay(day.day)}>
+    <AuthGate day={day.day} requireMember={requiresMembershipForDay(day.day)}>
     <DayAccessGuard day={day.day}>
     <main className="viewport botanical-page">
       <section className="paper-frame day-page">

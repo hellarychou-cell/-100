@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { resolveLoginEmail } from "../src/lib/login-identity.ts";
 import { buildPhoneAuthIdentity, validateLocalRegistrationIdentity } from "../src/lib/phone-auth.ts";
 
 test("builds a stable internal email from a Chinese phone number", () => {
@@ -38,4 +39,25 @@ test("local fallback blocks binding the same email to another phone", () => {
     ),
     { ok: false, message: "这个邮箱已经注册过了，请直接登录。" },
   );
+});
+
+test("resolves an email login identifier directly", async () => {
+  const result = await resolveLoginEmail(" User@Example.COM ", async () => null);
+  assert.deepEqual(result, { ok: true, email: "user@example.com" });
+});
+
+test("resolves a phone login identifier through the bound profile email", async () => {
+  const result = await resolveLoginEmail("+86 139 0000 9999", async (storedPhone) => {
+    assert.equal(storedPhone, "13900009999");
+    return "owner@example.com";
+  });
+  assert.deepEqual(result, { ok: true, email: "owner@example.com" });
+});
+
+test("returns a friendly login failure when phone is not bound", async () => {
+  const result = await resolveLoginEmail("13900009999", async () => null);
+  assert.deepEqual(result, {
+    ok: false,
+    message: "没有找到这个手机号绑定的账号，请确认手机号或改用注册邮箱登录。",
+  });
 });

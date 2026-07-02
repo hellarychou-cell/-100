@@ -43,15 +43,17 @@ export function AssessmentReportView({
     return {
       id: dimension.id,
       interpretation: getDimensionInterpretation(dimension.id, score.index),
+      innerMonologue: dimension.innerMonologue,
+      motherTheme: dimension.motherTheme,
       name: dimension.name,
-      score: score.raw,
+      score: score.index,
       index: score.index,
     };
   });
 
   const name = profile.name || "她";
   const reportId = `BLC-${formatDateId(createdAt)}-${Math.abs(result.rawTotal * 37 + Math.round(result.totalScore100)).toString(36).toUpperCase()}`;
-  const summary = getReportSummary(result.rawTotal);
+  const summary = getReportSummary(result.totalScore100);
   const modeInsight = getModeInsight(result.primaryMode);
   const { top, low } = getTopAndLowDimensions(dimensionRows);
   const dimensionPresentation: Record<DimensionId, { symbol: string; tone: string }> = {
@@ -103,8 +105,8 @@ export function AssessmentReportView({
                   </button>
                 </div>
                 <div className="flex items-end gap-2">
-                  <strong className="text-[78px] font-normal leading-none">{result.rawTotal}</strong>
-                  <span className="pb-2 sans text-sm text-[var(--muted)]">/ 180</span>
+                  <strong className="text-[78px] font-normal leading-none">{result.totalScore100}</strong>
+                  <span className="pb-2 sans text-sm text-[var(--muted)]">/ 100</span>
                 </div>
               </div>
               <ReportRadar data={dimensionRows.map((row) => ({ name: row.name.slice(0, 2), value: row.index }))} showHelp={false} />
@@ -119,7 +121,13 @@ export function AssessmentReportView({
 
           <section className="assessment-report__insight">
             <div className="eyebrow">核心洞察</div>
-            <p className="m-0 text-sm leading-[1.85] text-[#563a2e]">{summary.bottomCode}</p>
+            <details className="assessment-report__insight-toggle">
+              <summary aria-label="展开核心洞察">
+                <p className="assessment-report__insight-teaser">{summary.bottomCode}</p>
+                <span aria-hidden>...</span>
+              </summary>
+              <p className="assessment-report__insight-full">{summary.bottomCode}</p>
+            </details>
             {summary.likelyPatterns ? (
               <ul className="m-0 grid gap-2 p-0">
                 {summary.likelyPatterns.map((pattern) => (
@@ -153,8 +161,11 @@ export function AssessmentReportView({
                           </span>
                           {dimension.name}
                         </strong>
-                        <span className="sans text-xs text-clay">{dimension.score}/35 · {dimension.interpretation.title}</span>
+                        <span className="sans text-xs text-clay">{dimension.score}/100 · {dimension.interpretation.title}</span>
                       </div>
+                      <p className="m-0 sans text-[10px] leading-snug text-[var(--muted)]">
+                        {dimension.motherTheme} · {dimension.innerMonologue}
+                      </p>
                       <div className="assessment-report__dimension-track">
                         <i style={{ width: `${dimension.index}%` }} />
                       </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
-import { LOCAL_PROGRESS_KEY } from "@/lib/auth";
+import { LOCAL_PROGRESS_KEY, LOCAL_RESULT_KEY } from "@/lib/auth";
 import { getClickDrivenCurrentDay, isDayUnlocked } from "@/lib/progress";
 import { supabase } from "@/lib/supabase";
 
@@ -56,6 +56,25 @@ export function DayAccessGuard({ children, day }: DayAccessGuardProps) {
               .maybeSingle();
             if (fallback) next = getAccessSnapshot(day, fallback as ProgressLike);
           }
+          if (!next.unlocked) {
+            const recommendedDay = await getRecommendedDaySnapshot(userData.user.id);
+            if (day <= recommendedDay) {
+              next = {
+                currentDay: Math.max(next.currentDay, recommendedDay),
+                unlocked: true,
+              };
+            }
+          }
+        }
+      }
+
+      if (!next.unlocked) {
+        const recommendedDay = readLocalRecommendedDay();
+        if (day <= recommendedDay) {
+          next = {
+            currentDay: Math.max(next.currentDay, recommendedDay),
+            unlocked: true,
+          };
         }
       }
 
@@ -128,5 +147,29 @@ function readLocalProgress() {
   } catch {
     window.localStorage.removeItem(LOCAL_PROGRESS_KEY);
     return null;
+  }
+}
+
+async function getRecommendedDaySnapshot(userId: string) {
+  if (!supabase) return 1;
+  const { data } = await supabase
+    .from("assessments")
+    .select("recommended_day")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return typeof data?.recommended_day === "number" ? data.recommended_day : 1;
+}
+
+function readLocalRecommendedDay() {
+  if (typeof window === "undefined") return 1;
+  const raw = window.localStorage.getItem(LOCAL_RESULT_KEY);
+  if (!raw) return 1;
+  try {
+    const parsed = JSON.parse(raw) as { result?: { recommendedDay?: number } };
+    return typeof parsed.result?.recommendedDay === "number" ? parsed.result.recommendedDay : 1;
+  } catch {
+    return 1;
   }
 }

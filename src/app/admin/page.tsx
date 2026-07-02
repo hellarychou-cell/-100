@@ -111,27 +111,14 @@ export default function AdminPage() {
     setDeleteConfirm(userId);
   }
 
-  async function handleExtend(userId: string) {
+  async function handleActivate(userId: string) {
     setActionLoading(userId);
     setActionError("");
     try {
-      const data = await postAdminAction(`/api/admin/users/${userId}/extend`);
-      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, expires: data.expires_at } : u));
+      const data = await postAdminAction(`/api/admin/users/${userId}/activate`);
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, expires: data.expires_at, aiPaused: false } : u));
     } catch (e) {
-      console.error("Failed to extend", e);
-      setActionError(e instanceof Error ? e.message : "操作失败，请稍后再试。");
-    }
-    finally { setActionLoading(null); }
-  }
-
-  async function handleReduce(userId: string) {
-    setActionLoading(userId);
-    setActionError("");
-    try {
-      const data = await postAdminAction(`/api/admin/users/${userId}/reduce`);
-      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, expires: data.expires_at } : u));
-    } catch (e) {
-      console.error("Failed to reduce", e);
+      console.error("Failed to activate", e);
       setActionError(e instanceof Error ? e.message : "操作失败，请稍后再试。");
     }
     finally { setActionLoading(null); }
@@ -253,8 +240,7 @@ export default function AdminPage() {
                           user={user}
                           actionLoading={actionLoading}
                           formatExpires={formatExpires}
-                          onExtend={handleExtend}
-                          onReduce={handleReduce}
+                          onActivate={handleActivate}
                           onPause={handlePause}
                           onViewProfile={() => setProfileViewUser(user)}
                           onDelete={() => requestDelete(user.id)}
@@ -321,8 +307,7 @@ function AdminUserActionCard({
   user,
   actionLoading,
   formatExpires,
-  onExtend,
-  onReduce,
+  onActivate,
   onPause,
   onViewProfile,
   onDelete,
@@ -330,8 +315,7 @@ function AdminUserActionCard({
   user: AdminUser;
   actionLoading: string | null;
   formatExpires: (expires: string | null) => string;
-  onExtend: (userId: string) => void;
-  onReduce: (userId: string) => void;
+  onActivate: (userId: string) => void;
   onPause: (userId: string) => void;
   onViewProfile: () => void;
   onDelete: () => void;
@@ -358,8 +342,7 @@ function AdminUserActionCard({
         {user.assessment === "已完成" && (
           <Link className="admin-mini-button admin-mini-button--primary" href={`/admin/users/${user.id}`} title="查看测评报告">查看测评报告</Link>
         )}
-        <button className="admin-mini-button" onClick={() => onExtend(user.id)} disabled={actionLoading === user.id} title="加30天">+30天</button>
-        <button className="admin-mini-button" onClick={() => onReduce(user.id)} disabled={actionLoading === user.id} title="减30天">-30天</button>
+        <button className="admin-mini-button" onClick={() => onActivate(user.id)} disabled={actionLoading === user.id} title="开通100天">开通100天</button>
         <button className="admin-mini-button" onClick={() => onPause(user.id)} disabled={actionLoading === user.id || user.aiPaused}>{user.aiPaused ? "已暂停" : "暂停AI"}</button>
         <button
           className="admin-mini-button admin-mini-button--danger"

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { getLocalUser, setLocalUser } from "@/lib/auth";
+import { isEmailLoginIdentifier, normalizeLoginIdentifier } from "@/lib/login-identity";
 import { normalizeEmail } from "@/lib/password-reset";
 import { buildPhoneAuthIdentity, validateLocalRegistrationIdentity } from "@/lib/phone-auth";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -33,10 +34,11 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     setMessage("");
 
     const trimmedPhone = phone.trim();
+    const loginIdentifier = normalizeLoginIdentifier(email);
     const trimmedEmail = normalizeEmail(email);
 
-    if (!password || (isRegister && (!trimmedPhone || !trimmedEmail)) || (!isRegister && !trimmedEmail)) {
-      setMessage(isRegister ? "请填写邮箱、手机号和密码。" : "请填写邮箱和密码。");
+    if (!password || (isRegister && (!trimmedPhone || !trimmedEmail)) || (!isRegister && !loginIdentifier)) {
+      setMessage(isRegister ? "请填写邮箱、手机号和密码。" : "请填写手机号或邮箱和密码。");
       setLoading(false);
       return;
     }
@@ -57,7 +59,6 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
     try {
       const phoneIdentity = isRegister ? buildPhoneAuthIdentity(trimmedPhone) : null;
       const storedPhone = phoneIdentity?.storedPhone ?? "";
-      const signInEmail = trimmedEmail;
 
       if (isSupabaseConfigured && supabase) {
         if (isRegister) {
@@ -74,19 +75,43 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
           if (!res.ok) {
             throw new Error(data.error || "注册失败，请稍后重试。");
           }
-          const { error } = await supabase.auth.signInWithPassword({
+          const { data: signInData, error } = await supabase.auth.signInWithPassword({
             email: trimmedEmail,
             password,
           });
           if (error) throw error;
+          writeLocalShadowUser({
+            email: trimmedEmail,
+            id: signInData.user?.id,
+            phone: storedPhone,
+          });
           setShowSuccess(true);
         } else {
-          const { error } = await supabase.auth.signInWithPassword({ email: signInEmail, password });
-          if (error) {
-            setMessage("用户名或者密码不对。");
+          const resolved = await fetch("/api/auth/resolve-login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: loginIdentifier, password }),
+          });
+          const resolvedData = await resolved.json().catch(() => ({}));
+          if (!resolved.ok || !resolvedData.session) {
+            setMessage(resolvedData.error || "没有找到这个账号，请确认手机号或邮箱。");
             setLoading(false);
             return;
           }
+          const { error } = await supabase.auth.setSession({
+            access_token: String(resolvedData.session.access_token),
+            refresh_token: String(resolvedData.session.refresh_token),
+          });
+          if (error) {
+            setMessage("密码不对，或这个账号不是用当前邮箱/手机号注册的。");
+            setLoading(false);
+            return;
+          }
+          writeLocalShadowUser({
+            email: String(resolvedData.session.user?.email ?? (isEmailLoginIdentifier(loginIdentifier) ? loginIdentifier : "")),
+            id: String(resolvedData.session.user?.id ?? ""),
+            phone: isEmailLoginIdentifier(loginIdentifier) ? "" : buildPhoneAuthIdentity(loginIdentifier).storedPhone,
+          });
           await redirectAfterLogin();
         }
       } else {
@@ -113,8 +138,12 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
           setShowSuccess(true);
         } else {
           const localUser = getLocalUser();
-          if (!localUser || normalizeEmail(localUser.email ?? "") !== trimmedEmail) {
-            setMessage("用户名或者密码不对。");
+          const matchesEmail = localUser?.email && normalizeEmail(localUser.email) === normalizeEmail(loginIdentifier);
+          const matchesPhone = localUser?.phone && !isEmailLoginIdentifier(loginIdentifier)
+            ? buildPhoneAuthIdentity(loginIdentifier).storedPhone === buildPhoneAuthIdentity(localUser.phone).storedPhone
+            : false;
+          if (!localUser || (!matchesEmail && !matchesPhone)) {
+            setMessage("没有找到这个账号，请确认手机号或邮箱。");
             setLoading(false);
             return;
           }
@@ -126,7 +155,7 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
       if (isRegister && msg.includes("already")) {
         setMessage("该手机号已注册，请直接登录。");
       } else if (!isRegister && msg.includes("Invalid")) {
-        setMessage("用户名或者密码不对。");
+        setMessage("密码不对，或这个账号不是用当前邮箱/手机号注册的。");
       } else {
         setMessage(msg || "操作失败，请稍后重试。");
       }
@@ -208,9 +237,9 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
 
         <div className="grid gap-3">
           <Field
-            label={isRegister ? "邮箱" : "邮箱"}
+            label={isRegister ? "邮箱" : "手机号 / 邮箱"}
             name="email"
-            placeholder={isRegister ? "用于找回密码" : "请输入注册邮箱"}
+            placeholder={isRegister ? "用于找回密码" : "请输入手机号或注册邮箱"}
             value={email}
             onChange={setEmail}
           />
@@ -260,6 +289,24 @@ export function AuthForm({ mode: initialMode }: { mode: FormMode }) {
       </form>
     </>
   );
+}
+
+function writeLocalShadowUser({
+  email,
+  id,
+  phone,
+}: {
+  email?: string;
+  id?: string;
+  phone?: string;
+}) {
+  setLocalUser({
+    id: id || `shadow-${phone || email || Date.now()}`,
+    phone: phone ?? "",
+    email,
+    displayName: "她",
+    isMember: false,
+  });
 }
 
 function Field({

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
-import { getLocalUser, isMembershipActive, LocalUser } from "@/lib/auth";
+import { getLocalUser, isMembershipActive, LocalUser, LOCAL_RESULT_KEY } from "@/lib/auth";
+import { requiresMembershipForDay } from "@/lib/progress";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type GateState =
@@ -11,7 +12,15 @@ type GateState =
   | { status: "inactive"; userName: string }
   | { status: "active"; userName: string };
 
-export function AuthGate({ children, requireMember = true }: { children: ReactNode; requireMember?: boolean }) {
+export function AuthGate({
+  children,
+  day,
+  requireMember = true,
+}: {
+  children: ReactNode;
+  day?: number;
+  requireMember?: boolean;
+}) {
   const [state, setState] = useState<GateState>({ status: "loading" });
 
   useEffect(() => {
@@ -22,12 +31,16 @@ export function AuthGate({ children, requireMember = true }: { children: ReactNo
         const { data } = await supabase.auth.getUser();
         const user = data.user;
         if (!user) {
-          if (!cancelled) setState({ status: "signed-out" });
+          if (!cancelled) setState(fallbackLocalUser({ day, requireMember }));
           return;
         }
 
         const displayName = String(user.user_metadata?.display_name ?? user.phone ?? "她");
-        if (!requireMember) {
+        const effectiveRequireMember = day
+          ? requiresMembershipForDay(day, await getSupabaseRecommendedDay(user.id))
+          : requireMember;
+
+        if (!effectiveRequireMember) {
           if (!cancelled) setState({ status: "active", userName: displayName });
           return;
         }
@@ -57,7 +70,9 @@ export function AuthGate({ children, requireMember = true }: { children: ReactNo
       }
 
       if (!cancelled) {
-        setState(localUser.isMember ? activeLocal(localUser) : { status: "inactive", userName: localUser.displayName });
+        const freeThroughDay = getLocalRecommendedDay();
+        const effectiveRequireMember = day ? requiresMembershipForDay(day, freeThroughDay) : requireMember;
+        setState(!effectiveRequireMember || localUser.isMember ? activeLocal(localUser) : { status: "inactive", userName: localUser.displayName });
       }
     }
 
@@ -65,7 +80,7 @@ export function AuthGate({ children, requireMember = true }: { children: ReactNo
     return () => {
       cancelled = true;
     };
-  }, [requireMember]);
+  }, [day, requireMember]);
 
   if (state.status === "loading") {
     return <GateNotice title="正在打开你的100天" text="稍等一下，正在确认登录和会员状态。" />;
@@ -96,6 +111,45 @@ export function AuthGate({ children, requireMember = true }: { children: ReactNo
 
 function activeLocal(user: LocalUser): GateState {
   return { status: "active", userName: user.displayName };
+}
+
+function fallbackLocalUser({
+  day,
+  requireMember,
+}: {
+  day?: number;
+  requireMember: boolean;
+}): GateState {
+  const localUser = getLocalUser();
+  if (!localUser) return { status: "signed-out" };
+
+  const effectiveRequireMember = day ? requiresMembershipForDay(day, getLocalRecommendedDay()) : requireMember;
+  if (!effectiveRequireMember || localUser.isMember) return activeLocal(localUser);
+  return { status: "inactive", userName: localUser.displayName };
+}
+
+async function getSupabaseRecommendedDay(userId: string) {
+  if (!supabase) return 1;
+  const { data } = await supabase
+    .from("assessments")
+    .select("recommended_day")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return typeof data?.recommended_day === "number" ? data.recommended_day : 1;
+}
+
+function getLocalRecommendedDay() {
+  if (typeof window === "undefined") return 1;
+  const raw = window.localStorage.getItem(LOCAL_RESULT_KEY);
+  if (!raw) return 1;
+  try {
+    const parsed = JSON.parse(raw) as { result?: { recommendedDay?: number } };
+    return typeof parsed.result?.recommendedDay === "number" ? parsed.result.recommendedDay : 1;
+  } catch {
+    return 1;
+  }
 }
 
 function GateNotice({ title, text, action }: { title: string; text: string; action?: ReactNode }) {

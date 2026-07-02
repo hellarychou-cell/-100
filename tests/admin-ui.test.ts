@@ -6,6 +6,7 @@ const adminPageSource = readFileSync(new URL("../src/app/admin/page.tsx", import
 const adminDeleteRouteSource = readFileSync(new URL("../src/app/api/admin/users/[userId]/delete/route.ts", import.meta.url), "utf8");
 const adminUsersRouteSource = readFileSync(new URL("../src/app/api/admin/users/route.ts", import.meta.url), "utf8");
 const adminSupabaseSource = readFileSync(new URL("../src/lib/admin-supabase.ts", import.meta.url), "utf8");
+const adminPauseRouteSource = readFileSync(new URL("../src/app/api/admin/users/[userId]/pause/route.ts", import.meta.url), "utf8");
 
 test("admin user list has search and a scrollable overview", () => {
   assert.match(adminPageSource, /placeholder="搜索姓名、手机号、测评状态或 Day"/);
@@ -41,6 +42,21 @@ test("admin actions surface failed API messages", () => {
   assert.match(adminPageSource, /admin-action-error/);
 });
 
+test("admin membership action is a 100-day buyout instead of 30-day adjustments", () => {
+  assert.match(adminPageSource, /开通100天/);
+  assert.match(adminPageSource, /\/api\/admin\/users\/\$\{userId\}\/activate/);
+  assert.doesNotMatch(adminPageSource, /\+30天/);
+  assert.doesNotMatch(adminPageSource, /-30天/);
+  assert.doesNotMatch(adminPageSource, /\/extend/);
+  assert.doesNotMatch(adminPageSource, /\/reduce/);
+});
+
+test("pausing AI does not create a 30-day membership record", () => {
+  assert.match(adminPauseRouteSource, /请先开通100天/);
+  assert.doesNotMatch(adminPauseRouteSource, /30 \* 86400000/);
+  assert.doesNotMatch(adminPauseRouteSource, /\.insert\(/);
+});
+
 test("admin delete opens local confirmation before any API request", () => {
   const requestDeleteIndex = adminPageSource.indexOf("function requestDelete");
   const handleDeleteIndex = adminPageSource.indexOf("async function handleDelete");
@@ -53,7 +69,7 @@ test("admin delete opens local confirmation before any API request", () => {
   assert.match(adminPageSource, /admin-delete-confirm/);
   const requestDeleteSource = adminPageSource.slice(
     requestDeleteIndex,
-    adminPageSource.indexOf("async function handleExtend", requestDeleteIndex),
+    adminPageSource.indexOf("async function handleActivate", requestDeleteIndex),
   );
   assert.doesNotMatch(
     requestDeleteSource,

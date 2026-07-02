@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { getDayDocumentContent } from "../src/lib/day-document.ts";
 import { mysteryCards } from "../src/lib/mystery-cards.ts";
+
+const dayAccessGuardSource = readFileSync("src/components/DayAccessGuard.tsx", "utf8");
 
 test("Day 1-7 all have complete story content from the Day document", async () => {
   for (const day of [1, 2, 3, 4, 5, 6, 7]) {
@@ -42,4 +45,10 @@ test("Day 1-7 mystery cards follow the latest week document", () => {
     assert.match(card.front.name, frontName);
     assert.match(card.back.title, backTitle);
   }
+});
+
+test("day access guard can unlock the recommended assessment day before remote progress catches up", () => {
+  assert.match(dayAccessGuardSource, /getRecommendedDaySnapshot/);
+  assert.match(dayAccessGuardSource, /recommended_day/);
+  assert.match(dayAccessGuardSource, /Math\.max\(next\.currentDay, recommendedDay\)/);
 });

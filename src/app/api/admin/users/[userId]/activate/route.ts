@@ -1,18 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminSupabaseClient } from "@/lib/admin-supabase";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BUYOUT_DAYS = 100;
 
 type RouteContext = { params: Promise<{ userId: string }> };
 
 export async function POST(_req: NextRequest, context: RouteContext) {
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  const { supabase, error: configError } = createAdminSupabaseClient();
+  if (!supabase) {
+    return NextResponse.json({ error: configError }, { status: 500 });
   }
 
   const { userId } = await context.params;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const { data: latest, error: latestError } = await supabase
     .from("memberships")
     .select("id, expires_at")
@@ -24,15 +23,12 @@ export async function POST(_req: NextRequest, context: RouteContext) {
   if (latestError) {
     return NextResponse.json({ error: latestError.message }, { status: 500 });
   }
-  if (!latest) {
-    return NextResponse.json({ error: "该用户还没有会员记录。" }, { status: 404 });
-  }
 
-  const expiresAt = new Date(new Date(latest.expires_at).getTime() - 30 * 86400000).toISOString();
-  const { error } = await supabase
-    .from("memberships")
-    .update({ expires_at: expiresAt })
-    .eq("id", latest.id);
+  const expiresAt = new Date(Date.now() + BUYOUT_DAYS * 86400000).toISOString();
+  const query = latest
+    ? supabase.from("memberships").update({ expires_at: expiresAt, ai_paused: false }).eq("id", latest.id)
+    : supabase.from("memberships").insert({ user_id: userId, expires_at: expiresAt, ai_paused: false });
+  const { error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

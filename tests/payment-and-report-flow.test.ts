@@ -13,6 +13,22 @@ test("assessment report uses the real booking QR image", () => {
   assert.match(reportView, /扫码预约解读/);
 });
 
+test("assessment report displays the normalized 100-point score", () => {
+  const reportView = read("src/components/AssessmentReportView.tsx");
+
+  assert.match(reportView, /result\.totalScore100/);
+  assert.match(reportView, />\/ 100</);
+  assert.doesNotMatch(reportView, /\/ 180/);
+});
+
+test("assessment core insight has a compact expandable teaser", () => {
+  const reportView = read("src/components/AssessmentReportView.tsx");
+
+  assert.match(reportView, /assessment-report__insight-toggle/);
+  assert.match(reportView, /summary\.bottomCode/);
+  assert.match(reportView, /\.\.\./);
+});
+
 test("paid member gate tells users how to contact the admin", () => {
   const gate = read("src/components/AuthGate.tsx");
 

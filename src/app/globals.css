@@ -1663,6 +1663,14 @@ textarea {
 .assessment-report__insight .eyebrow { font-size: 9px; letter-spacing: 0; }
 .assessment-report__insight p,
 .assessment-report__insight li { font-size: 9px; line-height: 1.55; }
+.assessment-report__insight-toggle summary { position: relative; display: block; cursor: pointer; list-style: none; }
+.assessment-report__insight-toggle summary::-webkit-details-marker { display: none; }
+.assessment-report__insight-teaser { display: -webkit-box; margin: 0; overflow: hidden; color: #563a2e; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+.assessment-report__insight-toggle summary span { position: absolute; right: 0; bottom: -1px; color: rgba(110,90,75,.58); font-size: 12px; letter-spacing: 1px; }
+.assessment-report__insight-full { display: none; margin: 8px 0 0; color: #563a2e; }
+.assessment-report__insight-toggle[open] .assessment-report__insight-teaser,
+.assessment-report__insight-toggle[open] summary span { display: none; }
+.assessment-report__insight-toggle[open] .assessment-report__insight-full { display: block; }
 .assessment-report__details { display: grid; gap: 10px; }
 .assessment-report__dimensions { display: grid; gap: 6px; }
 .assessment-report__dimensions > div:first-child { padding-bottom: 5px; }

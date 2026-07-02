@@ -164,7 +164,7 @@ export function AIDayClient({
 
   if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 100) {
     return (
-      <AuthGate requireMember={requiresMembershipForDay(dayNum)}>
+      <AuthGate day={dayNum} requireMember={requiresMembershipForDay(dayNum)}>
         <main className="viewport grid place-items-center">
           <p className="text-clay">加载中……</p>
         </main>
@@ -173,7 +173,7 @@ export function AIDayClient({
   }
 
   return (
-    <AuthGate requireMember={requiresMembershipForDay(dayNum)}>
+    <AuthGate day={dayNum} requireMember={requiresMembershipForDay(dayNum)}>
       <main className="viewport botanical-page">
         <section className="paper-frame ai-chat">
           <MobileTopBar

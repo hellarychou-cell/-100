@@ -107,8 +107,8 @@ export function getCollapsedProgressDays<T extends { day: number }>(days: T[], c
   return days.filter((item) => item.day >= 1 && item.day <= 7);
 }
 
-export function requiresMembershipForDay(day: number) {
-  return getReadableCurrentDay(day) > 1;
+export function requiresMembershipForDay(day: number, freeThroughDay = 1) {
+  return getReadableCurrentDay(day) > getReadableCurrentDay(freeThroughDay);
 }
 
 function isDateOnly(value: string) {

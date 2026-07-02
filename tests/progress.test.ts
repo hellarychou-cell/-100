@@ -127,3 +127,11 @@ test("keeps day one free and requires membership from day two", () => {
   assert.equal(requiresMembershipForDay(2), true);
   assert.equal(requiresMembershipForDay(100), true);
 });
+
+test("recommended-day entry keeps prior content free for the first experience", () => {
+  assert.equal(requiresMembershipForDay(1, 7), false);
+  assert.equal(requiresMembershipForDay(7, 7), false);
+  assert.equal(requiresMembershipForDay(8, 7), true);
+  assert.equal(requiresMembershipForDay(20, 20), false);
+  assert.equal(requiresMembershipForDay(21, 20), true);
+});
